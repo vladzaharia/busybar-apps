@@ -263,6 +263,69 @@ function burst(r: Raster, p: number, seed: number) {
   r.glow(36, 8, 26 * (1 - p) + 6, 8 * (1 - p) + 2, { ...WHITE, a: 1 - p }, 1.2);
 }
 
+/** Draws `src` squashed vertically about the centre line (sy 1 = untouched, 0 = a line). */
+function squashed(r: Raster, src: Raster, sy: number) {
+  for (let y = 0; y < 16; y++) {
+    const from = Math.round(8 + (y + 0.5 - 8) / Math.max(0.01, sy) - 0.5);
+    if (from < 0 || from >= 16) continue;
+    for (let x = 0; x < 72; x++) {
+      const i = (from * 72 + x) * 4;
+      r.blend(x, y, { r: src.data[i]!, g: src.data[i + 1]!, b: src.data[i + 2]!, a: 1 }, 1);
+    }
+  }
+}
+
+/** B's opening: the clock squashes into a line of light that bursts into hyperspace streaks. */
+function burstIntro(r: Raster, t: number, introAt: number) {
+  const squash = span(t, introAt, introAt + 0.22);
+  if (squash < 1) {
+    squashed(r, clockFrame(t), 1 - inCubic(squash));
+    r.glow(36, 8, 40, 1.6 + squash * 2, { ...JIRA.b300, a: squash }, 1.5);
+  }
+  const bp = span(t, introAt + 0.18, introAt + 0.8);
+  if (bp > 0 && bp < 1) burst(r, bp, 3);
+}
+
+/** B's ending: everything pinches into a blue point that fades, and the clock unsquashes back. */
+function collapseOutro(r: Raster, t: number, outroAt: number, doneAt: number) {
+  const p = span(t, outroAt, doneAt);
+  const w = lerp(72, 0, inExpo(span(p, 0.1, 0.6)));
+  if (w > 0.5) r.fillRect((72 - w) / 2, 7.5, w, 1, mix(JIRA.b300, WHITE, p));
+  r.glow(36, 8, lerp(30, 3, p), lerp(3, 1, p), { ...JIRA.b300, a: Math.sin(Math.PI * Math.min(1, p * 1.3)) }, 1.4);
+  if (t >= doneAt - 0.15) squashed(r, clockFrame(t), outCubic(span(t, doneAt - 0.15, doneAt + 0.15)));
+}
+
+/** The mark's resting place in B and its hybrid. */
+const BURST_LOGO = { x: 0, y: 0, size: 16 };
+
+/**
+ * Chevrons fly out of the burst: from huge and centred to the mark's resting place, one after another, then hop
+ * at each time in `hops`. Includes the flash as each one lands.
+ */
+function flyInMark(r: Raster, t: number, introAt: number, hops: number[]) {
+  const L = BURST_LOGO;
+  const poses: ChevronPose[] = [0, 1, 2].map((i) => {
+    const p = span(t, introAt + 0.4 + i * 0.1, introAt + 0.85 + i * 0.1);
+    const e = outCubic(p);
+    let dy = lerp(8 - (L.y + L.size / 2), 0, e);
+    for (const at of hops) {
+      const hop = span(t, at + i * 0.05, at + 0.35 + i * 0.05);
+      if (hop > 0 && hop < 1) dy -= Math.sin(hop * Math.PI) * 2;
+    }
+    return {
+      dx: lerp(36 - (L.x + L.size / 2), 0, e),
+      dy,
+      scale: p >= 1 ? 1 : lerp(5, 1, e),
+      alpha: p > 0 ? Math.min(1, p * 3) : 0,
+    };
+  });
+  jiraMark(r, L.x, L.y, L.size, { poses, contrast: 3 });
+  for (let i = 0; i < 3; i++) {
+    const land = span(t, introAt + 0.85 + i * 0.1, introAt + 1.1 + i * 0.1);
+    if (land > 0 && land < 1) r.glow(L.x + 8, L.y + 8, 10, 7, { ...JIRA.b200, a: 0.8 * (1 - land) }, 2);
+  }
+}
+
 function optionBurst(): Demo {
   const introAt = CLOCK_LEAD;
   const beatsAt = introAt + 1.05;
@@ -277,76 +340,18 @@ function optionBurst(): Demo {
     if (t < introAt) return clockFrame(t);
     const r = new Raster(72, 16).clear(BLACK);
 
-    // Clock squashes into a line of light (the stock turn-off flare, in reverse colours)…
-    const squash = span(t, introAt, introAt + 0.22);
-    if (squash < 1) {
-      const c = clockFrame(t);
-      const sy = 1 - inCubic(squash);
-      for (let y = 0; y < 16; y++) {
-        const src = Math.round(8 + (y + 0.5 - 8) / Math.max(0.01, sy) - 0.5);
-        if (src < 0 || src >= 16) continue;
-        for (let x = 0; x < 72; x++) {
-          const i = (src * 72 + x) * 4;
-          r.blend(x, y, { r: c.data[i]!, g: c.data[i + 1]!, b: c.data[i + 2]!, a: 1 }, 1);
-        }
-      }
-      r.glow(36, 8, 40, 1.6 + squash * 2, { ...JIRA.b300, a: squash }, 1.5);
-    }
-    // …that bursts into hyperspace streaks.
-    const bp = span(t, introAt + 0.18, introAt + 0.8);
-    if (bp > 0 && bp < 1) burst(r, bp, 3);
+    burstIntro(r, t, introAt);
 
     const bgIn = span(t, introAt + 0.5, introAt + 1.2);
     const bgOut = span(t, outroAt, outroAt + 0.25);
     if (bgIn > 0) drawParticles(r, ps, t, bgIn * (1 - bgOut));
 
     if (t >= outroAt) {
-      // Collapse: everything pinches into a blue point that fades, the clock unsquashes back.
-      const p = span(t, outroAt, doneAt);
-      const w = lerp(72, 0, inExpo(span(p, 0.1, 0.6)));
-      if (w > 0.5) r.fillRect((72 - w) / 2, 7.5, w, 1, mix(JIRA.b300, WHITE, p));
-      r.glow(36, 8, lerp(30, 3, p), lerp(3, 1, p), { ...JIRA.b300, a: Math.sin(Math.PI * Math.min(1, p * 1.3)) }, 1.4);
-      if (t >= doneAt - 0.15) {
-        const back = span(t, doneAt - 0.15, doneAt + 0.15);
-        const c = clockFrame(t);
-        const sy = Math.max(0.01, outCubic(back));
-        for (let y = 0; y < 16; y++) {
-          const src = Math.round(8 + (y + 0.5 - 8) / sy - 0.5);
-          if (src < 0 || src >= 16) continue;
-          for (let x = 0; x < 72; x++) {
-            const i = (src * 72 + x) * 4;
-            r.blend(x, y, { r: c.data[i]!, g: c.data[i + 1]!, b: c.data[i + 2]!, a: 1 }, 1);
-          }
-        }
-      }
+      collapseOutro(r, t, outroAt, doneAt);
       return r;
     }
 
-    // Chevrons fly out of the burst: from huge and centred to the mark's resting place, one after another.
-    const LOGO = { x: 1, y: 0.5, size: 15 };
-    const poses: ChevronPose[] = [0, 1, 2].map((i) => {
-      const p = span(t, introAt + 0.4 + i * 0.1, introAt + 0.85 + i * 0.1);
-      const e = outCubic(p);
-      const fromX = 36 - (LOGO.x + LOGO.size / 2);
-      const fromY = 8 - (LOGO.y + LOGO.size / 2);
-      let dy = lerp(fromY, 0, e);
-      for (const s of slots) {
-        if (!s.beat.accent) continue;
-        const hop = span(t, s.start + i * 0.05, s.start + 0.35 + i * 0.05);
-        if (hop > 0 && hop < 1) dy -= Math.sin(hop * Math.PI) * 2;
-      }
-      return {
-        dx: lerp(fromX, 0, e),
-        dy,
-        scale: lerp(5, 1, e),
-        alpha: p > 0 ? Math.min(1, p * 3) : 0,
-      };
-    });
-    jiraMark(r, LOGO.x, LOGO.y, LOGO.size, { poses, contrast: 3 });
-    for (let i = 0; i < 3; i++) {
-      const land = span(t, introAt + 0.85 + i * 0.1, introAt + 1.1 + i * 0.1);
-      if (land > 0 && land < 1) r.glow(LOGO.x + 8, LOGO.y + 8, 10, 7, { ...JIRA.b200, a: 0.8 * (1 - land) }, 2);
-    }
+    flyInMark(r, t, introAt, slots.filter((sl) => sl.beat.accent).map((sl) => sl.start));
 
     // Beats: letters drop in with a bounce, then fall away; accents flash.
     for (const [i, s] of slots.entries()) {
@@ -452,7 +457,7 @@ function optionTicker(): Demo {
       const w = 0.5 + 0.5 * Math.sin(t * 4 - i * 0.9);
       return mix([hex("#4C9AFF"), hex("#2684FF"), hex("#0065FF")][i]!, hex("#B3D4FF"), w * 0.45);
     });
-    jiraMark(r, 0, 0.5, 15, { tones });
+    jiraMark(r, 0, 0, 16, { tones });
 
     const off = scroll(t);
     const typed = (t - typeAt) * CPS;
@@ -525,6 +530,94 @@ function optionTicker(): Demo {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
+// E — "Burst Ticker": B's motion with C's ticker. The burst opening and chevron fly-in, then one smooth marquee:
+// no typing; each letter drops in with B's bounce as it slides in from the right edge, over drifting particles.
+
+function optionBurstTicker(): Demo {
+  const introAt = CLOCK_LEAD;
+  const text = "DID YOU FILE A JIRA TICKET YET???";
+  const f = font("extra_large");
+  const advances = [...text].map((ch) => f.glyph(ch.codePointAt(0)!)!.advance);
+  const offsets = advances.map((_, i) => advances.slice(0, i).reduce((a, b) => a + b, 0));
+  const total = offsets[offsets.length - 1]! + advances[advances.length - 1]!;
+  const jiraAt = text.indexOf("JIRA");
+  const yetAt = text.indexOf("YET");
+  const TEXT_X0 = 18;
+  // The line starts just off the right edge and eases to a stop with "YET???" centred beside the mark.
+  const startX = 72;
+  const yetW = total - offsets[yetAt]!;
+  const endX = TEXT_X0 + (72 - TEXT_X0 - yetW) / 2 - offsets[yetAt]!;
+  const scrollAt = introAt + 0.95;
+  const scrollEnd = scrollAt + 6.6;
+  const outroAt = scrollEnd + 1.5;
+  const doneAt = outroAt + 0.7;
+  const duration = doneAt + CLOCK_TAIL;
+  const ps = particles(7, 34);
+  /** Mostly constant speed, with gentle starts and stops. */
+  const travel = (p: number) => 0.55 * p + 0.45 * inOutCubic(p);
+  const stripX = (t: number) => lerp(startX, endX, travel(span(t, scrollAt, scrollEnd)));
+
+  /** When a glyph crosses the right edge (for its drop-in), found by stepping the scroll. */
+  const entered = offsets.map((off) => {
+    for (let tt = scrollAt; tt <= scrollEnd; tt += 1 / 120) if (stripX(tt) + off < 72 - 2) return tt;
+    return scrollEnd;
+  });
+  const jiraLands = entered[jiraAt]! + 0.35;
+
+  function frame(t: number): Raster {
+    if (t < introAt) return clockFrame(t);
+    const r = new Raster(72, 16).clear(BLACK);
+    burstIntro(r, t, introAt);
+    const bgIn = span(t, introAt + 0.5, introAt + 1.2);
+    const bgOut = span(t, outroAt, outroAt + 0.25);
+    if (bgIn > 0) drawParticles(r, ps, t, bgIn * (1 - bgOut));
+    if (t >= outroAt) {
+      collapseOutro(r, t, outroAt, doneAt);
+      return r;
+    }
+
+    flyInMark(r, t, introAt, [jiraLands, scrollEnd]);
+
+    const base = stripX(t);
+    r.clip = { x0: TEXT_X0 - 1, y0: 0, x1: 72, y1: 16 };
+    r.text(text, f, Math.round(base), 1, WHITE, (gi, ch) => {
+      const x = base + offsets[gi]!;
+      if (x > 72 || x + advances[gi]! < TEXT_X0 - 6) return { hidden: true };
+      // B's drop-in: each letter falls into the line as it enters.
+      const drop = span(t, entered[gi]!, entered[gi]! + 0.42);
+      let dy = lerp(-14, 0, outBounce(drop));
+      let color = WHITE;
+      if (gi >= jiraAt && gi < jiraAt + 4) color = mix(WHITE, JIRA.b300, 0.55 + 0.45 * Math.sin(t * 6 - gi * 0.7));
+      if (ch === "?") {
+        const k = gi - (yetAt + 3);
+        const pop = span(t, scrollEnd + 0.1 + k * 0.14, scrollEnd + 0.4 + k * 0.14);
+        if (pop > 0 && pop < 1) dy -= Math.sin(pop * Math.PI) * 3;
+        color = mix(JIRA.b300, WHITE, 0.5 + 0.5 * Math.sin(t * 16 + gi));
+      }
+      // Letters fade out as they slide under the mark.
+      const fade = Math.max(0, Math.min(1, (x - TEXT_X0 + 2) / 6));
+      return { dy: Math.round(dy), color, alpha: fade, hidden: drop <= 0 };
+    });
+    r.clip = null;
+    // Accent flashes: behind JIRA as it lands, and behind YET??? when the line stops.
+    for (const [at, cx] of [[jiraLands - 0.2, 0], [scrollEnd, 0]] as const) {
+      const fl = span(t, at, at + 0.45);
+      if (fl > 0 && fl < 1) r.glow(cx || 45, 8, 26, 9, { ...JIRA.b500, a: 0.55 * (1 - fl) }, 2);
+    }
+    return r;
+  }
+
+  return {
+    id: "burst-ticker",
+    name: "E · Burst Ticker",
+    pitch:
+      "B's motion carrying C's ticker. The same burst opening and chevron fly-in, then the whole sentence glides in as one smooth line with no typing: each letter drops into place with a bounce as it enters from the right, JIRA shimmers blue as it passes, and the line eases to a stop on YET??? with the question marks popping.",
+    duration,
+    frame,
+  };
+}
+
+// ---------------------------------------------------------------------------------------------------------------
 // D — "Wild Encounter": a handheld-RPG battle. The clock flashes and stripes away, the Jira mark slides in with an
 // HP box, and the nag plays out in text boxes, typed letter by letter, with a GUILT TRIP attack in the middle.
 
@@ -568,8 +661,8 @@ function hpBox(r: Raster, alpha: number, hp = 1) {
   const small = font("small");
   const tiny = font("tiny");
   const line = { ...hex("#9AA3B2"), a: alpha };
-  r.text("TICKET", small, 2, -1, { ...WHITE, a: alpha });
-  r.text(":L99", small, 30, -1, { ...hex("#C9D2E0"), a: alpha });
+  r.text("ISSUE", small, 2, -1, { ...WHITE, a: alpha });
+  r.text(":L99", small, 26, -1, { ...hex("#C9D2E0"), a: alpha });
   r.text("HP", tiny, 3, 8, { ...hex("#F2C14E"), a: alpha });
   r.fillRect(12, 8, 32, 5, { ...hex("#2A303B"), a: alpha });
   const fill = hp > 0.5 ? hex("#3DDC84") : hp > 0.2 ? hex("#F2C14E") : hex("#F25555");
@@ -588,9 +681,9 @@ function optionEncounter(): Demo {
   const cryEnd = hudEnd + 0.35;
   const CPS = 30;
   const pages = [
-    { lines: ["A wild JIRA", "TICKET appeared!"], hold: 0.8 },
+    { lines: ["A wild ISSUE", "appeared!"], hold: 0.8 },
     { lines: ["Did you file a", "JIRA ticket yet???"], hold: 1.3 },
-    { lines: ["TICKET used", "GUILT TRIP!"], hold: 0.45 },
+    { lines: ["ISSUE used", "GUILT TRIP!"], hold: 0.45 },
     { lines: ["It's super", "effective!"], hold: 0.9 },
   ];
   // Page timings, with the attack between pages 3 and 4.
@@ -608,12 +701,12 @@ function optionEncounter(): Demo {
   const outroAt = sched[3]!.end;
   const doneAt = outroAt + 0.55;
   const duration = doneAt + CLOCK_TAIL;
-  const MARK = { x: 55, y: 0, size: 15 };
+  const MARK = { x: 55, y: 0, size: 16 };
 
   function scene(r: Raster, t: number, opts: { hud: number; markDx?: number; hp?: number }) {
     // Grass platform under the mark.
     r.shade((x, y) => {
-      const dx = (x + 0.5 - (MARK.x + 7.5 + (opts.markDx ?? 0) * 0)) / 10;
+      const dx = (x + 0.5 - (MARK.x + 8)) / 10;
       const dy = (y + 0.5 - 14.5) / 1.8;
       return dx * dx + dy * dy <= 1 ? hex("#2F6B45") : null;
     });
@@ -622,7 +715,7 @@ function optionEncounter(): Demo {
     let hop = 0;
     const cry = span(t, hudEnd, cryEnd);
     if (cry > 0 && cry < 1) hop = -Math.abs(Math.sin(cry * Math.PI * 2)) * 2;
-    jiraMark(r, x + (opts.markDx ?? 0), MARK.y + hop, MARK.size, { contrast: 6 });
+    jiraMark(r, x + (opts.markDx ?? 0), MARK.y + hop, MARK.size);
     hpBox(r, opts.hud, opts.hp ?? 1);
   }
 
@@ -698,10 +791,10 @@ function optionEncounter(): Demo {
     id: "encounter",
     name: "D · Wild Encounter",
     pitch:
-      "A handheld-RPG battle. The clock flashes and stripes away, a wild Jira ticket slides in with its own HP bar, and the nag plays out in typed text boxes: 'A wild JIRA TICKET appeared!', 'Did you file a JIRA ticket yet???', then it uses GUILT TRIP. It's super effective.",
+      "A handheld-RPG battle. The clock flashes and stripes away, a wild issue slides in with its own HP bar, and the nag plays out in typed text boxes: 'A wild ISSUE appeared!', 'Did you file a JIRA ticket yet???', then it uses GUILT TRIP. It's super effective.",
     duration,
     frame,
   };
 }
 
-export const FRONT_OPTIONS: Demo[] = [optionSign(), optionBurst(), optionTicker(), optionEncounter()];
+export const FRONT_OPTIONS: Demo[] = [optionSign(), optionBurst(), optionTicker(), optionEncounter(), optionBurstTicker()];

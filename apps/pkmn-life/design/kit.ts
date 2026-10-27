@@ -1,7 +1,7 @@
 // Shared pieces for the design mockups: palette, the Jira mark, the stock-style clock, message beats.
 
 import { fileURLToPath } from "node:url";
-import { Mask, Raster, font, hex, mix, readPng, textWidth, type Color, type FontName } from "@busybar/pixel";
+import { MARK_SPRITES, Mask, Raster, font, hex, mix, readPng, textWidth, type Color, type FontName } from "@busybar/pixel";
 
 export const FPS = 60;
 export const FRONT = { width: 72, height: 16 };
@@ -50,9 +50,23 @@ export function jiraMark(
   opts: { poses?: ChevronPose[]; tones?: Color[]; contrast?: number; mode?: "over" | "add" } = {},
 ): void {
   const tones = opts.tones ?? [hex("#4C9AFF"), hex("#2684FF"), hex("#0065FF")];
+  const sprite = MARK_SPRITES[size];
   // Bottom chevron first: the upper ones overlap it, as in the logo.
   for (let i = 2; i >= 0; i--) {
     const p = opts.poses?.[i] ?? {};
+    // At rest, stamp the hand-drawn sprite so all three chevrons are identical; scale only while zooming.
+    if (sprite && (p.scale ?? 1) === 1) {
+      const color = p.color ?? tones[i]!;
+      const [ox, oy] = sprite.offsets[i]!;
+      const left = Math.round(x + ox + (p.dx ?? 0));
+      const top = Math.round(y + oy + (p.dy ?? 0));
+      sprite.chevron.forEach((row, ry) =>
+        [...row].forEach((c, rx) => {
+          if (c === "#") r.blend(left + rx, top + ry, color, p.alpha ?? 1, opts.mode ?? "over");
+        }),
+      );
+      continue;
+    }
     const s = size * (p.scale ?? 1);
     const cx = x + size / 2 + (p.dx ?? 0);
     const cy = y + size / 2 + (p.dy ?? 0);

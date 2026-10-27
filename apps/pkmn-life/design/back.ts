@@ -60,7 +60,7 @@ export function wrap(text: string, f: Font, width: number): string[] {
 const GREY_TONES = [grey(1), grey(0.8), grey(0.58)];
 
 function header(r: Raster, sel: number) {
-  jiraMark(r, 2, 1, 10, { tones: GREY_TONES });
+  jiraMark(r, 2, 0, 11, { tones: GREY_TONES });
   const small = font("small");
   r.text("PKMN LIFE", small, 15, 1, grey(0.9));
   const idx = `${Math.round(sel) + 1}/${PRESETS.length}`;
