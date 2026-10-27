@@ -1,7 +1,7 @@
 // Shared pieces for the design mockups: palette, the Jira mark, the stock-style clock, message beats.
 
 import { fileURLToPath } from "node:url";
-import { MARK_SPRITES, Mask, Raster, font, hex, mix, readPng, textWidth, type Color, type FontName } from "@busybar/pixel";
+import { MARK_SPRITES, Mask, Raster, font, hex, mix, readPng, textWidth, type Color, type FontName } from "@vladzaharia/bar-pixel";
 
 export const FPS = 60;
 export const FRONT = { width: 72, height: 16 };

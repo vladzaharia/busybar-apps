@@ -6,13 +6,32 @@ settings:
 
 importers:
 
-  .: {}
+  .:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.19.4
+        version: 22.20.5
+      typescript:
+        specifier: ~6.0.3
+        version: 6.0.3
 
   apps/pkmn-life:
     dependencies:
-      '@busybar/pixel':
+      '@vladzaharia/bar-pixel':
         specifier: workspace:*
         version: link:../../packages/pixel
+
+  packages/core:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.19.4
+        version: 22.20.5
+      '@vladzaharia/bar-pixel':
+        specifier: workspace:*
+        version: link:../pixel
+      typescript:
+        specifier: ~6.0.3
+        version: 6.0.3
 
   packages/pixel:
     dependencies:
@@ -26,6 +45,9 @@ importers:
       '@types/pngjs':
         specifier: ^6.0.5
         version: 6.0.5
+      typescript:
+        specifier: ~6.0.3
+        version: 6.0.3
 
 packages:
 
@@ -38,6 +60,11 @@ packages:
   pngjs@7.0.0:
     resolution: {integrity: sha512-LKWqWJRhstyYo9pGvgor/ivk2w94eSjE3RGVuzLGlr3NmD8bf7RcYGze1mNdEHRP6TRP6rMuDHk5t44hnTRyow==}
     engines: {node: '>=14.19.0'}
+
+  typescript@6.0.3:
+    resolution: {integrity: sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw==}
+    engines: {node: '>=14.17'}
+    hasBin: true
 
   undici-types@6.21.0:
     resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
@@ -53,5 +80,7 @@ snapshots:
       '@types/node': 22.20.5
 
   pngjs@7.0.0: {}
+
+  typescript@6.0.3: {}
 
   undici-types@6.21.0: {}

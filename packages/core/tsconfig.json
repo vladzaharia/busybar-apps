@@ -1,0 +1,8 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    /* The device has no DOM; the lib is here for console, fetch and the timers. */
+    "lib": ["es2020", "dom"]
+  },
+  "include": ["src"]
+}

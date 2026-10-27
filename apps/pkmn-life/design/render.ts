@@ -3,7 +3,7 @@
 
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { Raster, sheet, writePng } from "@busybar/pixel";
+import { Raster, sheet, writePng } from "@vladzaharia/bar-pixel";
 import { BACK_OPTIONS } from "./back.ts";
 import { FRONT_OPTIONS } from "./front.ts";
 import { BLACK, FPS, toGray4 } from "./kit.ts";

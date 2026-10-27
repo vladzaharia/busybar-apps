@@ -1,17 +1,22 @@
 {
-  "name": "@busybar/pixel",
+  "name": "@vladzaharia/bar-pixel",
   "private": true,
   "version": "0.1.0",
-  "description": "Build-time pixel toolkit: raster, BUSY Bar device fonts, .anim encoder, previews",
+  "description": "Build-time pixel toolkit: raster, BUSY Bar device fonts, the .anim encoder and decoder, previews",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc",
+    "test": "node --test test/*.test.ts"
   },
   "dependencies": {
     "pngjs": "^7.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.19.4",
-    "@types/pngjs": "^6.0.5"
+    "@types/pngjs": "^6.0.5",
+    "typescript": "~6.0.3"
   }
 }

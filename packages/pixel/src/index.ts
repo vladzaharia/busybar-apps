@@ -4,3 +4,4 @@ export * from "./mask.ts";
 export * from "./png.ts";
 export * from "./raster.ts";
 export * from "./jira.ts";
+export * from "./anim.ts";

@@ -21,7 +21,7 @@ import {
   span,
   textWidth,
   type Color,
-} from "@busybar/pixel";
+} from "@vladzaharia/bar-pixel";
 import { BEATS, BLACK, JIRA, MESSAGE, WHITE, clock, jiraMark, type Beat, type ChevronPose } from "./kit.ts";
 
 export interface Demo {

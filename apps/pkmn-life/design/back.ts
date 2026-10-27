@@ -1,7 +1,7 @@
 // Two directions for the back-display message picker (148×80 drawable, 16 grey levels).
 // Both demos: scroll through presets with the wheel, press START, then the "now showing" state with a countdown.
 
-import { Raster, font, hex, lerp, mix, outBack, outCubic, outQuad, span, textWidth, type Color, type Font } from "@busybar/pixel";
+import { Raster, font, hex, lerp, mix, outBack, outCubic, outQuad, span, textWidth, type Color, type Font } from "@vladzaharia/bar-pixel";
 import { BLACK, MOVES, PRESETS, WHITE, jiraMark } from "./kit.ts";
 import type { Demo } from "./front.ts";
 

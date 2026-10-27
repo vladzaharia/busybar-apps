@@ -1,0 +1,20 @@
+{
+  "name": "@vladzaharia/bar-core",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Runtime library for on-device BUSY Bar JavaScript apps: device API client, input, timers, settings, app lifecycle, font metrics and a stock-style clock face",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "metrics": "node scripts/gen-metrics.ts",
+    "typecheck": "tsc",
+    "test": "node --test test/*.test.ts"
+  },
+  "devDependencies": {
+    "@vladzaharia/bar-pixel": "workspace:*",
+    "@types/node": "^22.19.4",
+    "typescript": "~6.0.3"
+  }
+}
