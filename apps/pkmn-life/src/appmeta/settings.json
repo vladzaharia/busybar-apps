@@ -1,0 +1,36 @@
+{
+  "format_version": 1,
+  "version": 1,
+  "fields": {
+    "nag_style": {
+      "label": "Nag style",
+      "description": "How the front shows the message. OK on the back cycles it while the app runs.",
+      "type": "enum",
+      "default": "alternate",
+      "options": [
+        { "value": "alternate", "label": "Alternate" },
+        { "value": "encounter", "label": "Wild encounter" },
+        { "value": "ticker", "label": "Burst ticker" }
+      ]
+    },
+    "time_format": {
+      "label": "Time format",
+      "type": "enum",
+      "default": "24h",
+      "options": [
+        { "value": "24h", "label": "24-hour" },
+        { "value": "12h", "label": "12-hour" }
+      ]
+    },
+    "show_date": {
+      "label": "Show date",
+      "type": "boolean",
+      "default": true
+    },
+    "blink_colons": {
+      "label": "Colon blink",
+      "type": "boolean",
+      "default": true
+    }
+  }
+}

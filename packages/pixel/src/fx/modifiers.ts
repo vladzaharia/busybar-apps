@@ -3,6 +3,7 @@
 
 import { inCubic, outCubic, rng, span } from "../ease.ts";
 import { Raster } from "../raster.ts";
+import { MOTION } from "../motion.ts";
 import { clip, type Clip } from "../timeline.ts";
 
 function layerOf(r: Raster, c: Clip, t: number): Raster {
@@ -12,12 +13,16 @@ function layerOf(r: Raster, c: Clip, t: number): Raster {
 }
 
 /** Shakes the clip between `from` and `to` seconds, `amplitude` pixels sideways (and a little vertically). */
-export function shake(c: Clip, o: { from?: number; to?: number; amplitude?: number; vertical?: boolean } = {}): Clip {
+export function shake(c: Clip, o: { from?: number; to?: number; amplitude?: number; vertical?: boolean; hz?: number } = {}): Clip {
   return clip(c.duration, (r, t) => {
-    const on = t >= (o.from ?? 0) && t <= (o.to ?? c.duration);
-    const a = o.amplitude ?? 2;
-    const dx = on ? Math.round(Math.sin(t * 90) * a) : 0;
-    const dy = on && o.vertical ? Math.round(Math.cos(t * 77) * a * 0.5) : 0;
+    const from = o.from ?? 0;
+    const to = o.to ?? c.duration;
+    const on = t >= from && t <= to;
+    // Strongest at the hit, settling to nothing by `to`.
+    const a = (o.amplitude ?? 2) * (on ? 1 - span(t, from, to) : 0);
+    const w = (o.hz ?? 10) * Math.PI * 2;
+    const dx = Math.round(Math.sin((t - from) * w) * a);
+    const dy = o.vertical ? Math.round(Math.cos((t - from) * w * 0.8) * a * 0.5) : 0;
     r.draw(layerOf(r, c, t), dx, dy);
   });
 }
@@ -25,7 +30,7 @@ export function shake(c: Clip, o: { from?: number; to?: number; amplitude?: numb
 /** Slides the clip in from a side over `time` seconds (and out again over the last `time`, if `out`). */
 export function slide(c: Clip, o: { from: "left" | "right" | "top" | "bottom"; time?: number; out?: boolean }): Clip {
   return clip(c.duration, (r, t) => {
-    const time = o.time ?? 0.3;
+    const time = o.time ?? MOTION.base;
     const pin = outCubic(span(t, 0, time));
     const pout = o.out ? inCubic(span(t, c.duration - time, c.duration)) : 0;
     const k = 1 - pin + pout;

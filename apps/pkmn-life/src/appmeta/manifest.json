@@ -1,0 +1,9 @@
+{
+  "format_version": 1,
+  "id": "app.vlad.pkmn_life",
+  "name": "Pkmn Life",
+  "version": "0.1.0",
+  "api_version": "27.9.0",
+  "description": "Team screens: a clock that, at the press of START, asks whether you filed a Jira ticket.",
+  "author": "Vlad Zaharia"
+}

@@ -2,8 +2,26 @@
   "name": "pkmn-life",
   "private": true,
   "version": "0.1.0",
+  "description": "Pkmn Life: Team screens for the BUSY Bar, starting with the Jira nag",
   "type": "module",
+  "scripts": {
+    "assets": "node assets/build.ts",
+    "preview": "node assets/preview.ts",
+    "typecheck": "pnpm assets && tsc",
+    "build": "pnpm assets && busy-cli build --emit both",
+    "app:install": "busy-cli app install",
+    "app:uninstall": "busy-cli app uninstall",
+    "app:run": "busy-cli app run",
+    "app:stop": "busy-cli app stop"
+  },
   "dependencies": {
-    "@vladzaharia/bar-pixel": "workspace:*"
+    "@vladzaharia/bar-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@busy-app/cli": "0.6.0",
+    "@types/node": "^22.19.4",
+    "@vladzaharia/bar-pixel": "workspace:*",
+    "typescript": "~6.0.3",
+    "vite": "8.1.4"
   }
 }

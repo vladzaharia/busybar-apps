@@ -2,6 +2,7 @@
 
 import { inRoundRect, hex, mix, type Color, type Raster } from "../raster.ts";
 import { lerp, outExpo, rng } from "../ease.ts";
+import { MOTION } from "../motion.ts";
 import { clip, type Clip } from "../timeline.ts";
 
 const WHITE = hex("#FFFFFF");
@@ -101,10 +102,10 @@ export function confetti(o: { duration: number; seed?: number; pieces?: number; 
   }));
   return clip(o.duration, (r, t) => {
     for (const p of pieces) {
-      const tt = t - p.delay * o.duration * 0.5;
+      const tt = t - p.delay * 1.2;
       if (tt < 0) continue;
-      const y = -2 + tt * p.speed;
-      if (y > r.height + 2) continue;
+      const span = r.height + 6;
+      const y = ((tt * p.speed) % span) - 3;
       const x = p.x * r.width + Math.sin(tt * 4 + p.sway) * 2;
       const flip = Math.abs(Math.sin(tt * 9 + p.sway));
       r.blend(x, y, p.c, 0.4 + 0.6 * flip);
@@ -155,7 +156,7 @@ export function ripple(o: { duration: number; x?: number; y?: number; rings?: nu
 /** A soft glow breathing in and out: behind a word, a logo, or the whole screen. */
 export function pulse(o: { duration: number; x?: number; y?: number; rx?: number; ry?: number; color?: Color; period?: number; strength?: number }): Clip {
   return clip(o.duration, (r, t) => {
-    const a = (0.5 - 0.5 * Math.cos((t / (o.period ?? 1.6)) * Math.PI * 2)) * (o.strength ?? 0.6);
+    const a = (0.5 - 0.5 * Math.cos((t / (o.period ?? MOTION.ambient)) * Math.PI * 2)) * (o.strength ?? 0.6);
     r.glow(o.x ?? r.width / 2, o.y ?? r.height / 2, o.rx ?? r.width / 2, o.ry ?? r.height / 2, { ...(o.color ?? hex("#1D7AFC")), a }, 2);
   });
 }
@@ -208,7 +209,7 @@ export function drawPanel(
 /** The panel as a clip, with its sheen sweeping across every `period` seconds. */
 export function panel(o: { duration: number; style?: PanelStyle; period?: number; width?: number; height?: number }): Clip {
   return clip(o.duration, (r, t) => {
-    const period = o.period ?? 2.9;
+    const period = o.period ?? MOTION.ambient * 1.8;
     const sheen = ((t % period) / period) * (r.width + 40) - 20;
     drawPanel(r, { style: o.style, sheen, width: o.width, height: o.height });
   });

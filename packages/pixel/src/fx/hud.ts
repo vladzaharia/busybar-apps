@@ -3,6 +3,7 @@
 import { lerp, outCubic } from "../ease.ts";
 import { font, textWidth } from "../font.ts";
 import { hex, type Color, type Raster } from "../raster.ts";
+import { MOTION } from "../motion.ts";
 import { clip, type Clip } from "../timeline.ts";
 
 export interface DialogueStyle {
@@ -61,7 +62,7 @@ export function dialogue(o: {
   style?: DialogueStyle;
   emphasis?: (index: number, ch: string, t: number) => Color | undefined;
 }): Clip {
-  const cps = o.cps ?? 26;
+  const cps = o.cps ?? MOTION.typeSpeed;
   const starts: number[] = [];
   let total = 0;
   for (const p of o.pages) {
@@ -138,7 +139,7 @@ export function spinner(o: { duration: number; x: number; y: number; radius?: nu
   return clip(o.duration, (r, t) => {
     const dots = o.dots ?? 8;
     const radius = o.radius ?? 3;
-    const head = (t / (o.period ?? 0.9)) * dots;
+    const head = (t / (o.period ?? MOTION.spin)) * dots;
     for (let i = 0; i < dots; i++) {
       const ang = (i / dots) * Math.PI * 2 - Math.PI / 2;
       const age = (((head - i) % dots) + dots) % dots;
@@ -151,7 +152,7 @@ export function spinner(o: { duration: number; x: number; y: number; radius?: nu
 export function liveDot(o: { duration: number; x: number; y: number; color?: Color }): Clip {
   return clip(o.duration, (r, t) => {
     const c = o.color ?? hex("#FF4D6D");
-    const k = 0.5 + 0.5 * Math.sin(t * 6);
+    const k = 0.5 - 0.5 * Math.cos((t / MOTION.ambient) * Math.PI * 2 * 1.5);
     r.glow(o.x + 1.5, o.y + 1.5, 3.5, 3.5, { ...c, a: k }, 1.2);
     r.fillRect(o.x, o.y, 3, 3, c);
   });

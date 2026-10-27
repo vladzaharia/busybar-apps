@@ -101,19 +101,24 @@ export function glide(o: {
   color?: LetterColor;
   /** Drop letters in as they enter (default true). */
   drop?: boolean;
+  /** Seconds of movement; the line then rests at `endX` for the rest of `duration`. Defaults to `duration`. */
+  travel?: number;
+  /** Extra vertical offset per letter (e.g. popChars for punchlines). */
+  hop?: (index: number, t: number) => number;
 }): Clip {
   const f = font(o.font);
+  const travelTime = o.travel ?? o.duration;
   const advances = [...o.text].map((ch) => f.glyph(ch.codePointAt(0)!)?.advance ?? 0);
   const offsets = advances.map((_, i) => advances.slice(0, i).reduce((a, b) => a + b, 0));
   let entered: number[] | null = null;
   return clip(o.duration, (r, t) => {
     const startX = o.startX ?? r.width;
     const travel = (p: number) => 0.55 * p + 0.45 * inOutCubic(p);
-    const at = (tt: number) => lerp(startX, o.endX, travel(Math.min(1, tt / o.duration)));
+    const at = (tt: number) => lerp(startX, o.endX, travel(Math.min(1, tt / travelTime)));
     // When each letter crosses the right edge, found once by stepping through the glide.
     entered ??= offsets.map((off) => {
-      for (let tt = 0; tt <= o.duration; tt += 1 / 240) if (at(tt) + off < r.width - 2) return tt;
-      return o.duration;
+      for (let tt = 0; tt <= travelTime; tt += 1 / 240) if (at(tt) + off < r.width - 2) return tt;
+      return travelTime;
     });
     const base = at(t);
     const fadeX = o.fadeX ?? -999;
@@ -123,7 +128,7 @@ export function glide(o: {
       const e = entered![gi]!;
       const drop = o.drop === false ? 1 : span(t, e, e + 0.42);
       return {
-        dy: Math.round(lerp(-14, 0, outBounce(drop))),
+        dy: Math.round(lerp(-14, 0, outBounce(drop))) + (o.hop?.(gi, t) ?? 0),
         color: o.color?.(gi, ch, t),
         alpha: Math.max(0, Math.min(1, (x - fadeX + 2) / 6)),
         hidden: drop <= 0,

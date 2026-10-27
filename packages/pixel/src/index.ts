@@ -8,3 +8,6 @@ export * from "./png.ts";
 export * from "./raster.ts";
 export * from "./timeline.ts";
 export * from "./catalog.ts";
+export * from "./emulate.ts";
+export * from "./preview.ts";
+export * from "./motion.ts";

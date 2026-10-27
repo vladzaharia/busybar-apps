@@ -7,6 +7,7 @@ import { capCentre } from "./fx/text.ts";
 import { drawJiraMark, jiraFlyIn, JIRA_TONES_WHITE } from "./jira.ts";
 import { font, textWidth } from "./font.ts";
 import { hex, mix, type Raster } from "./raster.ts";
+import { MOTION, readTime } from "./motion.ts";
 import { clip, layer, pause, seq, type Clip } from "./timeline.ts";
 
 export interface CatalogEntry {
@@ -32,7 +33,9 @@ function screen(r: Raster, label = "14:27"): void {
 }
 
 const under = (c: Clip, label?: string): Clip => layer(clip(c.duration, (r) => screen(r, label)), c);
-const coverThenReveal = (cover: Clip, reveal: Clip) => under(seq(fx.holdEnd(cover, 0.35), reveal));
+/** Screen at rest, cover, hold covered, reveal, rest: so the loop shows before, during and after. */
+const coverThenReveal = (cover: Clip, reveal: Clip) =>
+  under(seq(pause(MOTION.rest), fx.holdEnd(cover, MOTION.rest), reveal, pause(MOTION.rest)));
 
 export const CATALOG: CatalogEntry[] = [
   // Transitions ---------------------------------------------------------------------------------------------------
@@ -41,90 +44,90 @@ export const CATALOG: CatalogEntry[] = [
     name: "Flash",
     group: "Transitions",
     about: "Whole-screen pulses of a colour. Three quick white ones make a handheld RPG's encounter flash.",
-    usage: "flash({ duration: 0.45, count: 3 })",
+    usage: "flash({ count: 3 })  // 0.6 s; MOTION.base × 1.5",
     display: "front",
-    demo: under(seq(fx.flash({ duration: 0.6, count: 3 }), pause(0.8))),
+    demo: under(seq(pause(MOTION.rest), fx.flash({ count: 3 }), pause(MOTION.rest * 2))),
   },
   {
     id: "stripes",
     name: "Stripes",
     group: "Transitions",
     about: "Bands slide in from alternating sides until the screen is covered, then back out. The battle-start wipe.",
-    usage: 'stripes({ duration: 0.4, mode: "cover" })',
+    usage: 'stripes({ mode: "cover" })  // 0.4 s',
     display: "front",
-    demo: coverThenReveal(fx.stripes({ duration: 0.5, mode: "cover" }), fx.stripes({ duration: 0.5, mode: "reveal" })),
+    demo: coverThenReveal(fx.stripes({ mode: "cover" }), fx.stripes({ mode: "reveal" })),
   },
   {
     id: "blinds",
     name: "Blinds",
     group: "Transitions",
     about: "Vertical slats closing across the screen, left to right, then opening again.",
-    usage: 'blinds({ duration: 0.5, mode: "cover", slats: 9 })',
+    usage: 'blinds({ mode: "cover", slats: 9 })  // 0.4 s',
     display: "front",
-    demo: coverThenReveal(fx.blinds({ duration: 0.5, mode: "cover" }), fx.blinds({ duration: 0.5, mode: "reveal" })),
+    demo: coverThenReveal(fx.blinds({ mode: "cover" }), fx.blinds({ mode: "reveal" })),
   },
   {
     id: "crt",
     name: "CRT off / on",
     group: "Transitions",
     about: "The screen squeezes onto a glowing line like an old TV switching off; reveal opens it back out from the centre.",
-    usage: 'crt({ duration: 0.4, mode: "cover" })',
+    usage: 'crt({ mode: "cover" })  // 0.65 s, like the stock turn-off',
     display: "front",
-    demo: coverThenReveal(fx.crt({ duration: 0.45, mode: "cover" }), fx.crt({ duration: 0.45, mode: "reveal" })),
+    demo: coverThenReveal(fx.crt({ mode: "cover" }), fx.crt({ mode: "reveal" })),
   },
   {
     id: "wipe",
     name: "Soft wipe",
     group: "Transitions",
     about: "A coloured band with a bright soft edge sweeps across, then sweeps off. Either direction.",
-    usage: 'wipe({ duration: 0.3, mode: "cover", color: hex("#0055CC") })',
+    usage: 'wipe({ mode: "cover", color: hex("#0055CC") })  // 0.25 s',
     display: "front",
-    demo: coverThenReveal(fx.wipe({ duration: 0.35, mode: "cover" }), fx.wipe({ duration: 0.35, mode: "reveal" })),
+    demo: coverThenReveal(fx.wipe({ mode: "cover" }), fx.wipe({ mode: "reveal" })),
   },
   {
     id: "iris",
     name: "Iris",
     group: "Transitions",
     about: "A circle closes onto a point (any point) and opens again: the cartoon ending.",
-    usage: 'iris({ duration: 0.5, mode: "cover", x: 36, y: 8 })',
+    usage: 'iris({ mode: "cover", x: 36, y: 8 })  // 0.65 s, like the stock oval',
     display: "front",
-    demo: coverThenReveal(fx.iris({ duration: 0.5, mode: "cover" }), fx.iris({ duration: 0.5, mode: "reveal" })),
+    demo: coverThenReveal(fx.iris({ mode: "cover" }), fx.iris({ mode: "reveal" })),
   },
   {
     id: "dissolve",
     name: "Dissolve",
     group: "Transitions",
     about: "Pixels switch over in random order. Works on both displays; on the OLED it reads as a fine grain.",
-    usage: 'dissolve({ duration: 0.5, mode: "cover" })',
+    usage: 'dissolve({ mode: "cover" })  // 0.5 s',
     display: "front",
-    demo: coverThenReveal(fx.dissolve({ duration: 0.5, mode: "cover" }), fx.dissolve({ duration: 0.5, mode: "reveal" })),
+    demo: coverThenReveal(fx.dissolve({ mode: "cover" }), fx.dissolve({ mode: "reveal" })),
   },
   {
     id: "bloom",
     name: "Bloom",
     group: "Transitions",
     about: "A colour blooms out from the centre with a bright ring at its edge until it fills the screen.",
-    usage: 'bloom({ duration: 0.3, color: hex("#0C66E4") })',
+    usage: 'bloom({ color: hex("#0C66E4") })  // 0.4 s',
     display: "front",
-    demo: under(fx.holdEnd(fx.bloom({ duration: 0.45 }), 0.6)),
+    demo: under(seq(pause(MOTION.rest), fx.holdEnd(fx.bloom({}), MOTION.rest * 2))),
   },
   {
     id: "collapse",
     name: "Collapse",
     group: "Transitions",
     about: "Everything pinches into a line, then a point of light that fades. A good way to end a scene.",
-    usage: "collapse({ duration: 0.7 })",
+    usage: "collapse({})  // 0.65 s",
     display: "front",
-    demo: seq(fx.panel({ duration: 0.6 }), fx.collapse({ duration: 0.7 }), pause(0.4)),
+    demo: seq(fx.panel({ duration: 1 }), fx.collapse({}), pause(MOTION.rest)),
   },
   {
     id: "fade",
     name: "Fade",
     group: "Transitions",
     about: "An overlay fading to a colour, or a covered screen fading away.",
-    usage: "fade({ duration: 0.3, from: 0, to: 1 })",
+    usage: "fade({ from: 0, to: 1 })  // 0.4 s",
     display: "front",
-    demo: under(seq(fx.holdEnd(fx.fade({ duration: 0.5, from: 0, to: 1 }), 0.3), fx.fade({ duration: 0.5, from: 1, to: 0 }))),
+    demo: under(seq(pause(MOTION.rest), fx.holdEnd(fx.fade({ from: 0, to: 1 }), MOTION.rest), fx.fade({ from: 1, to: 0 }), pause(MOTION.rest))),
   },
 
   // Backgrounds ---------------------------------------------------------------------------------------------------
@@ -157,7 +160,7 @@ export const CATALOG: CatalogEntry[] = [
     about: "Streaks shoot out from the centre around a white core that fades. The power-on explosion.",
     usage: "burst({ duration: 0.6 })",
     display: "front",
-    demo: seq(fx.burst({ duration: 0.8 }), pause(0.5)),
+    demo: seq(fx.burst({ duration: 0.8 }), pause(MOTION.rest * 2)),
   },
   {
     id: "starfield",
@@ -222,7 +225,7 @@ export const CATALOG: CatalogEntry[] = [
     about: "Letters drop into place one by one and land with a bounce; optionally fall away at the end.",
     usage: 'dropIn({ text, font: "extra_large", x, y, duration, exit: 0.3 })',
     display: "front",
-    demo: fx.dropIn({ text: "DID YOU", font: "extra_large", x: 11, y: capCentre("extra_large"), duration: 2, exit: 0.35 }),
+    demo: fx.dropIn({ text: "DID YOU", font: "extra_large", x: 11, y: capCentre("extra_large"), duration: 2.6, exit: 0.4 }),
   },
   {
     id: "typewriter",
@@ -231,7 +234,7 @@ export const CATALOG: CatalogEntry[] = [
     about: "Lines typed out letter by letter at a set speed.",
     usage: 'typewriter({ lines, font: "small", x, ys: [0, 7], cps: 26, duration })',
     display: "front",
-    demo: fx.typewriter({ lines: ["Did you file a", "JIRA ticket yet?"], font: "small", x: 8, ys: [0, 7], duration: 2.5 }),
+    demo: fx.typewriter({ lines: ["Did you file a", "JIRA ticket yet?"], font: "small", x: 8, ys: [0, 7], duration: 3.2 }),
   },
   {
     id: "glide",
@@ -246,7 +249,8 @@ export const CATALOG: CatalogEntry[] = [
       y: capCentre("extra_large"),
       // Ends with the last word centred: its offset in the line, subtracted from where it should sit.
       endX: Math.round((72 - textWidth("TICKET", font("extra_large"))) / 2) - textWidth("FILE A JIRA ", font("extra_large")),
-      duration: 3.4,
+      duration: 3.6,
+      travel: 2.6,
       color: fx.accentWords("FILE A JIRA TICKET", ["JIRA"], W, BLUE),
     }),
   },
@@ -257,7 +261,7 @@ export const CATALOG: CatalogEntry[] = [
     about: "Words roll through a window like a split-flap board; old and new travel together and never overlap.",
     usage: "roll({ words: [{ text, font, hold }], box: { x, width } })",
     display: "front",
-    demo: fx.roll({ words: ["DID YOU", "FILE A", "TICKET?"].map((text) => ({ text, font: "extra_large" as const, hold: 0.8 })), box: { x: 0, width: 72 } }),
+    demo: fx.roll({ words: ["DID YOU", "FILE A", "TICKET?"].map((text) => ({ text, font: "extra_large" as const, hold: readTime(text) + 0.3 })), box: { x: 0, width: 72 } }),
   },
   {
     id: "wave",
@@ -335,7 +339,7 @@ export const CATALOG: CatalogEntry[] = [
     about: "Wraps any clip and shakes it sideways for a while: impacts, alarms, punchlines.",
     usage: "shake(clip, { from: 0.5, to: 0.9, amplitude: 2 })",
     display: "front",
-    demo: fx.shake(clip(2, (r) => r.text("YET???", font("extra_large"), 14, capCentre("extra_large"), W)), { from: 0.6, to: 1.2 }),
+    demo: fx.shake(clip(2.2, (r) => r.text("YET???", font("extra_large"), 14, capCentre("extra_large"), W)), { from: 0.6, to: 1.2 }),
   },
   {
     id: "slide",
@@ -344,7 +348,7 @@ export const CATALOG: CatalogEntry[] = [
     about: "Slides any clip in from a side, and out again at the end.",
     usage: 'slide(clip, { from: "bottom", time: 0.3, out: true })',
     display: "front",
-    demo: fx.slide(clip(2, (r) => r.text("HELLO", font("extra_large"), 16, capCentre("extra_large"), W)), { from: "bottom", out: true }),
+    demo: fx.slide(clip(2.4, (r) => r.text("HELLO", font("extra_large"), 16, capCentre("extra_large"), W)), { from: "bottom", out: true }),
   },
   {
     id: "glitch",
@@ -362,6 +366,6 @@ export const CATALOG: CatalogEntry[] = [
     about: "Squashes any clip onto its centre line as it ends (or stretches it out as it starts).",
     usage: 'squash(clip, { time: 0.22, at: "end" })',
     display: "front",
-    demo: seq(fx.squash(clip(1.4, (r) => screen(r)), { time: 0.3 }), pause(0.5)),
+    demo: seq(fx.squash(clip(1.5, (r) => screen(r)), { time: MOTION.quick }), pause(MOTION.rest)),
   },
 ];
