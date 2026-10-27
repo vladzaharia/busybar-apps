@@ -481,85 +481,128 @@ export function encodeAnim(input: AnimInput): { data: Uint8Array; stats: AnimSta
   return { data: out, stats: { bytes: out.length, frames: frames.length, skipped: 1 - kept / (total * frames.length) } };
 }
 
-// --- Reference decoder -------------------------------------------------------------------------------------------
+// --- Decoder ------------------------------------------------------------------------------------------------------
 
-export interface DecodedAnim {
-  width: number;
-  height: number;
-  fps: number;
-  format: AnimColorFormat;
-  sections: (AnimSection & { offset: number })[];
-  /** Straight RGBA bytes per display frame, as the player would show them played from the start. */
-  frames: Uint8Array[];
+export interface DecodedSection extends AnimSection {
+  /** File offset of the section's first frame. */
+  offset: number;
 }
 
-/** Decodes a whole file, validating it the way the firmware's loader does. */
-export function decodeAnim(data: Uint8Array): DecodedAnim {
-  const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
-  if (new TextDecoder().decode(data.subarray(0, 8)) !== SIGNATURE) throw new Error("anim: bad signature");
-  const width = view.getUint8(9);
-  const height = view.getUint8(10);
-  const format = FORMAT_NAME[view.getUint8(11)];
-  if (!format) throw new Error("anim: bad colour format");
-  const maxMask = view.getUint16(12, true);
-  const maxPixels = view.getUint16(14, true);
-  const fps = view.getUint8(16);
-  const sectionsLength = view.getUint32(18, true);
-  const framesLength = view.getUint32(22, true);
-  const sectionCount = view.getUint32(26, true);
-  const frameCount = view.getUint32(30, true);
-  if (!sectionCount || !frameCount) throw new Error("anim: empty");
-  if (data.length !== HEADER_SIZE + sectionsLength + framesLength) throw new Error("anim: size mismatch");
-  if (data[HEADER_SIZE + sectionsLength - 1] !== 0) throw new Error("anim: bad sections chunk termination");
+/**
+ * Decodes a .anim one frame at a time into a persistent canvas, as the firmware's player does: frames only carry
+ * the pixels that changed, so they must be decoded in order, except at section starts, which are keyframes and
+ * can be jumped to. Validates the file the way the firmware's loader does.
+ */
+export class AnimReader {
+  readonly width: number;
+  readonly height: number;
+  readonly fps: number;
+  readonly format: AnimColorFormat;
+  readonly frameCount: number;
+  readonly sections: DecodedSection[];
+  /** Straight RGBA, the current frame. */
+  readonly canvas: Uint8Array;
+  private readonly data: Uint8Array;
+  private readonly view: DataView;
+  private readonly offsets: number[];
+  private readonly maxMask: number;
+  private readonly maxPixels: number;
+  private current = -1;
 
-  const sections: DecodedAnim["sections"] = [];
-  let pos = HEADER_SIZE;
-  while (pos < HEADER_SIZE + sectionsLength) {
-    const start = view.getUint32(pos, true);
-    const end = view.getUint32(pos + 4, true);
-    const offset = view.getUint32(pos + 8, true);
-    let z = pos + 12;
-    while (data[z] !== 0) z++;
-    sections.push({ name: new TextDecoder().decode(data.subarray(pos + 12, z)), start, end, offset });
-    pos = z + 1;
-  }
-  if (sections.length !== sectionCount) throw new Error("anim: section count mismatch");
-  const first = sections[0]!;
-  if (first.name !== "default" || first.start !== 0 || first.end !== frameCount - 1 || first.offset !== HEADER_SIZE + sectionsLength) {
-    throw new Error("anim: invalid default section");
+  constructor(data: Uint8Array) {
+    this.data = data;
+    const view = (this.view = new DataView(data.buffer, data.byteOffset, data.byteLength));
+    if (new TextDecoder().decode(data.subarray(0, 8)) !== SIGNATURE) throw new Error("anim: bad signature");
+    this.width = view.getUint8(9);
+    this.height = view.getUint8(10);
+    const format = FORMAT_NAME[view.getUint8(11)];
+    if (!format) throw new Error("anim: bad colour format");
+    this.format = format;
+    this.maxMask = view.getUint16(12, true);
+    this.maxPixels = view.getUint16(14, true);
+    this.fps = view.getUint8(16);
+    const sectionsLength = view.getUint32(18, true);
+    const framesLength = view.getUint32(22, true);
+    const sectionCount = view.getUint32(26, true);
+    this.frameCount = view.getUint32(30, true);
+    if (!sectionCount || !this.frameCount) throw new Error("anim: empty");
+    if (data.length !== HEADER_SIZE + sectionsLength + framesLength) throw new Error("anim: size mismatch");
+    if (data[HEADER_SIZE + sectionsLength - 1] !== 0) throw new Error("anim: bad sections chunk termination");
+
+    this.sections = [];
+    let pos = HEADER_SIZE;
+    while (pos < HEADER_SIZE + sectionsLength) {
+      const start = view.getUint32(pos, true);
+      const end = view.getUint32(pos + 4, true);
+      const offset = view.getUint32(pos + 8, true);
+      let z = pos + 12;
+      while (data[z] !== 0) z++;
+      this.sections.push({ name: new TextDecoder().decode(data.subarray(pos + 12, z)), start, end, offset });
+      pos = z + 1;
+    }
+    if (this.sections.length !== sectionCount) throw new Error("anim: section count mismatch");
+    const first = this.sections[0]!;
+    if (first.name !== "default" || first.start !== 0 || first.end !== this.frameCount - 1 || first.offset !== HEADER_SIZE + sectionsLength) {
+      throw new Error("anim: invalid default section");
+    }
+
+    // Index every frame's offset once.
+    this.offsets = [];
+    pos = HEADER_SIZE + sectionsLength;
+    for (let f = 0; f < this.frameCount; f++) {
+      this.offsets.push(pos);
+      pos += FRAME_HEADER_SIZE + Math.ceil(view.getUint16(pos + 1, true) / 8) + view.getUint16(pos + 3, true);
+    }
+    if (pos !== data.length) throw new Error("anim: frames do not fill the frames chunk");
+    for (const s of this.sections) {
+      if (s.end >= this.frameCount || s.start > s.end) throw new Error(`anim: section "${s.name}" is out of range`);
+      if (s.offset !== this.offsets[s.start]) throw new Error(`anim: section "${s.name}" offset does not match its first frame`);
+    }
+    this.canvas = new Uint8Array(this.width * this.height * 4);
   }
 
-  const total = width * height;
-  const canvas = new Uint8Array(total * 4);
-  const frames: Uint8Array[] = [];
-  const frameOffsets: number[] = [];
-  pos = HEADER_SIZE + sectionsLength;
-  for (let f = 0; f < frameCount; f++) {
-    frameOffsets.push(pos);
+  section(name: string): DecodedSection | undefined {
+    return this.sections.find((s) => s.name === name);
+  }
+
+  /** Decodes frame `f` into `canvas` and returns it. Out-of-order frames must be keyframes (section starts). */
+  frame(f: number): Uint8Array {
+    if (f === this.current) return this.canvas;
+    const { view, data, format } = this;
+    const total = this.width * this.height;
+    const pos = this.offsets[f];
+    if (pos === undefined) throw new Error(`anim: no frame ${f}`);
     const joint = view.getUint8(pos);
     const maskBits = view.getUint16(pos + 1, true);
     const pixelBytes = view.getUint16(pos + 3, true);
     const maskEnc = (joint >> 4) as Mask;
     const pxEnc = joint & 0xf;
     if (maskEnc > Mask.Bitmap || pxEnc > Pixels.Qoi) throw new Error(`anim: frame ${f} has an unsupported encoding`);
-    if (maskEnc >= Mask.RleFirstBlack ? maskBits > maxMask : maskBits !== 0) throw new Error(`anim: frame ${f} mask length invalid`);
-    if (pxEnc !== Pixels.Raw && pixelBytes > maxPixels) throw new Error(`anim: frame ${f} pixel length invalid`);
+    if (maskEnc >= Mask.RleFirstBlack ? maskBits > this.maxMask : maskBits !== 0) throw new Error(`anim: frame ${f} mask length invalid`);
+    if (pxEnc !== Pixels.Raw && pixelBytes > this.maxPixels) throw new Error(`anim: frame ${f} pixel length invalid`);
     const maskData = data.subarray(pos + FRAME_HEADER_SIZE, pos + FRAME_HEADER_SIZE + Math.ceil(maskBits / 8));
     const pxStart = pos + FRAME_HEADER_SIZE + Math.ceil(maskBits / 8);
     let packed = data.subarray(pxStart, pxStart + pixelBytes);
     if (pxEnc === Pixels.Rle) packed = rleDecompress(packed, BLOCK[format]);
 
-    // Unpack to BGRA (QOI already decodes to it), then disperse into the persistent canvas along the mask.
-    const bgra: number[] = [];
+    // Unpack to BGRA (QOI already decodes to it), then disperse into the canvas along the mask.
+    let bgra: Uint8Array;
     if (pxEnc === Pixels.Qoi) {
-      for (const byte of qoiDecompress(packed)) bgra.push(byte);
+      bgra = qoiDecompress(packed);
     } else if (format === "gray4") {
-      for (const byte of packed) bgra.push(byte & 0xf0, byte & 0xf0, byte & 0xf0, 255, (byte << 4) & 0xf0, (byte << 4) & 0xf0, (byte << 4) & 0xf0, 255);
+      bgra = new Uint8Array(packed.length * 8);
+      packed.forEach((byte, i) => {
+        const hi = byte & 0xf0;
+        const lo = (byte << 4) & 0xf0;
+        bgra.set([hi, hi, hi, 255, lo, lo, lo, 255], i * 8);
+      });
     } else if (format === "rgb888") {
-      for (let i = 0; i < packed.length; i += 3) bgra.push(packed[i]!, packed[i + 1]!, packed[i + 2]!, 255);
+      bgra = new Uint8Array((packed.length / 3) * 4);
+      for (let i = 0, o = 0; i < packed.length; i += 3, o += 4) bgra.set([packed[i]!, packed[i + 1]!, packed[i + 2]!, 255], o);
     } else {
-      for (const byte of packed) bgra.push(byte);
+      bgra = packed;
     }
+    const canvas = this.canvas;
     let n = 0;
     forEachMasked(maskEnc, maskData, maskBits, total, (p) => {
       if (n * 4 >= bgra.length) throw new Error(`anim: frame ${f} has too few pixels`);
@@ -571,11 +614,25 @@ export function decodeAnim(data: Uint8Array): DecodedAnim {
     });
     const leftover = bgra.length / 4 - n;
     if (leftover > (format === "gray4" ? 1 : 0)) throw new Error(`anim: frame ${f} has ${leftover} leftover pixels`);
-    frames.push(canvas.slice());
-    pos = pxStart + pixelBytes;
+    this.current = f;
+    return canvas;
   }
-  for (const s of sections) {
-    if (s.offset !== frameOffsets[s.start]) throw new Error(`anim: section "${s.name}" offset does not match its first frame`);
-  }
-  return { width, height, fps, format, sections, frames };
+}
+
+export interface DecodedAnim {
+  width: number;
+  height: number;
+  fps: number;
+  format: AnimColorFormat;
+  sections: DecodedSection[];
+  /** Straight RGBA bytes per display frame, as the player would show them played from the start. */
+  frames: Uint8Array[];
+}
+
+/** Decodes every frame of a file (for tests and small files; use AnimReader to play big ones). */
+export function decodeAnim(data: Uint8Array): DecodedAnim {
+  const reader = new AnimReader(data);
+  const frames: Uint8Array[] = [];
+  for (let f = 0; f < reader.frameCount; f++) frames.push(reader.frame(f).slice());
+  return { width: reader.width, height: reader.height, fps: reader.fps, format: reader.format, sections: reader.sections, frames };
 }

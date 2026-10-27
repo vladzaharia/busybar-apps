@@ -15,7 +15,8 @@ export interface DialogueStyle {
 
 /** Light box, Jira-blue frame, dark ink. */
 export const DIALOGUE_LIGHT: DialogueStyle = {
-  fill: hex("#EEF2F8"),
+  // Softer than white: a full screen of white LEDs is glaring.
+  fill: hex("#CFD8E6"),
   border: hex("#1D7AFC"),
   ink: hex("#141820"),
   arrow: hex("#0C66E4"),

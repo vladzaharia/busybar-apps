@@ -1,0 +1,179 @@
+<title>{{TITLE}}</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  /* Layout: a product shot of the bar on a dark desk (front, then back), with a panel of controls, settings and
+     live activity beside it; stacks on narrow screens. One deliberate dark look: the device is the subject. */
+  :root {
+    --bg: #0b0c0f;
+    --bg-glow: #191c24;
+    --surface: #13151a;
+    --surface-2: #1a1d24;
+    --line: #262a33;
+    --ink: #e9ecf3;
+    --muted: #8b93a5;
+    --accent: #ff6a1f;
+    --ok: #3ddc84;
+    --bad: #ff5a5f;
+    --display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+    --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+    color-scheme: dark;
+  }
+  body { background: radial-gradient(1200px 520px at 30% 0%, var(--bg-glow), var(--bg) 70%) fixed, var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5; }
+  .page {
+    max-width: 1180px; margin: 0 auto;
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 36px 56px; display: grid; gap: 28px;
+  }
+  header { display: grid; gap: 8px; max-width: 72ch; }
+  .eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+  h1 { font-family: var(--display); font-stretch: 80%; font-weight: 800; font-size: clamp(34px, 6vw, 54px); line-height: 1; margin: 0; }
+  h2 { font-family: var(--display); font-stretch: 88%; font-weight: 700; font-size: 18px; margin: 0; letter-spacing: .01em; }
+  p { margin: 0; }
+  .lede { color: var(--muted); }
+  .status { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-family: var(--mono); font-size: 13px; }
+  .pill { padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); }
+  .pill::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 7px; vertical-align: 1px; background: var(--muted); }
+  .pill[data-state="running"]::before { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+  .pill[data-state="crashed"]::before { background: var(--bad); }
+  #state-note { color: var(--muted); font-family: var(--body); }
+  .btn { font: 500 13px var(--mono); color: var(--ink); background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+  .btn:hover { border-color: #3a404c; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+  .stage { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 28px; align-items: start; }
+  @media (max-width: 980px) { .stage { grid-template-columns: minmax(0, 1fr); } }
+  .devices { display: grid; gap: 34px; min-width: 0; }
+
+  /* --- The bar ------------------------------------------------------------------------------------------- */
+  figure { margin: 0; display: grid; gap: 12px; min-width: 0; }
+  figcaption { font-family: var(--mono); font-size: 12px; color: var(--muted); text-align: center; }
+  .top { display: flex; align-items: flex-end; justify-content: space-between; padding: 0 7%; height: 26px; position: relative; z-index: 1; margin-bottom: -4px; }
+  .top button, .wheel { border: 0; padding: 0; cursor: pointer; touch-action: none; transition: transform .06s ease, filter .06s ease; }
+  .top .pressed, .wheel.pressed { transform: translateY(4px); filter: brightness(.88); }
+  .knob {
+    width: clamp(40px, 9%, 64px); height: 20px; border-radius: 9px 9px 3px 3px;
+    background: linear-gradient(180deg, #c7cbd2 0%, #8d929b 40%, #5c6169 100%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 2px 0 #2b2e33;
+  }
+  .start {
+    width: 42%; height: 22px; border-radius: 10px 10px 3px 3px; position: relative;
+    background: linear-gradient(180deg, #ff8a45 0%, #ff6a1f 35%, #b8470f 100%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.45), 0 2px 0 #4a1d05;
+  }
+  .start::after {
+    content: ""; position: absolute; left: 14%; right: 14%; top: 3px; height: 9px; border-radius: 6px 6px 2px 2px;
+    background: linear-gradient(180deg, #e3e6eb, #9ea3ab); box-shadow: inset 0 1px 0 #fff;
+  }
+  .wheel {
+    --shift: 0px;
+    width: clamp(44px, 10%, 70px); height: 22px; border-radius: 9px 9px 3px 3px;
+    background:
+      repeating-linear-gradient(90deg, rgba(0,0,0,.35) 0 2px, transparent 2px 6px) var(--shift) 0 / 6px 100% repeat-x,
+      linear-gradient(180deg, #b7bbc2 0%, #7c818a 45%, #4e535b 100%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 2px 0 #2b2e33;
+  }
+  .top .label { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); font: 500 10px var(--mono); color: var(--muted); letter-spacing: .08em; white-space: nowrap; pointer-events: none; }
+  .top button, .wheel { position: relative; }
+  .shell {
+    border-radius: 24px; padding: clamp(12px, 2.4%, 20px);
+    background: linear-gradient(180deg, #34373d 0%, #1c1e22 14%, #121316 100%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.14), inset 0 -3px 0 rgba(0,0,0,.55), 0 34px 60px -18px rgba(0,0,0,.85), 0 0 0 1px #08090a;
+  }
+  .glass { position: relative; border-radius: 12px; padding: clamp(6px, 1.4%, 10px); background: #040405; box-shadow: inset 0 2px 10px rgba(0,0,0,.95), 0 0 0 1px #000; overflow: hidden; }
+  .glass::after { content: ""; position: absolute; inset: 0; background: linear-gradient(168deg, rgba(255,255,255,.07), transparent 38%); pointer-events: none; }
+  .glass canvas { display: block; width: 100%; height: auto; image-rendering: pixelated; }
+  .back .shell { max-width: 620px; margin: 0 auto; width: 100%; }
+
+  /* --- Panel --------------------------------------------------------------------------------------------- */
+  aside { display: grid; gap: 16px; min-width: 0; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: grid; gap: 12px; min-width: 0; }
+  .pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .pad button { font: 600 13px var(--mono); color: var(--ink); background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 0; cursor: pointer; touch-action: none; }
+  .pad button.pressed { background: #232733; }
+  .pad .start-key { grid-column: span 2; background: linear-gradient(180deg, #ff7d36, #d4520f); border-color: #ff6a1f; color: #1a0a02; }
+  dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; font-size: 13px; }
+  dt { font-family: var(--mono); color: var(--ink); }
+  dd { margin: 0; color: var(--muted); }
+  kbd { font-family: var(--mono); font-size: 12px; padding: 1px 6px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; background: var(--surface-2); }
+  #settings { display: grid; gap: 12px; }
+  .field { display: grid; gap: 4px; font-size: 14px; }
+  .field.check { grid-template-columns: 1fr auto; align-items: center; }
+  .field small { color: var(--muted); font-size: 12px; grid-column: 1 / -1; }
+  select, input[type=text], input[type=number] { font: 14px var(--body); color: var(--ink); background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
+  input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); }
+  .hint { color: var(--muted); font-size: 12px; }
+  #log { list-style: none; margin: 0; padding: 0; font: 12px/1.45 var(--mono); max-height: 280px; overflow: auto; display: grid; gap: 3px; overflow-wrap: anywhere; }
+  #log time { color: var(--muted); margin-right: 8px; }
+  @media (prefers-reduced-motion: reduce) { .top button, .wheel { transition: none; } }
+</style>
+
+<div class="page">
+  <header>
+    <div class="eyebrow">bar-sim · {{ID}}</div>
+    <h1>{{NAME}}</h1>
+    <p class="lede">{{DESCRIPTION}} This is the app's real build running in an emulated BUSY Bar. Press the buttons on top of the bar, turn the wheel, and watch both screens respond.</p>
+    <div class="status" aria-live="polite">
+      <span id="state" class="pill" data-state="stopped">Starting</span>
+      <span id="state-note"></span>
+      <button id="restart" class="btn" type="button">Restart app</button>
+    </div>
+  </header>
+
+  <div class="stage">
+    <div class="devices">
+      <figure class="front">
+        <div class="top">
+          <button id="btn-back" class="knob" type="button" aria-label="Back button. Hold to force-quit the app."><span class="label">BACK</span></button>
+          <button id="btn-start" class="start" type="button" aria-label="Start button"><span class="label">START</span></button>
+          <div id="wheel" class="wheel" role="slider" tabindex="0" aria-valuenow="0" aria-label="Scroll wheel. Turn with the arrow keys, the mouse wheel or by dragging; press it (Enter) for OK."><span class="label">WHEEL · OK</span></div>
+        </div>
+        <div class="shell"><div class="glass"><canvas id="led" width="720" height="160" role="img" aria-label="Front display"></canvas></div></div>
+        <figcaption>Front · 72 × 16 RGB LEDs</figcaption>
+      </figure>
+      <figure class="back">
+        <div class="shell"><div class="glass"><canvas id="oled" width="640" height="320" role="img" aria-label="Back display"></canvas></div></div>
+        <figcaption>Back · 160 × 80 OLED; the right 12 px are the system status bar</figcaption>
+      </figure>
+    </div>
+
+    <aside>
+      <section class="card" aria-labelledby="controls-h">
+        <h2 id="controls-h">Controls</h2>
+        <div class="pad">
+          <button id="pad-left" type="button" aria-label="Turn the wheel up">◀ turn</button>
+          <button id="pad-ok" type="button">OK</button>
+          <button id="pad-right" type="button" aria-label="Turn the wheel down">turn ▶</button>
+          <button id="pad-start" class="start-key" type="button">START</button>
+          <button id="pad-back" type="button">BACK</button>
+        </div>
+        <dl>
+          <dt><kbd>S</kbd></dt><dd>START</dd>
+          <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>Turn the wheel</dd>
+          <dt><kbd>Enter</kbd></dt><dd>OK (press the wheel)</dd>
+          <dt><kbd>Esc</kbd></dt><dd>BACK; hold it to force-quit</dd>
+        </dl>
+      </section>
+      <section class="card" aria-labelledby="settings-h">
+        <h2 id="settings-h">Settings</h2>
+        <div id="settings"></div>
+        <p class="hint">From the app's settings.json. A change restarts the app, which reads its settings when it starts.</p>
+      </section>
+      <section class="card" aria-labelledby="log-h">
+        <h2 id="log-h">Activity</h2>
+        <ol id="log" aria-live="off"></ol>
+      </section>
+    </aside>
+  </div>
+</div>
+
+<script>window.__SIM__ = {{CONFIG}};</script>
+<script>
+window.__barApp = function (setTimeout, setInterval, clearTimeout, clearInterval, fetch, listen) {
+{{APP}}
+};
+</script>
+<script>{{RUNTIME}}</script>

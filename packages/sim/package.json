@@ -1,0 +1,23 @@
+{
+  "name": "@vladzaharia/bar-sim",
+  "private": true,
+  "version": "0.1.0",
+  "description": "In-browser BUSY Bar simulator: runs an app's real build against an emulated device, with clickable buttons and wheel",
+  "type": "module",
+  "bin": {
+    "bar-sim": "scripts/build.ts"
+  },
+  "scripts": {
+    "fonts": "node scripts/gen-fonts.ts",
+    "typecheck": "tsc",
+    "test": "node --test test/*.test.ts"
+  },
+  "dependencies": {
+    "@vladzaharia/bar-pixel": "workspace:*",
+    "vite": "8.1.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.4",
+    "typescript": "~6.0.3"
+  }
+}

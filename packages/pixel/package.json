@@ -5,7 +5,8 @@
   "description": "Build-time pixel toolkit: raster, BUSY Bar device fonts, the .anim encoder and decoder, previews",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./anim": "./src/anim.ts"
   },
   "scripts": {
     "typecheck": "tsc",
