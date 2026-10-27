@@ -88,7 +88,8 @@ export function typingTime(lines: string[], cps = 26): number {
 
 /**
  * One line gliding in from the right edge and easing to a stop at `endX`, each letter dropping into place as it
- * enters. Letters fade out past `fadeX` (e.g. under a logo on the left).
+ * enters. Letters fade out past `fadeX` (e.g. under a logo on the left), and a word that would rest cut by that edge
+ * fades out as the line settles, so the resting line shows only whole words.
  */
 export function glide(o: {
   text: string;
@@ -108,8 +109,14 @@ export function glide(o: {
 }): Clip {
   const f = font(o.font);
   const travelTime = o.travel ?? o.duration;
-  const advances = [...o.text].map((ch) => f.glyph(ch.codePointAt(0)!)?.advance ?? 0);
+  const chars = [...o.text];
+  const advances = chars.map((ch) => f.glyph(ch.codePointAt(0)!)?.advance ?? 0);
   const offsets = advances.map((_, i) => advances.slice(0, i).reduce((a, b) => a + b, 0));
+  // A word that would rest cut by the fade edge fades out as the line settles, so the resting line shows only whole
+  // words (the last word always stays).
+  const wordStart = chars.map((_, i) => chars.lastIndexOf(" ", i) + 1);
+  const lastWord = chars.lastIndexOf(" ") + 1;
+  const cutAtRest = (i: number) => o.fadeX !== undefined && wordStart[i]! < lastWord && o.endX + offsets[wordStart[i]!]! < o.fadeX + 4;
   let entered: number[] | null = null;
   return clip(o.duration, (r, t) => {
     const startX = o.startX ?? r.width;
@@ -130,7 +137,7 @@ export function glide(o: {
       return {
         dy: Math.round(lerp(-14, 0, outBounce(drop))) + (o.hop?.(gi, t) ?? 0),
         color: o.color?.(gi, ch, t),
-        alpha: Math.max(0, Math.min(1, (x - fadeX + 2) / 6)),
+        alpha: Math.max(0, Math.min(1, (x - fadeX + 2) / 6)) * (cutAtRest(gi) ? 1 - span(t, travelTime - 0.1, travelTime + 0.15) : 1),
         hidden: drop <= 0,
       };
     });

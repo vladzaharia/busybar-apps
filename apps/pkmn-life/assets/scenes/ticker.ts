@@ -44,19 +44,21 @@ export function ticker(preset: Preset): Clip {
   const text = preset.message.toUpperCase();
   const f = font("extra_large");
   const total = textWidth(text, f);
-  const last = text.split(" ").pop()!;
-  const lastW = textWidth(last, f);
-  // Rest with the last word centred beside the mark; a last word too wide for that rests flush right instead, so
-  // the end of the line is always on screen.
+  // Rest with as many whole words from the end as fit beside the mark, centred there ("YOUR PR!"); a last word too
+  // wide for that rests flush right instead, so the end of the line is always on screen.
   const space = 72 - TEXT_X0;
-  const fits = lastW <= space - 2;
-  const endX = fits ? TEXT_X0 + Math.round((space - lastW) / 2) - (total - lastW) : 71 - total;
+  const words = text.split(" ");
+  let tail = words[words.length - 1]!;
+  for (let i = words.length - 2; i >= 0 && textWidth(words.slice(i).join(" "), f) <= space - 2; i--) tail = words.slice(i).join(" ");
+  const tailW = textWidth(tail, f);
+  const fits = tailW <= space - 2;
+  const endX = fits ? TEXT_X0 + Math.round((space - tailW) / 2) - (total - tailW) : 71 - total;
 
   const SWITCH_OFF = 0.3;
   const GLIDE_AT = 0.85;
   // Every message glides at about the same speed.
   const TRAVEL = Math.max(3.5, (72 - endX) / MOTION.glideSpeed);
-  // Rest on a last word that fits; one that cannot fit beside the mark goes straight on to the recap.
+  // Rest on words that fit; a last word that cannot fit beside the mark goes straight on to the recap.
   const REST = fits ? 0.9 : 0.2;
   const recapAt = GLIDE_AT + TRAVEL + REST;
 

@@ -53,7 +53,7 @@ function main(): void {
   /** The style the next START will play, in the header between the title and the counter. */
   function drawStyleLabel(): void {
     const text = mode === "alternate" ? `ALT: ${STYLE_NAMES[style()]}` : STYLE_NAMES[style()];
-    void device.draw([{ ...label({ id: "style", text, font: "small", display: "back", color: "#8C8C8CFF", box: { x: 56, y: 0, width: 72, height: 9 } }), z_index: 2 }]);
+    void device.draw([{ ...label({ id: "style", text, font: "small", display: "back", color: "#8C8C8CFF", box: { x: 56, y: 0, width: 72, height: 11 } }), z_index: 2 }]);
   }
 
   function showMenu(): void {

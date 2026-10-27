@@ -240,7 +240,7 @@ export const CATALOG: CatalogEntry[] = [
     id: "glide",
     name: "Glide marquee",
     group: "Text",
-    about: "One line gliding in from the right and easing to a stop, each letter bouncing in as it enters. Accent words shimmer.",
+    about: "One line gliding in from the right and easing to a stop, each letter bouncing in as it enters; it rests on whole words. Accent words shimmer.",
     usage: 'glide({ text, font: "extra_large", y, endX, duration, fadeX, color: accentWords(text, ["JIRA"], white, blue) })',
     display: "front",
     demo: fx.glide({

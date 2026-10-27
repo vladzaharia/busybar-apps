@@ -15,9 +15,13 @@ import { PRESETS, type NagStyle } from "../../src/presets.ts";
 
 const W = 148;
 const H = 80;
-const ROW = 9;
-const LIST = { x: 0, y: 11, w: W, h: 50 };
+// Header rows 0-10, a blank row, the list box, a blank row, the text box. Inside each box the lettering sits with
+// equal space above and below (3 rows in the list, centred in the text box).
+const ROW = 8;
+const LIST = { x: 0, y: 12, w: W, h: 49 };
 const BOX = { y: 62, h: 18 };
+/** Top row of item i's capitals. */
+const itemTop = (i: number) => LIST.y + 6 + i * ROW;
 const CPS = 45;
 const GLIDE = 0.12;
 
@@ -37,8 +41,9 @@ function ruledBox(r: Raster, x: number, y: number, w: number, h: number, alpha =
   });
 }
 
+/** A ▶ as tall as the capitals it points at (5 rows from `y`). */
 function cursor(r: Raster, x: number, y: number): void {
-  for (let i = 0; i < 4; i++) r.fillRect(x + i, y + i, 1, 7 - i * 2, grey(1));
+  for (let i = 0; i < 3; i++) r.fillRect(x + i, y + i, 1, 5 - i * 2, grey(1));
 }
 
 /** The menu at a selection (fractional while gliding), with `typed` letters of message `k` in the text box. */
@@ -52,13 +57,12 @@ function menu(r: Raster, o: { sel: number; k: number; typed: number; nudge: bool
   ruledBox(r, LIST.x, LIST.y, LIST.w, LIST.h);
   PRESETS.forEach((p, i) => {
     const on = Math.abs(i - o.sel) < 0.5;
-    const y = LIST.y + 5 + i * ROW;
-    r.text(p.move, small, 14, y - 2, grey(on ? 1 : 0.6));
+    r.text(p.move, small, 14, itemTop(i) - 2, grey(on ? 1 : 0.6));
   });
-  cursor(r, 5 + (o.nudge ? 1 : 0), Math.round(LIST.y + 5 + o.sel * ROW));
+  cursor(r, 5 + (o.nudge ? 1 : 0), Math.round(itemTop(o.sel)));
   ruledBox(r, 0, BOX.y, W, BOX.h);
   let n = 0;
-  r.text(PRESETS[o.k]!.message, small, 6, 64, grey(0.92), () => ({ hidden: n++ >= o.typed }));
+  r.text(PRESETS[o.k]!.message, small, 6, BOX.y + 4, grey(0.92), () => ({ hidden: n++ >= o.typed }));
 }
 
 const enter = (k: number): Clip => clip(typeTime(k), (r, t) => menu(r, { sel: k, k, typed: Math.floor(t * CPS), nudge: false }));
@@ -76,7 +80,7 @@ const go = (j: number, k: number): Clip =>
 const use = (k: number): Clip =>
   clip(0.45, (r, t) => {
     menu(r, { sel: k, k, typed: 999, nudge: false });
-    if (Math.floor(t * 20) % 2 === 0) r.fillRect(12, LIST.y + 3 + k * ROW, 120, 8, grey(1, 0.35));
+    if (Math.floor(t * 20) % 2 === 0) r.fillRect(12, itemTop(k) - 2, 120, 9, grey(1, 0.35));
     const p = t / 0.45;
     for (let band = 0; band < 10; band++) {
       const w = Math.round(W * outQuad(span(p, band * 0.03, band * 0.03 + 0.5)));
