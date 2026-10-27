@@ -11,7 +11,8 @@
   "scripts": {
     "typecheck": "tsc",
     "test": "node --test test/*.test.ts",
-    "gallery": "node scripts/gallery.ts"
+    "gallery": "node scripts/gallery.ts",
+    "conformance": "node scripts/conformance.ts"
   },
   "dependencies": {
     "pngjs": "^7.0.0"

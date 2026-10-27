@@ -6,7 +6,8 @@ asks the room whether they filed a Jira ticket, in one of two styles:
 - **Wild encounter**: the screen flashes and stripes away, a wild ISSUE slides in with its HP bar, and the message
   plays out in typed dialogue boxes. ISSUE uses GUILT TRIP. It's super effective.
 - **Burst ticker**: the clock switches off into a line of light that bursts, the Jira chevrons fly in, and the
-  message glides in letter by letter over drifting particles.
+  message glides in letter by letter over drifting particles. Then the whole message rolls up in two small lines,
+  so a long one can be read in full.
 
 About ten seconds later the clock comes back.
 

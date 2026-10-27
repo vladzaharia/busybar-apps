@@ -103,32 +103,49 @@ function sameBlock(a: Uint8Array, i: number, j: number, blk: number): boolean {
   return true;
 }
 
-/** Control byte `n` repeats the next block n times; `0x80 | n` copies the next n blocks verbatim. */
+/**
+ * Control byte `n` repeats the next block n times; `0x80 | n` copies the next n blocks verbatim.
+ *
+ * Byte for byte the output of the firmware's `rle_compress`: a run of 3 or more blocks is encoded as a repeat, and
+ * a verbatim stretch absorbs shorter runs, ending only where a run of 5 or more starts. `src` must be whole blocks
+ * (the firmware's encoder reads past the end otherwise; this one drops the partial block).
+ */
 export function rleCompress(src: Uint8Array, blk: number): Uint8Array {
   const out: number[] = [];
+  const blocks = Math.floor(src.length / blk);
+  // Block b equals block c; a block past the end equals nothing.
+  const same = (b: number, c: number) => c < blocks && sameBlock(src, b * blk, c * blk, blk);
   let i = 0;
-  while (i < src.length) {
+  while (i < blocks) {
     let repeat = 1;
-    while (repeat < RLE_MAX_BLOCKS && i + repeat * blk < src.length && sameBlock(src, i, i + repeat * blk, blk)) repeat++;
+    while (repeat < RLE_MAX_BLOCKS && same(i, i + repeat)) repeat++;
     if (repeat >= RLE_THRESHOLD) {
       out.push(repeat);
-      for (let k = 0; k < blk; k++) out.push(src[i + k]!);
-      i += repeat * blk;
+      for (let k = 0; k < blk; k++) out.push(src[i * blk + k]!);
+      i += repeat;
       continue;
     }
-    // Verbatim until a run worth encoding starts (or the 127-block limit).
     let count = 0;
-    let j = i;
-    while (j < src.length && count < RLE_MAX_BLOCKS) {
-      let run = 1;
-      while (run < RLE_THRESHOLD && j + run * blk < src.length && sameBlock(src, j, j + run * blk, blk)) run++;
-      if (run >= RLE_THRESHOLD) break;
-      count++;
-      j += blk;
+    let run = 0;
+    for (let j = i; ; ) {
+      if (same(j, j + 1)) {
+        if (++run > RLE_THRESHOLD) break;
+      } else {
+        count += 1 + run;
+        run = 0;
+        if (count >= RLE_MAX_BLOCKS) {
+          count = RLE_MAX_BLOCKS;
+          break;
+        }
+      }
+      if (++j >= blocks) {
+        count += run;
+        break;
+      }
     }
     out.push(0x80 | count);
-    for (let k = 0; k < count * blk; k++) out.push(src[i + k]!);
-    i += count * blk;
+    for (let k = 0; k < count * blk; k++) out.push(src[i * blk + k]!);
+    i += count;
   }
   return Uint8Array.from(out);
 }

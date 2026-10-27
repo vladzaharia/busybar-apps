@@ -60,6 +60,42 @@ function expected(frame: Uint8Array, format: AnimColorFormat): Uint8Array {
   return out;
 }
 
+// Ported from the firmware's applications/debug/unit_tests/rle_test/rle_test.c (and scripts/flipper/rle.py's
+// test_rle): 512 random bytes with three inserted runs of 0, 1, .., blk-1, for every block size 1..8.
+test("firmware rle_test: random data with inserted runs round-trips, block sizes 1..8", () => {
+  const r = rand(2);
+  for (let blk = 1; blk <= 8; blk++) {
+    for (let n = 0; n < 20; n++) {
+      const original = new Uint8Array(512 - (512 % blk));
+      for (let i = 0; i < original.length; i++) original[i] = Math.floor(r() * 255);
+      for (let k = 0; k < 3; k++) {
+        const bytes = (5 + Math.floor(r() * 10)) * blk;
+        const at = Math.floor(r() * (original.length - bytes));
+        for (let j = 0; j < bytes; j++) original[at + j] = j % blk;
+      }
+      assert.deepEqual(rleDecompress(rleCompress(original, blk), blk), original, `blk ${blk}`);
+    }
+  }
+});
+
+// Outputs of the firmware's own toolbox/rle_encode.c rle_compress (compiled on the host by scripts/conformance.ts).
+const FIRMWARE_RLE: [blk: number, input: string, output: string][] = [
+  [1, "64676a6d070707073235383b", "8c64676a6d070707073235383b"], // a run of 4 stays in the verbatim stretch
+  [1, "64676a6d0707070707073235", "8464676a6d0607823235"], // a run of 6 ends it
+  [1, "010102020303", "86010102020303"],
+  [1, "09".repeat(130), "7f090309"],
+  [3, "010203010203010203646566676869010203010203010203010203010203", "030102038264656667686905010203"],
+  [4, "646566676768696a6a6b6c6d0000000000000000090a0b0c", "86646566676768696a6a6b6c6d0000000000000000090a0b0c"],
+];
+
+test("RLE output matches the firmware's rle_compress byte for byte", () => {
+  const verbatim = Array.from({ length: 130 }, (_, i) => (100 + i * 3) & 0xff);
+  const cases = [...FIRMWARE_RLE, [1, Buffer.from(verbatim).toString("hex"), `ff${Buffer.from(verbatim.slice(0, 127)).toString("hex")}83${Buffer.from(verbatim.slice(127)).toString("hex")}`] as const];
+  for (const [blk, input, output] of cases) {
+    assert.equal(Buffer.from(rleCompress(new Uint8Array(Buffer.from(input, "hex")), blk)).toString("hex"), output);
+  }
+});
+
 test("RLE round-trips for every block size", () => {
   const r = rand(1);
   for (const blk of [1, 3, 4]) {
