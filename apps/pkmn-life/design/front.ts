@@ -80,7 +80,13 @@ function signPanel(r: Raster, t: number, opts: { h?: number; w?: number; alpha?:
       !inRoundRect(lx + 1, ly, w, h, rad) ||
       !inRoundRect(lx, ly - 1, w, h, rad) ||
       !inRoundRect(lx, ly + 1, w, h, rad);
-    let c: Color = border ? hex("#0A3B8F") : ly === 1 ? hex("#69A6FF") : mix(hex("#2B7BF5"), hex("#0B4FC0"), v);
+    let c: Color = border
+      ? hex("#0A3B8F")
+      : ly === 1
+        ? hex("#69A6FF")
+        : ly === h - 2
+          ? hex("#0A44A6")
+          : mix(hex("#2B7BF5"), hex("#0B4FC0"), v);
     if (!border) {
       const d = Math.abs(x + y * 0.9 - sheen);
       if (d < 5) c = mix(c, WHITE, 0.32 * (1 - d / 5));
@@ -176,7 +182,7 @@ function optionSign(): Demo {
         const pop = span(t, s.start + 0.1 + (gi - 3) * 0.12, s.start + 0.4 + (gi - 3) * 0.12);
         return {
           dy: pop > 0 && pop < 1 ? -Math.sin(pop * Math.PI) * 3 : 0,
-          color: mix(WHITE, JIRA.b200, 0.5 + 0.5 * Math.sin(t * 14 + gi)),
+          color: mix(WHITE, JIRA.b100, 0.5 + 0.5 * Math.sin(t * 14 + gi)),
         };
       });
     }
@@ -190,7 +196,7 @@ function optionSign(): Demo {
           void gi;
           const p = inOutCubic(span(t, recapAt - ROLL, recapAt));
           const blink = ch === "?" ? 0.5 + 0.5 * Math.sin(t * 12) : 0;
-          return { dy: Math.round((1 - p) * 14), hidden: p <= 0, color: mix(WHITE, JIRA.b200, blink) };
+          return { dy: Math.round((1 - p) * 14), hidden: p <= 0, color: mix(WHITE, JIRA.b100, blink) };
         });
       });
     }
@@ -547,9 +553,9 @@ function optionBurstTicker(): Demo {
   const startX = 72;
   const yetW = total - offsets[yetAt]!;
   const endX = TEXT_X0 + (72 - TEXT_X0 - yetW) / 2 - offsets[yetAt]!;
-  const scrollAt = introAt + 0.95;
-  const scrollEnd = scrollAt + 6.6;
-  const outroAt = scrollEnd + 1.5;
+  const scrollAt = introAt + 0.85;
+  const scrollEnd = scrollAt + 6.2;
+  const outroAt = scrollEnd + 1.4;
   const doneAt = outroAt + 0.7;
   const duration = doneAt + CLOCK_TAIL;
   const ps = particles(7, 34);
@@ -674,21 +680,21 @@ function hpBox(r: Raster, alpha: number, hp = 1) {
 
 function optionEncounter(): Demo {
   const introAt = CLOCK_LEAD;
-  const flashEnd = introAt + 0.5;
-  const wipeEnd = flashEnd + 0.5;
-  const slideEnd = wipeEnd + 0.7;
-  const hudEnd = slideEnd + 0.25;
-  const cryEnd = hudEnd + 0.35;
-  const CPS = 30;
+  const flashEnd = introAt + 0.45;
+  const wipeEnd = flashEnd + 0.4;
+  const slideEnd = wipeEnd + 0.6;
+  const hudEnd = slideEnd + 0.3;
+  const cryEnd = hudEnd + 0.3;
+  const CPS = 26;
   const pages = [
     { lines: ["A wild ISSUE", "appeared!"], hold: 0.8 },
-    { lines: ["Did you file a", "JIRA ticket yet???"], hold: 1.3 },
+    { lines: ["Did you file a", "JIRA ticket yet???"], hold: 1.5 },
     { lines: ["ISSUE used", "GUILT TRIP!"], hold: 0.45 },
     { lines: ["It's super", "effective!"], hold: 0.9 },
   ];
   // Page timings, with the attack between pages 3 and 4.
-  const ATTACK = 0.75;
-  let at = cryEnd + 0.2;
+  const ATTACK = 0.7;
+  let at = cryEnd + 0.15;
   const sched = pages.map((pg, i) => {
     const chars = pg.lines.reduce((n, l) => n + [...l].length, 0);
     const start = at;
@@ -704,19 +710,19 @@ function optionEncounter(): Demo {
   const MARK = { x: 57, y: 2, size: 12 };
 
   function scene(r: Raster, t: number, opts: { hud: number; markDx?: number; hp?: number }) {
-    // Grass platform under the mark.
-    r.shade((x, y) => {
-      const dx = (x + 0.5 - (MARK.x + MARK.size / 2)) / 9;
-      const dy = (y + 0.5 - 14.5) / 1.8;
-      return dx * dx + dy * dy <= 1 ? hex("#2F6B45") : null;
-    });
     const slide = span(t, wipeEnd, slideEnd);
     const x = lerp(-18, MARK.x, slide);
+    // Grass platform under the mark; it slides in with it.
+    r.shade((px, py) => {
+      const dx = (px + 0.5 - (x + MARK.size / 2)) / 9;
+      const dy = (py + 0.5 - 14.5) / 1.8;
+      return dx * dx + dy * dy <= 1 ? hex("#2F6B45") : null;
+    });
     let hop = 0;
     const cry = span(t, hudEnd, cryEnd);
     if (cry > 0 && cry < 1) hop = -Math.abs(Math.sin(cry * Math.PI * 2)) * 2;
     jiraMark(r, x + (opts.markDx ?? 0), MARK.y + hop, MARK.size);
-    hpBox(r, opts.hud, opts.hp ?? 1);
+    hpBox(r, opts.hud, (opts.hp ?? 1) * outCubic(span(t, slideEnd + 0.1, hudEnd + 0.15)));
   }
 
   function frame(t: number): Raster {
