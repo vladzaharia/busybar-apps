@@ -1,0 +1,9 @@
+{
+  "name": "team-life",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "dependencies": {
+    "@busybar/pixel": "workspace:*"
+  }
+}
