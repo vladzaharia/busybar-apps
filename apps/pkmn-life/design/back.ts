@@ -2,7 +2,7 @@
 // Both demos: scroll through presets with the wheel, press START, then the "now showing" state with a countdown.
 
 import { Raster, font, hex, lerp, mix, outBack, outCubic, outQuad, span, textWidth, type Color, type Font } from "@busybar/pixel";
-import { BLACK, PRESETS, WHITE, jiraMark } from "./kit.ts";
+import { BLACK, MOVES, PRESETS, WHITE, jiraMark } from "./kit.ts";
 import type { Demo } from "./front.ts";
 
 const W = 148;
@@ -62,7 +62,7 @@ const GREY_TONES = [grey(1), grey(0.8), grey(0.58)];
 function header(r: Raster, sel: number) {
   jiraMark(r, 2, 1, 10, { tones: GREY_TONES });
   const small = font("small");
-  r.text("TEAM LIFE", small, 15, 1, grey(0.9));
+  r.text("PKMN LIFE", small, 15, 1, grey(0.9));
   const idx = `${Math.round(sel) + 1}/${PRESETS.length}`;
   r.text(idx, small, W - 2 - textWidth(idx, small), 1, grey(0.55));
 }
@@ -247,7 +247,112 @@ function optionWheel(): Demo {
   };
 }
 
-export const BACK_OPTIONS: Demo[] = [optionCards(), optionWheel()];
+// ---------------------------------------------------------------------------------------------------------------
+// 3 — Battle Menu: the presets as a move list with a ▶ cursor in a double-ruled box; the text box below shows the
+// whole message. START "uses the move", and the countdown is an HP bar.
+
+/** Double-ruled box, as in handheld RPG menus. */
+function ruledBox(r: Raster, x: number, y: number, w: number, h: number, alpha = 1) {
+  r.roundRect(x, y, w, h, 2, (px, py) => {
+    const lx = px - x;
+    const ly = py - y;
+    const outer = lx === 0 || ly === 0 || lx === w - 1 || ly === h - 1;
+    const inner = lx === 2 || ly === 2 || lx === w - 3 || ly === h - 3;
+    const inside = lx > 2 && ly > 2 && lx < w - 3 && ly < h - 3;
+    if (outer) return grey(0.85, alpha);
+    if (inner) return grey(0.55, alpha);
+    return inside || lx === 1 || ly === 1 || lx === w - 2 || ly === h - 2 ? grey(0.04, alpha) : null;
+  });
+}
+
+function cursor(r: Raster, x: number, y: number, c: Color) {
+  for (let i = 0; i < 4; i++) r.fillRect(x + i, y + i, 1, 7 - i * 2, c);
+}
+
+function optionBattle(): Demo {
+  const ROW = 9;
+  const LIST = { x: 0, y: 11, w: W, h: 50 };
+  const STEP = 0.12;
+
+  function frame(t: number): Raster {
+    const r = new Raster(W, H).clear(BLACK);
+    const sel = selection(t, outCubic, STEP);
+    const pressed = span(t, START_AT, START_AT + 0.45);
+    const small = font("small");
+
+    if (t < START_AT + 0.25) {
+      header(r, sel);
+      ruledBox(r, LIST.x, LIST.y, LIST.w, LIST.h);
+      MOVES.forEach((move, k) => {
+        const y = LIST.y + 5 + k * ROW;
+        const on = Math.abs(k - sel) < 0.5;
+        r.text(move, small, 14, y - 2, grey(on ? 1 : 0.6));
+        const pp = "PP 10/10";
+        if (on) r.text(pp, small, W - 8 - textWidth(pp, small), y - 2, grey(0.5));
+      });
+      // The cursor glides between rows, with a little idle nudge like a waiting menu.
+      const nudge = Math.floor(t * 2.5) % 2 === 0 ? 0 : 1;
+      cursor(r, 5 + nudge, LIST.y + 5 + sel * ROW, WHITE);
+      // Text box: the whole message for the highlighted move, typed afresh on every move.
+      ruledBox(r, 0, 62, W, 18);
+      const k = Math.round(sel);
+      const last = [...TURNS].reverse().find((turn) => t >= turn.at);
+      const since = t - (last ? last.at : 0);
+      const msg = PRESETS[k]!;
+      let shown = 0;
+      const typed = Math.floor(since * 45);
+      r.text(msg, small, 6, 64, grey(0.92), () => ({ hidden: shown++ >= typed }));
+      if (pressed > 0) {
+        // The move is chosen: the row blinks and everything wipes away in bands.
+        const blink = Math.floor(t * 20) % 2 === 0;
+        if (blink) r.fillRect(12, LIST.y + 3 + sel * ROW, 120, 8, grey(1, 0.35));
+        for (let band = 0; band < 10; band++) {
+          const w = Math.round(W * outQuad(span(pressed, band * 0.03, band * 0.03 + 0.5)));
+          r.fillRect(band % 2 === 0 ? 0 : W - w, band * 8, w, 8, BLACK);
+        }
+      }
+      return r;
+    }
+
+    // "Now on front", battle style.
+    const a = span(pressed, 0.5, 1);
+    const elapsed = t - START_AT;
+    const left = Math.max(0, 1 - elapsed / SHOW_SECONDS);
+    const live = 0.5 + 0.5 * Math.sin(t * 6);
+    r.glow(9.5, 5.5, 3.5, 3.5, grey(live * a), 1.2);
+    r.fillRect(8, 4, 3, 3, grey(a));
+    r.text("NOW ON FRONT", small, 15, 1, grey(0.9, a));
+    const k = Math.round(sel);
+    const normal = font("normal");
+    const move = MOVES[k]!;
+    r.text(move, normal, Math.round((W - textWidth(move, normal)) / 2), 14, grey(1, a));
+    // HP-style countdown.
+    r.text("HP", font("tiny"), 14, 33, grey(0.8, a));
+    r.fillRect(26, 32, 108, 7, grey(0.3, a));
+    r.fillRect(27, 33, Math.round(106 * left), 5, grey(0.95, a));
+    const secs = `${Math.ceil(left * SHOW_SECONDS)}/${SHOW_SECONDS}`;
+    r.text(secs, small, 134 - textWidth(secs, small), 40, grey(0.6, a));
+    ruledBox(r, 0, 54, W, 26, a);
+    const used = `PKMN LIFE used ${move}!`;
+    let shown = 0;
+    const typed = Math.floor((t - START_AT - 0.55) * 40);
+    r.text(used, small, 6, 57, grey(0.92, a), () => ({ hidden: shown++ >= typed }));
+    const tail = "BACK to run away";
+    r.text(tail, small, 6, 66, grey(0.45, a));
+    return r;
+  }
+
+  return {
+    id: "battle",
+    name: "3 · Battle Menu",
+    pitch:
+      "The presets as a move list in a double-ruled box, with a ▶ cursor that glides between rows and 'PP 10/10' on the highlighted move. The text box underneath types out the full message. START uses the move and the 10-second countdown becomes an HP bar.",
+    duration: DURATION,
+    frame,
+  };
+}
+
+export const BACK_OPTIONS: Demo[] = [optionCards(), optionWheel(), optionBattle()];
 
 void hex;
 void mix;

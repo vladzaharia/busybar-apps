@@ -127,6 +127,9 @@ export const PRESETS = [
   "Link the ticket in your PR!",
 ];
 
+/** Short, move-style names for the presets (the battle-menu picker lists these). */
+export const MOVES = ["FILE A TICKET", "TICKET CHECK", "NO TICKET NO WORK", "IN PROGRESS", "LINK THE PR"];
+
 /** Vertical gradient between two colours. */
 export function vgrad(top: Color, bottom: Color, v: number): Color {
   return mix(top, bottom, v);

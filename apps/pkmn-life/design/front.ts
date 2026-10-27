@@ -524,4 +524,184 @@ function optionTicker(): Demo {
   };
 }
 
-export const FRONT_OPTIONS: Demo[] = [optionSign(), optionBurst(), optionTicker()];
+// ---------------------------------------------------------------------------------------------------------------
+// D — "Wild Encounter": a handheld-RPG battle. The clock flashes and stripes away, the Jira mark slides in with an
+// HP box, and the nag plays out in text boxes, typed letter by letter, with a GUILT TRIP attack in the middle.
+
+const BOX_FILL = hex("#EEF2F8");
+const BOX_INK = hex("#141820");
+
+/** A full-screen dialogue box: blue frame, light fill, two typed lines and the blinking ▼ when a page is done. */
+function textBox(r: Raster, lines: string[], typed: number, t: number, rise = 1) {
+  const top = Math.round(lerp(16, 0, rise));
+  r.roundRect(0, top, 72, 16, 2, (x, y) => {
+    const lx = x;
+    const ly = y - top;
+    const edge = lx === 0 || lx === 71 || ly === 0 || ly === 15;
+    return edge ? JIRA.b500 : BOX_FILL;
+  });
+  if (rise < 1) return;
+  const small = font("small");
+  let shown = 0;
+  lines.forEach((line, li) => {
+    r.text(line, small, 3, li === 0 ? 0 : 7, BOX_INK, () => ({ hidden: shown++ >= typed }));
+  });
+  const total = lines.reduce((n, l) => n + [...l].length, 0);
+  if (typed >= total && Math.floor(t * 2.5) % 2 === 0) {
+    r.fillRect(67, 12, 3, 1, JIRA.b600);
+    r.fillRect(68, 13, 1, 1, JIRA.b600);
+  }
+}
+
+/** Battle wipe: 2 px bands close in from alternating sides (p 0→1), black behind. */
+function stripes(r: Raster, p: number) {
+  for (let band = 0; band < 8; band++) {
+    const local = span(p, band * 0.04, band * 0.04 + 0.68);
+    const w = Math.round(72 * outQuad(local));
+    const x = band % 2 === 0 ? 0 : 72 - w;
+    r.fillRect(x, band * 2, w, 2, BLACK);
+  }
+}
+
+function hpBox(r: Raster, alpha: number, hp = 1) {
+  if (alpha <= 0) return;
+  const small = font("small");
+  const tiny = font("tiny");
+  const line = { ...hex("#9AA3B2"), a: alpha };
+  r.text("TICKET", small, 2, -1, { ...WHITE, a: alpha });
+  r.text(":L99", small, 30, -1, { ...hex("#C9D2E0"), a: alpha });
+  r.text("HP", tiny, 3, 8, { ...hex("#F2C14E"), a: alpha });
+  r.fillRect(12, 8, 32, 5, { ...hex("#2A303B"), a: alpha });
+  const fill = hp > 0.5 ? hex("#3DDC84") : hp > 0.2 ? hex("#F2C14E") : hex("#F25555");
+  r.fillRect(13, 9, Math.round(30 * hp), 3, { ...fill, a: alpha });
+  r.fillRect(0, 7, 1, 8, line);
+  r.fillRect(0, 14, 47, 1, line);
+  r.fillRect(47, 13, 1, 1, line);
+}
+
+function optionEncounter(): Demo {
+  const introAt = CLOCK_LEAD;
+  const flashEnd = introAt + 0.5;
+  const wipeEnd = flashEnd + 0.5;
+  const slideEnd = wipeEnd + 0.7;
+  const hudEnd = slideEnd + 0.25;
+  const cryEnd = hudEnd + 0.35;
+  const CPS = 30;
+  const pages = [
+    { lines: ["A wild JIRA", "TICKET appeared!"], hold: 0.8 },
+    { lines: ["Did you file a", "JIRA ticket yet???"], hold: 1.3 },
+    { lines: ["TICKET used", "GUILT TRIP!"], hold: 0.45 },
+    { lines: ["It's super", "effective!"], hold: 0.9 },
+  ];
+  // Page timings, with the attack between pages 3 and 4.
+  const ATTACK = 0.75;
+  let at = cryEnd + 0.2;
+  const sched = pages.map((pg, i) => {
+    const chars = pg.lines.reduce((n, l) => n + [...l].length, 0);
+    const start = at;
+    const typedAt = start + chars / CPS;
+    const end = typedAt + pg.hold;
+    at = end + (i === 2 ? ATTACK : 0);
+    return { ...pg, start, typedAt, end };
+  });
+  const attackAt = sched[2]!.end;
+  const outroAt = sched[3]!.end;
+  const doneAt = outroAt + 0.55;
+  const duration = doneAt + CLOCK_TAIL;
+  const MARK = { x: 55, y: 0, size: 15 };
+
+  function scene(r: Raster, t: number, opts: { hud: number; markDx?: number; hp?: number }) {
+    // Grass platform under the mark.
+    r.shade((x, y) => {
+      const dx = (x + 0.5 - (MARK.x + 7.5 + (opts.markDx ?? 0) * 0)) / 10;
+      const dy = (y + 0.5 - 14.5) / 1.8;
+      return dx * dx + dy * dy <= 1 ? hex("#2F6B45") : null;
+    });
+    const slide = span(t, wipeEnd, slideEnd);
+    const x = lerp(-18, MARK.x, slide);
+    let hop = 0;
+    const cry = span(t, hudEnd, cryEnd);
+    if (cry > 0 && cry < 1) hop = -Math.abs(Math.sin(cry * Math.PI * 2)) * 2;
+    jiraMark(r, x + (opts.markDx ?? 0), MARK.y + hop, MARK.size, { contrast: 6 });
+    hpBox(r, opts.hud, opts.hp ?? 1);
+  }
+
+  function frame(t: number): Raster {
+    if (t < introAt) return clockFrame(t);
+    const r = new Raster(72, 16).clear(BLACK);
+
+    // Encounter: the screen flashes three times, then stripes close in.
+    if (t < wipeEnd) {
+      clock(r, "14:27", "Oct, Tue", "27", colonDim(t));
+      const f = span(t, introAt, flashEnd);
+      const pulse = Math.max(0, Math.sin(f * Math.PI * 3));
+      r.fillRect(0, 0, 72, 16, { ...WHITE, a: pulse * 0.95 });
+      if (t >= flashEnd) stripes(r, span(t, flashEnd, wipeEnd));
+      return r;
+    }
+
+    if (t >= outroAt) {
+      // Fade to black, then the clock fades back in.
+      const p = span(t, outroAt, outroAt + 0.3);
+      if (p < 1) {
+        textBox(r, pages[3]!.lines, 999, t);
+        r.fade(1 - p);
+        return r;
+      }
+      clock(r, "14:27", "Oct, Tue", "27", colonDim(t), outQuad(span(t, outroAt + 0.3, doneAt)));
+      return r;
+    }
+
+    const hud = span(t, slideEnd, hudEnd);
+    if (t < sched[0]!.start) {
+      scene(r, t, { hud });
+      // The text box rises over the scene.
+      const rise = span(t, sched[0]!.start - 0.18, sched[0]!.start);
+      if (rise > 0) textBox(r, [], 0, t, outCubic(rise));
+      return r;
+    }
+
+    // The attack: box drops, the mark lunges, flashes and the screen shakes; the ticket's HP stays full, yours doesn't.
+    if (t >= attackAt && t < attackAt + ATTACK) {
+      const p = span(t, attackAt, attackAt + ATTACK);
+      const lunge = p < 0.35 ? -Math.sin(span(p, 0, 0.35) * Math.PI) * 10 : 0;
+      const shake = p > 0.3 && p < 0.75 ? Math.round(Math.sin(t * 90) * 2) : 0;
+      const scr = new Raster(72, 16).clear(BLACK);
+      scene(scr, t, { hud: 1, markDx: lunge });
+      r.draw(scr, shake, 0);
+      const flash = p > 0.3 && p < 0.7 ? Math.max(0, Math.sin(span(p, 0.3, 0.7) * Math.PI * 2)) : 0;
+      if (flash > 0) r.fillRect(0, 0, 72, 16, { ...WHITE, a: flash });
+      // Impact sparks around the HP box.
+      const spark = span(p, 0.35, 0.8);
+      if (spark > 0 && spark < 1) {
+        for (let k = 0; k < 6; k++) {
+          const ang = (k / 6) * Math.PI * 2 + 0.4;
+          r.glow(24 + Math.cos(ang) * spark * 22, 8 + Math.sin(ang) * spark * 7, 2.2, 2.2, { ...JIRA.b200, a: 1 - spark }, 1.4);
+        }
+      }
+      return r;
+    }
+
+    const page = [...sched].reverse().find((s) => t >= s.start)!;
+    const typed = Math.floor((t - page.start) * CPS);
+    textBox(r, page.lines, typed, t);
+    // Page 2's "???" pulses blue once typed.
+    if (page === sched[1] && t > page.typedAt) {
+      const small = font("small");
+      const x = 3 + textWidth("JIRA ticket yet", small);
+      r.text("???", small, x, 7, mix(BOX_INK, JIRA.b500, 0.5 + 0.5 * Math.sin(t * 12)));
+    }
+    return r;
+  }
+
+  return {
+    id: "encounter",
+    name: "D · Wild Encounter",
+    pitch:
+      "A handheld-RPG battle. The clock flashes and stripes away, a wild Jira ticket slides in with its own HP bar, and the nag plays out in typed text boxes: 'A wild JIRA TICKET appeared!', 'Did you file a JIRA ticket yet???', then it uses GUILT TRIP. It's super effective.",
+    duration,
+    frame,
+  };
+}
+
+export const FRONT_OPTIONS: Demo[] = [optionSign(), optionBurst(), optionTicker(), optionEncounter()];
