@@ -296,7 +296,7 @@ function collapseOutro(r: Raster, t: number, outroAt: number, doneAt: number) {
 }
 
 /** The mark's resting place in B and its hybrid. */
-const BURST_LOGO = { x: 0, y: 0, size: 16 };
+const BURST_LOGO = { x: 1, y: 2, size: 12 };
 
 /**
  * Chevrons fly out of the burst: from huge and centred to the mark's resting place, one after another, then hop
@@ -322,7 +322,7 @@ function flyInMark(r: Raster, t: number, introAt: number, hops: number[]) {
   jiraMark(r, L.x, L.y, L.size, { poses, contrast: 3 });
   for (let i = 0; i < 3; i++) {
     const land = span(t, introAt + 0.85 + i * 0.1, introAt + 1.1 + i * 0.1);
-    if (land > 0 && land < 1) r.glow(L.x + 8, L.y + 8, 10, 7, { ...JIRA.b200, a: 0.8 * (1 - land) }, 2);
+    if (land > 0 && land < 1) r.glow(L.x + L.size / 2, L.y + L.size / 2, 9, 7, { ...JIRA.b200, a: 0.8 * (1 - land) }, 2);
   }
 }
 
@@ -355,7 +355,7 @@ function optionBurst(): Demo {
 
     // Beats: letters drop in with a bounce, then fall away; accents flash.
     for (const [i, s] of slots.entries()) {
-      const { f, x, y } = beatPlace(s.beat, 18, 72);
+      const { f, x, y } = beatPlace(s.beat, 16, 72);
       const isLast = i === slots.length - 1;
       const outStart = isLast ? recapAt - 0.15 : s.end - 0.18;
       if (t < s.start - 0.05 || t > outStart + 0.45) continue;
@@ -420,7 +420,7 @@ function optionTicker(): Demo {
   const marqueeAt = typedAt + 0.9;
   const outroAt = introAt + 9.6;
   const duration = outroAt + 0.55 + CLOCK_TAIL;
-  const TEXT_X0 = 18;
+  const TEXT_X0 = 16;
   const CURSOR_X = 64;
   const SPEED = 34;
   const total = advances.reduce((a, b) => a + b, 0);
@@ -457,7 +457,7 @@ function optionTicker(): Demo {
       const w = 0.5 + 0.5 * Math.sin(t * 4 - i * 0.9);
       return mix([hex("#4C9AFF"), hex("#2684FF"), hex("#0065FF")][i]!, hex("#B3D4FF"), w * 0.45);
     });
-    jiraMark(r, 0, 0, 16, { tones });
+    jiraMark(r, 1, 2, 12, { tones });
 
     const off = scroll(t);
     const typed = (t - typeAt) * CPS;
@@ -542,7 +542,7 @@ function optionBurstTicker(): Demo {
   const total = offsets[offsets.length - 1]! + advances[advances.length - 1]!;
   const jiraAt = text.indexOf("JIRA");
   const yetAt = text.indexOf("YET");
-  const TEXT_X0 = 18;
+  const TEXT_X0 = 16;
   // The line starts just off the right edge and eases to a stop with "YET???" centred beside the mark.
   const startX = 72;
   const yetW = total - offsets[yetAt]!;
@@ -701,12 +701,12 @@ function optionEncounter(): Demo {
   const outroAt = sched[3]!.end;
   const doneAt = outroAt + 0.55;
   const duration = doneAt + CLOCK_TAIL;
-  const MARK = { x: 55, y: 0, size: 16 };
+  const MARK = { x: 57, y: 2, size: 12 };
 
   function scene(r: Raster, t: number, opts: { hud: number; markDx?: number; hp?: number }) {
     // Grass platform under the mark.
     r.shade((x, y) => {
-      const dx = (x + 0.5 - (MARK.x + 8)) / 10;
+      const dx = (x + 0.5 - (MARK.x + MARK.size / 2)) / 9;
       const dy = (y + 0.5 - 14.5) / 1.8;
       return dx * dx + dy * dy <= 1 ? hex("#2F6B45") : null;
     });
