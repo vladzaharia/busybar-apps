@@ -1,6 +1,6 @@
 // App icons and the clock's calendar, drawn as pixel art.
 
-import { Raster, hex, stampPalette, type Color } from "@vladzaharia/bar-pixel";
+import { Raster, hex, type Color } from "@vladzaharia/bar-pixel";
 
 /** A ball split red over white by a dark band with a button in the middle. */
 function ball(size: number, palette: { top: Color; bottom: Color; band: Color; button: Color; shine: Color }): Raster {
@@ -28,31 +28,3 @@ export const frontIcon = () =>
 /** Back: 11×11 greyscale for the OLED. */
 export const backIcon = () =>
   ball(11, { top: hex("#9A9A9A"), bottom: hex("#F2F2F2"), band: hex("#202020"), button: hex("#FFFFFF"), shine: hex("#E0E0E0") });
-
-/** The clock's 13×14 calendar: red header with binder rings, a white page for the day (drawn live on top). */
-export function calendar(): Raster {
-  const r = new Raster(13, 14);
-  stampPalette(
-    r,
-    [
-      "...o.....o...",
-      ".RRoRRRRRoRR.",
-      "RRRRRRRRRRRRR",
-      "RRRRRRRRRRRRR",
-      "rrrrrrrrrrrrr",
-      "WWWWWWWWWWWWW",
-      "WWWWWWWWWWWWW",
-      "WWWWWWWWWWWWW",
-      "WWWWWWWWWWWWW",
-      "WWWWWWWWWWWWW",
-      "WWWWWWWWWWWWW",
-      "WWWWWWWWWWWWW",
-      "WWWWWWWWWWWWW",
-      ".wwwwwwwwwww.",
-    ],
-    0,
-    0,
-    { o: hex("#C9CED6"), R: hex("#EF4136"), r: hex("#B8241B"), W: hex("#F4F5F7"), w: hex("#C9CED6") },
-  );
-  return r;
-}

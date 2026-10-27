@@ -1,0 +1,5 @@
+# Rendered by `pnpm assets` (assets/build.ts)
+src/animations/
+src/images/
+src/generated/
+src/appmeta/icon_*.png

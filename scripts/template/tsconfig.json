@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    /* The device has no DOM; the lib is here for console, fetch and the timers. */
+    "lib": ["es2020", "dom"],
+    /* JSON imports (the manifest) and import.meta.env. */
+    "types": ["vite/client"]
+  },
+  "include": ["src", "../../packages/core/src/env.d.ts"]
+}

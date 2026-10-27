@@ -42,10 +42,10 @@ export function dropIn(o: {
   const f = font(o.font);
   return clip(o.duration, (r, t) => {
     const stagger = o.stagger ?? 0.035;
-    const outAt = o.exit !== undefined ? o.duration - o.exit : Infinity;
+    const outAt = o.exit !== undefined ? o.duration - o.exit : null;
     r.text(o.text, f, o.x, o.y, WHITE, (gi, ch) => {
       const gin = span(t, gi * stagger, 0.38 + gi * stagger);
-      const gout = span(t, outAt + gi * 0.025, outAt + 0.2 + gi * 0.025);
+      const gout = outAt === null ? 0 : span(t, outAt + gi * 0.025, outAt + 0.2 + gi * 0.025);
       return {
         dy: Math.round(lerp(-14, 0, outBounce(gin)) + lerp(0, 16, inQuad(gout))),
         color: o.color?.(gi, ch, t),

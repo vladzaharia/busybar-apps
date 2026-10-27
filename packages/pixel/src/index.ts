@@ -11,3 +11,4 @@ export * from "./catalog.ts";
 export * from "./emulate.ts";
 export * from "./preview.ts";
 export * from "./motion.ts";
+export * from "./icons.ts";

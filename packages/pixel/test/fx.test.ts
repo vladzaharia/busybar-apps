@@ -30,3 +30,20 @@ test("buildAnim makes one section per part, with exact frame ranges", () => {
   assert.deepEqual(d.sections.map((s) => [s.name, s.start, s.end]), [["default", 0, 29], ["one", 0, 14], ["two", 15, 29]]);
   assert.equal(d.frames[15]![0], Math.round(0.8 * 255));
 });
+
+test("text effects draw with only their required options (no NaN from unset ones)", async () => {
+  const { dropIn, glide, typewriter, wave, roll, capCentre } = await import("../src/index.ts");
+  const clips = [
+    dropIn({ text: "HELLO", font: "extra_large", x: 4, y: capCentre("extra_large"), duration: 2 }),
+    glide({ text: "HELLO THERE", font: "extra_large", y: 1, endX: 0, duration: 2 }),
+    typewriter({ lines: ["Hello", "there"], font: "small", x: 2, ys: [0, 7], duration: 2 }),
+    wave({ text: "HELLO", font: "bold", x: 2, y: 2, duration: 2 }),
+    roll({ words: [{ text: "HI", font: "bold", hold: 1 }], box: { x: 0, width: 72 } }),
+  ];
+  for (const c of clips) {
+    const r = new Raster(72, 16);
+    c.draw(r, c.duration * 0.9);
+    assert.ok(!r.data.some(Number.isNaN), "no NaN pixels");
+    assert.ok(r.data.some((v, i) => i % 4 === 3 && v > 0), "something is drawn");
+  }
+});

@@ -1,0 +1,17 @@
+{
+  "format_version": 1,
+  "version": 1,
+  "fields": {
+    "time_format": {
+      "label": "Time format",
+      "type": "enum",
+      "default": "24h",
+      "options": [
+        { "value": "24h", "label": "24-hour" },
+        { "value": "12h", "label": "12-hour" }
+      ]
+    },
+    "show_date": { "label": "Show date", "type": "boolean", "default": true },
+    "blink_colons": { "label": "Colon blink", "type": "boolean", "default": true }
+  }
+}

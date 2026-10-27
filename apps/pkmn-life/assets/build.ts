@@ -6,9 +6,9 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { buildAnim, hex, writePng, type BuiltAnim } from "@vladzaharia/bar-pixel";
+import { buildAnim, calendarIcon, hex, writePng, type BuiltAnim, type Raster } from "@vladzaharia/bar-pixel";
 import { PRESETS, type NagStyle } from "../src/presets.ts";
-import { calendar, backIcon, frontIcon } from "./icons.ts";
+import { backIcon, frontIcon } from "./icons.ts";
 import { encounter } from "./scenes/encounter.ts";
 import { BACK_HEIGHT, BACK_WIDTH, backParts } from "./scenes/menu.ts";
 import { ticker } from "./scenes/ticker.ts";
@@ -51,11 +51,11 @@ total += back.data.length;
 console.log(`animations/back.anim: ${back.sections.default} frames in ${Object.keys(back.sections).length - 1} sections, ${kb(back.data.length)}`);
 
 // Images.
-const png = (path: string, r: ReturnType<typeof calendar>) => {
+const png = (path: string, r: Raster) => {
   mkdirSync(dirname(join(SRC, path)), { recursive: true });
   writePng(join(SRC, path), { width: r.width, height: r.height, data: r.toRGBA8() });
 };
-png("images/calendar.png", calendar());
+png("images/calendar.png", calendarIcon());
 png("appmeta/icon_front_8x8.png", frontIcon());
 png("appmeta/icon_back_11x11.png", backIcon());
 

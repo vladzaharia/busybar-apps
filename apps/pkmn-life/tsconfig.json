@@ -6,5 +6,5 @@
     /* JSON imports (the manifest) and import.meta.env. */
     "types": ["vite/client"]
   },
-  "include": ["src", "types", "../../packages/core/src/env.d.ts"]
+  "include": ["src", "../../packages/core/src/env.d.ts"]
 }

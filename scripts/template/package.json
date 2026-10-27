@@ -1,0 +1,28 @@
+{
+  "name": "{{SLUG}}",
+  "private": true,
+  "version": "0.1.0",
+  "description": "{{DESCRIPTION}}",
+  "type": "module",
+  "scripts": {
+    "assets": "node assets/build.ts",
+    "typecheck": "pnpm assets && tsc",
+    "build": "pnpm assets && busy-cli build --emit both",
+    "sim": "node ../../packages/sim/scripts/build.ts . --out dist/sim",
+    "app:install": "busy-cli app install",
+    "app:uninstall": "busy-cli app uninstall",
+    "app:run": "busy-cli app run",
+    "app:stop": "busy-cli app stop"
+  },
+  "dependencies": {
+    "@vladzaharia/bar-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@busy-app/cli": "0.6.0",
+    "@types/node": "^22.19.4",
+    "@vladzaharia/bar-pixel": "workspace:*",
+    "@vladzaharia/bar-sim": "workspace:*",
+    "typescript": "~6.0.3",
+    "vite": "8.1.4"
+  }
+}

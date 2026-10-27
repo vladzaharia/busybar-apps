@@ -54,7 +54,6 @@ function menu(r: Raster, o: { sel: number; k: number; typed: number; nudge: bool
     const on = Math.abs(i - o.sel) < 0.5;
     const y = LIST.y + 5 + i * ROW;
     r.text(p.move, small, 14, y - 2, grey(on ? 1 : 0.6));
-    if (on) r.text("PP 10/10", small, W - 8 - textWidth("PP 10/10", small), y - 2, grey(0.5));
   });
   cursor(r, 5 + (o.nudge ? 1 : 0), Math.round(LIST.y + 5 + o.sel * ROW));
   ruledBox(r, 0, BOX.y, W, BOX.h);
