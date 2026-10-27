@@ -2,7 +2,8 @@
 
 import { lerp, outCubic } from "../ease.ts";
 import { font, textWidth } from "../font.ts";
-import { hex, type Color, type Raster } from "../raster.ts";
+import { BALL_GREY, ballIcon, type BallPalette } from "../icons.ts";
+import { hex, Raster, type Color } from "../raster.ts";
 import { MOTION } from "../motion.ts";
 import { clip, type Clip } from "../timeline.ts";
 
@@ -159,3 +160,73 @@ export function liveDot(o: { duration: number; x: number; y: number; color?: Col
   });
 }
 
+
+// --- Handheld-RPG glyphs -----------------------------------------------------------------------------------------
+
+/** The PKMN symbol is 10 px wide and 8 tall. */
+export const PKMN_SIZE = { width: 10, height: 8 } as const;
+
+/**
+ * The handheld games' one-character "PKMN": PK stacked over MN in the tiny font, 8 rows tall. `y` is its top row;
+ * beside small-font text, start it two rows above the capitals (`capTop - 2`) so it ends one row under them.
+ */
+export function drawPkmn(r: Raster, x: number, y: number, color: Color = hex("#FFFFFF"), alpha = 1): void {
+  const tiny = font("tiny");
+  const top = y - (tiny.ascent - 4);
+  r.text("PK", tiny, x + 1, top, color, () => ({ alpha }));
+  r.text("MN", tiny, x, top + 4, color, () => ({ alpha }));
+}
+
+/** Draws a capture ball centred on (cx, cy), tilted by `angle` radians about its base, as when it rocks. */
+export function drawBall(r: Raster, cx: number, cy: number, size: number, o: { angle?: number; palette?: BallPalette; alpha?: number } = {}): void {
+  const sprite = ballIcon(size, o.palette ?? BALL_GREY);
+  const angle = o.angle ?? 0;
+  const half = (size - 1) / 2;
+  // Pivot on the bottom of the ball, so it rocks rather than spins.
+  const px = cx;
+  const py = cy + half;
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  const reach = Math.ceil(size * 1.2);
+  for (let y = Math.floor(cy - reach); y <= cy + reach; y++) {
+    for (let x = Math.floor(cx - reach); x <= cx + reach; x++) {
+      // Inverse-rotate the destination pixel into the sprite.
+      const dx = x - px;
+      const dy = y - py;
+      const sx = Math.round(cos * dx + sin * dy + half);
+      const sy = Math.round(-sin * dx + cos * dy + half + half);
+      if (sx < 0 || sy < 0 || sx >= size || sy >= size) continue;
+      const i = (sy * size + sx) * 4;
+      const a = sprite.data[i + 3]!;
+      if (a <= 0) continue;
+      r.blend(x, y, { r: sprite.data[i]! / a, g: sprite.data[i + 1]! / a, b: sprite.data[i + 2]! / a, a }, o.alpha ?? 1);
+    }
+  }
+}
+
+/**
+ * A capture ball rocking like one that has just caught something: a tilt one way, then the other, settling, every
+ * `every` seconds. Its button blinks on each rock.
+ */
+export function ballShake(o: {
+  duration: number;
+  x: number;
+  y: number;
+  size?: number;
+  every?: number;
+  palette?: BallPalette;
+  tilt?: number;
+  /** Seconds to fade in from nothing. */
+  fadeIn?: number;
+}): Clip {
+  const size = o.size ?? 9;
+  const every = o.every ?? MOTION.ambient;
+  const rock = MOTION.slow;
+  return clip(o.duration, (r, t) => {
+    const p = (t % every) / rock;
+    const angle = p < 1 ? (o.tilt ?? 0.42) * Math.sin(p * Math.PI * 2) * (1 - p * 0.5) : 0;
+    const alpha = o.fadeIn ? Math.min(1, t / o.fadeIn) : 1;
+    drawBall(r, o.x, o.y, size, { angle, palette: o.palette, alpha });
+    if (p < 1 && Math.floor(p * 4) % 2 === 1) r.glow(o.x, o.y, 1.6, 1.6, { ...hex("#FFFFFF"), a: alpha }, 1);
+  });
+}

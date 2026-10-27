@@ -89,7 +89,7 @@ export function typingTime(lines: string[], cps = 26): number {
 /**
  * One line gliding in from the right edge and easing to a stop at `endX`, each letter dropping into place as it
  * enters. Letters fade out past `fadeX` (e.g. under a logo on the left), and a word that would rest cut by that edge
- * fades out as the line settles, so the resting line shows only whole words.
+ * (or by the screen's left edge) fades out as the line settles, so the resting line shows only whole words.
  */
 export function glide(o: {
   text: string;
@@ -112,11 +112,13 @@ export function glide(o: {
   const chars = [...o.text];
   const advances = chars.map((ch) => f.glyph(ch.codePointAt(0)!)?.advance ?? 0);
   const offsets = advances.map((_, i) => advances.slice(0, i).reduce((a, b) => a + b, 0));
-  // A word that would rest cut by the fade edge fades out as the line settles, so the resting line shows only whole
-  // words (the last word always stays).
+  // A word that would rest cut by the fade edge (or the screen's left edge) fades out as the line settles, so the
+  // resting line shows only whole words (the last word always stays).
   const wordStart = chars.map((_, i) => chars.lastIndexOf(" ", i) + 1);
   const lastWord = chars.lastIndexOf(" ") + 1;
-  const cutAtRest = (i: number) => o.fadeX !== undefined && wordStart[i]! < lastWord && o.endX + offsets[wordStart[i]!]! < o.fadeX + 4;
+  // The edge is `fadeX` when there is one (letters start fading 4 px past it), else the raster's left edge.
+  const edge = o.fadeX !== undefined ? o.fadeX + 4 : 0;
+  const cutAtRest = (i: number) => wordStart[i]! < lastWord && o.endX + offsets[wordStart[i]!]! < edge;
   let entered: number[] | null = null;
   return clip(o.duration, (r, t) => {
     const startX = o.startX ?? r.width;

@@ -1,4 +1,4 @@
-// Icons every app needs: the clock's calendar, and simple monogram app icons for the Apps menu.
+// Icons every app needs: the clock's calendar, simple monogram app icons for the Apps menu, and a capture ball.
 
 import { font, textWidth } from "./font.ts";
 import { stampPalette } from "./jira.ts";
@@ -47,5 +47,50 @@ export function monogramIcon(letter: string, size: 8 | 11, color: Color, ink: Co
     const y = Math.floor((size - g.height) / 2) - (f.ascent - g.y - g.height);
     r.text(ch, f, x, y, ink);
   }
+  return r;
+}
+
+export interface BallPalette {
+  top: Color;
+  bottom: Color;
+  band: Color;
+  button: Color;
+  shine: Color;
+}
+
+/** Greys for the OLED: a mid-grey top over a white bottom, a dark band and a white button. */
+export const BALL_GREY: BallPalette = {
+  top: hex("#8C8C8C"),
+  bottom: hex("#F2F2F2"),
+  band: hex("#1A1A1A"),
+  button: hex("#FFFFFF"),
+  shine: hex("#D9D9D9"),
+};
+
+/** The colour ball for the LEDs: red over white. */
+export const BALL_RED: BallPalette = {
+  top: hex("#E8373E"),
+  bottom: hex("#D8DDE6"),
+  band: hex("#2A2F38"),
+  button: hex("#FFFFFF"),
+  shine: hex("#FF9DA0"),
+};
+
+/** A capture ball `size` px across: top over bottom, split by a band with a button in the middle. */
+export function ballIcon(size: number, palette: BallPalette = BALL_GREY): Raster {
+  const r = new Raster(size, size);
+  const c = (size - 1) / 2;
+  const radius = size / 2;
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const d = Math.hypot(x - c, y - c);
+      if (d > radius - 0.15) continue;
+      const band = Math.abs(y - c) < size / 10 + 0.3;
+      let color = band ? palette.band : y < c ? palette.top : palette.bottom;
+      if (d < size / 6.5) color = palette.button;
+      r.blend(x, y, color);
+    }
+  }
+  r.blend(Math.round(c - radius * 0.45), Math.round(c - radius * 0.5), palette.shine);
   return r;
 }

@@ -1,7 +1,7 @@
 // Backgrounds and ambient motion: fields, bursts, panels and light effects that sit behind content.
 
 import { inRoundRect, hex, mix, type Color, type Raster } from "../raster.ts";
-import { lerp, outExpo, rng } from "../ease.ts";
+import { lerp, outCubic, rng } from "../ease.ts";
 import { MOTION } from "../motion.ts";
 import { clip, type Clip } from "../timeline.ts";
 
@@ -60,7 +60,8 @@ export function burst(o: { duration: number; seed?: number; color?: Color; strea
       const ang = rand() * Math.PI * 2;
       const speed = 0.6 + rand() * 0.8;
       const len = 6 + rand() * 18;
-      const head = outExpo(p) * 70 * speed;
+      // Streaks cross the screen over the first half of the burst (slow ones reach the edges by about 40%).
+      const head = outCubic(p) * 42 * speed;
       const tail = Math.max(0, head - len);
       const c = mix(o.color ?? hex("#388BFF"), WHITE, rand());
       for (let d = tail; d < head; d += 0.5) {

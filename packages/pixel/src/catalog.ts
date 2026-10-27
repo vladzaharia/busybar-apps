@@ -319,6 +319,33 @@ export const CATALOG: CatalogEntry[] = [
     display: "front",
     demo: layer(fx.liveDot({ duration: 2, x: 6, y: 6 }), clip(2, (r) => r.text("ON AIR", font("bold"), 16, capCentre("bold"), W))),
   },
+  {
+    id: "pkmn-symbol",
+    name: "PKMN symbol",
+    group: "HUD",
+    about: "The handheld games' one-character PKMN (PK over MN), 10 × 8 px, to set in small-font text.",
+    usage: 'drawPkmn(r, x, capTop - 2, color); r.text("LIFE", font("small"), x + PKMN_SIZE.width + 3, capTop - 2, color)',
+    display: "back",
+    demo: clip(2.5, (r, t) => {
+      const small = font("small");
+      const g = hex("#EBEBEB");
+      fx.drawPkmn(r, 6, 28, g);
+      r.text("LIFE", small, 6 + fx.PKMN_SIZE.width + 3, 28, g);
+      const typed = Math.floor(Math.max(0, t - 0.3) * 30);
+      if (typed >= 1) fx.drawPkmn(r, 6, 44, g);
+      let n = 1;
+      r.text("LIFE used FILE A TICKET!", small, 6 + fx.PKMN_SIZE.width + 3, 44, g, () => ({ hidden: n++ >= typed }));
+    }),
+  },
+  {
+    id: "ball-shake",
+    name: "Capture ball",
+    group: "HUD",
+    about: "A capture ball rocking one way, then the other, then settling, every few seconds, its button blinking on each rock: something is in progress.",
+    usage: "ballShake({ duration, x, y, size: 9, every: MOTION.ambient })",
+    display: "back",
+    demo: layer(fx.ballShake({ duration: 3.2, x: 10, y: 5 }), clip(3.2, (r) => r.text("NOW ON FRONT", font("small"), 17, 1, hex("#E6E6E6")))),
+  },
 
   // Logo ----------------------------------------------------------------------------------------------------------
   {

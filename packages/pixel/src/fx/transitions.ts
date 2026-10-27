@@ -17,7 +17,9 @@ export function flash(o: { duration?: number; count?: number; color?: Color; pea
   const duration = o.duration ?? MOTION.base * 1.5;
   const count = o.count ?? 3;
   return clip(duration, (r, t) => {
-    const a = Math.max(0, Math.sin((t / duration) * Math.PI * count)) * (o.peak ?? 0.95);
+    // `count` separate flashes: each takes an equal slot, lit for its first 60%, then dark before the next.
+    const local = ((t / duration) * count) % 1;
+    const a = local < 0.6 ? Math.sin((local / 0.6) * Math.PI) * (o.peak ?? 0.95) : 0;
     if (a > 0) r.fillRect(0, 0, r.width, r.height, { ...(o.color ?? WHITE), a });
   });
 }

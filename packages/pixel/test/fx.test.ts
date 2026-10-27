@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { CATALOG, Raster, buildAnim, clip, decodeAnim, layer, pause, seq } from "../src/index.ts";
+import { CATALOG, Raster, buildAnim, clip, decodeAnim, flash, layer, pause, seq } from "../src/index.ts";
 
 test("every catalog demo renders at its display's size without throwing", () => {
   const ids = new Set<string>();
@@ -45,5 +45,21 @@ test("text effects draw with only their required options (no NaN from unset ones
     c.draw(r, c.duration * 0.9);
     assert.ok(!r.data.some(Number.isNaN), "no NaN pixels");
     assert.ok(r.data.some((v, i) => i % 4 === 3 && v > 0), "something is drawn");
+  }
+});
+
+test("flash makes exactly `count` separate flashes", () => {
+  for (const count of [1, 2, 3, 4]) {
+    const c = flash({ count });
+    let flashes = 0;
+    let lit = false;
+    for (let f = 0; f < Math.round(c.duration * 240); f++) {
+      const r = new Raster(4, 4);
+      c.draw(r, f / 240);
+      const on = r.data[3]! > 0.5;
+      if (on && !lit) flashes++;
+      lit = on;
+    }
+    assert.equal(flashes, count);
   }
 });

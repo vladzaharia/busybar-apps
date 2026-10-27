@@ -1,6 +1,6 @@
 // The back screen: the presets as a move list in a double-ruled box, a ▶ cursor, and a text box typing out the
 // highlighted message. START "uses the move": the screen wipes to a "Now on front" view whose HP-style bar counts
-// down while the front plays.
+// down while the front plays, with a capture ball rocking in the corner. "PKMN" is the handheld games' symbol.
 //
 // Every state is a section of one animation, so the app only has to name sections and the firmware chains them
 // frame-exactly:
@@ -10,7 +10,22 @@
 //   use-K         row blinks, bands wipe the screen
 //   show-K-STYLE  "Now on front" with the countdown, as long as that nag
 
-import { clip, drawJiraMark, font, hex, outCubic, outQuad, span, textWidth, type Clip, type Color, type Raster } from "@vladzaharia/bar-pixel";
+import {
+  ballShake,
+  clip,
+  drawJiraMark,
+  drawPkmn,
+  font,
+  hex,
+  outCubic,
+  outQuad,
+  PKMN_SIZE,
+  span,
+  textWidth,
+  type Clip,
+  type Color,
+  type Raster,
+} from "@vladzaharia/bar-pixel";
 import { PRESETS, type NagStyle } from "../../src/presets.ts";
 
 const W = 148;
@@ -51,7 +66,9 @@ function menu(r: Raster, o: { sel: number; k: number; typed: number; nudge: bool
   r.clear(hex("#000000"));
   const small = font("small");
   drawJiraMark(r, 2, 0, 11, { tones: GREY_TONES });
-  r.text("PKMN LIFE", small, 15, 1, grey(0.9));
+  // "PKMN LIFE", with the handheld games' PKMN symbol.
+  drawPkmn(r, 15, 1, grey(0.9));
+  r.text("LIFE", small, 15 + PKMN_SIZE.width + 3, 1, grey(0.9));
   const idx = `${o.k + 1}/${PRESETS.length}`;
   r.text(idx, small, W - 2 - textWidth(idx, small), 1, grey(0.55));
   ruledBox(r, LIST.x, LIST.y, LIST.w, LIST.h);
@@ -83,7 +100,7 @@ const use = (k: number): Clip =>
     if (Math.floor(t * 20) % 2 === 0) r.fillRect(12, itemTop(k) - 2, 120, 9, grey(1, 0.35));
     const p = t / 0.45;
     for (let band = 0; band < 10; band++) {
-      const w = Math.round(W * outQuad(span(p, band * 0.03, band * 0.03 + 0.5)));
+      const w = Math.ceil(W * outQuad(span(p, band * 0.03, band * 0.03 + 0.5)));
       r.fillRect(band % 2 === 0 ? 0 : W - w, band * 8, w, 8, hex("#000000"));
     }
   });
@@ -95,10 +112,9 @@ const show = (k: number, seconds: number): Clip =>
     const small = font("small");
     const normal = font("normal");
     const a = span(t, 0, 0.3);
-    const live = 0.5 + 0.5 * Math.sin(t * 6);
-    r.glow(9.5, 5.5, 3.5, 3.5, grey(live * a), 1.2);
-    r.fillRect(8, 4, 3, 3, grey(a));
-    r.text("NOW ON FRONT", small, 15, 1, grey(0.9, a));
+    // A capture ball rocking while the move plays out on the front.
+    ballShake({ duration: seconds, x: 10, y: 5, fadeIn: 0.3 }).draw(r, t);
+    r.text("NOW ON FRONT", small, 17, 1, grey(0.9, a));
     const move = PRESETS[k]!.move;
     r.text(move, normal, Math.round((W - textWidth(move, normal)) / 2), 14, grey(1, a));
     const left = Math.max(0, 1 - t / seconds);
@@ -108,10 +124,12 @@ const show = (k: number, seconds: number): Clip =>
     const secs = `${Math.ceil(left * seconds)}/${Math.ceil(seconds)}`;
     r.text(secs, small, 134 - textWidth(secs, small), 40, grey(0.6, a));
     ruledBox(r, 0, 54, W, 26, a);
-    let n = 0;
+    // "PKMN LIFE used MOVE!", typed out with the PKMN symbol as its first character.
     const typed = Math.floor((t - 0.25) * 40);
-    r.text(`PKMN LIFE used ${move}!`, small, 6, 57, grey(0.92, a), () => ({ hidden: n++ >= typed }));
-    r.text("BACK to run away", small, 6, 66, grey(0.45, a));
+    if (typed >= 1) drawPkmn(r, 6, 59, grey(0.92), a);
+    let n = 1;
+    r.text(`LIFE used ${move}!`, small, 6 + PKMN_SIZE.width + 3, 59, grey(0.92, a), () => ({ hidden: n++ >= typed }));
+    r.text("BACK to run away", small, 6, 67, grey(0.45, a));
   });
 
 /** Every section of the back screen, given how long each front nag runs. */
