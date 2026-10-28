@@ -12,7 +12,7 @@ built on shared libraries that grow with every app.
 | `packages/pixel` | `@vladzaharia/bar-pixel`: build-time pixel toolkit. Raster, device fonts, the `.anim` encoder/decoder, the timeline (`seq`, `layer`, `buildAnim`), the effects library, the component catalog, previews, motion tokens. | Node, at build time |
 | `packages/sim` | `@vladzaharia/bar-sim`: the simulator. Runs an app's real build in the browser against an emulated bar. | Browser |
 | `scripts/` | `new-app.ts` and the app template. | Node |
-| `mac/` | Pkmn Life Remote, a SwiftUI menu bar app that sends Pkmn Life requests through the bar's HTTP API (`remoteInbox`). Built by CI on macOS. | macOS |
+| `mac/` | Pkmn Life Remote, a SwiftUI panel (macOS 26) that sends Pkmn Life requests and settings through the bar's HTTP API (`remoteInbox`). `PkmnLifeRemoteKit` holds the testable part; its tests check the Mac's copy of the entries and settings against `apps/pkmn-life`. Built by CI on macOS. | macOS |
 
 ## Ground rules
 

@@ -1,19 +1,22 @@
 import Foundation
-import SwiftUI
+import Observation
+import PkmnLifeRemoteKit
 
-/// The remote's state, and what its buttons do. Requests go to the bar by writing Pkmn Life's "remote" setting:
-/// "<seq> <unix time> play <entry> <style>", which the app on the bar checks once a second.
-@MainActor
-final class RemoteModel: ObservableObject {
-    @Published var status = "Not connected yet"
-    @Published var connected = false
+/// The remote's state, and what its buttons do. Requests go to the bar by writing Pkmn Life's "remote" setting
+/// (see RemoteRequest), which the app on the bar checks once a second.
+@Observable
+final class RemoteModel {
+    private(set) var status = "Not connected yet"
+    private(set) var connected = false
     /// The tile whose request is on its way, if any.
-    @Published var sending: String?
-    @Published var host: String {
+    private(set) var sending: String?
+
+    var host: String {
         didSet { UserDefaults.standard.set(host, forKey: "host") }
     }
-    /// What a click on each entry plays (entry id to choice), as picked from the tile's right-click menu.
-    @Published private var clickChoices: [String: String] {
+
+    /// What a click on each entry plays (entry id to choice), as picked from the tile's context menu.
+    private var clickChoices: [String: String] {
         didSet { UserDefaults.standard.set(clickChoices, forKey: "clickChoices") }
     }
 
@@ -22,7 +25,7 @@ final class RemoteModel: ObservableObject {
         clickChoices = UserDefaults.standard.dictionary(forKey: "clickChoices") as? [String: String] ?? [:]
     }
 
-    private var client: BarClient { BarClient(host: host, token: Keychain.read()) }
+    var client: BarClient { BarClient(host: host, token: Keychain.read()) }
 
     func clickChoice(for entry: Entry) -> String { clickChoices[entry.id] ?? Catalog.defaultChoice }
 
@@ -42,22 +45,17 @@ final class RemoteModel: ObservableObject {
 
     private func send(_ words: String, tile: String, done: String) {
         sending = tile
+        let client = self.client
         Task {
             defer { sending = nil }
             do {
-                var doc = try await client.settings()
-                var values = doc["values"] as? [String: Any] ?? [:]
-                if values["remote_control"] as? Bool == false {
-                    connected = true
-                    status = "\"Mac remote\" is off in Pkmn Life's settings on the bar."
-                    return
+                switch try await client.send(words) {
+                case .sent:
+                    status = done
+                case .remoteOff:
+                    status = "Turn on \"Mac remote\" in Pkmn Life's settings on the bar."
                 }
-                let now = Date().timeIntervalSince1970
-                values["remote"] = "\(Int(now * 1000)) \(Int(now)) \(words)"
-                doc["values"] = values
-                try await client.saveSettings(doc)
                 connected = true
-                status = done
             } catch {
                 connected = false
                 status = error.localizedDescription
@@ -68,12 +66,13 @@ final class RemoteModel: ObservableObject {
     // --- The bar ---------------------------------------------------------------------------------------------------
 
     func checkConnection() {
+        let client = self.client
         Task {
             do {
                 try await client.ping()
                 _ = try await client.settings()
                 connected = true
-                status = "Connected to the bar at \(host)"
+                status = "Connected to the bar at \(client.host)"
             } catch {
                 connected = false
                 status = error.localizedDescription
@@ -83,6 +82,7 @@ final class RemoteModel: ObservableObject {
 
     /// Starts Pkmn Life on the bar. A request sent in the 15 s before still plays once it is up.
     func launchApp() {
+        let client = self.client
         Task {
             do {
                 try await client.launch()

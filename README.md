@@ -10,7 +10,7 @@ that runs the real app builds.
 | [`packages/core`](packages/core) | `@vladzaharia/bar-core`: device client, app lifecycle, settings, the stock-style clock and sprint clocks, runtime components. |
 | [`packages/pixel`](packages/pixel) | `@vladzaharia/bar-pixel`: `.anim` encoder, device fonts, timeline, effects library and catalog, motion tokens. |
 | [`packages/sim`](packages/sim) | `@vladzaharia/bar-sim`: the interactive simulator. |
-| [`mac/`](mac) | **Pkmn Life Remote**: a macOS menu bar app that plays Pkmn Life entries on the bar. |
+| [`mac/`](mac) | **Pkmn Life Remote**: a macOS Liquid Glass panel that plays Pkmn Life entries on the bar and edits its settings. |
 
 ## Setup
 

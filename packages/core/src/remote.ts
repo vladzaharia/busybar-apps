@@ -25,13 +25,16 @@ export function parseRemote(text: unknown): RemoteRequest | null {
 /**
  * Checks settings field `field` every `every` ms and calls `onRequest` for each new request that is at most
  * `maxAge` seconds old (so a request written just before the app starts still plays, and an old one never replays).
- * `enabled` can switch the checking off without stopping it. Returns a function that stops it.
+ * `onValues`, if given, gets every read of the settings, before any request in it: an app can apply settings changed
+ * over the HTTP API while it runs (a write doesn't tell the app). `enabled` can switch the checking off without
+ * stopping it. Returns a function that stops it.
  */
 export function remoteInbox(o: {
   device: Device;
   timers: Timers;
   field: string;
   onRequest: (r: RemoteRequest) => void;
+  onValues?: (values: Record<string, unknown>) => void;
   every?: number;
   maxAge?: number;
   enabled?: () => boolean;
@@ -46,6 +49,7 @@ export function remoteInbox(o: {
     o.device
       .settings()
       .then((values) => {
+        if (values) o.onValues?.(values);
         const r = parseRemote(values?.[o.field]);
         if (!r || r.seq === lastSeq) return;
         lastSeq = r.seq;

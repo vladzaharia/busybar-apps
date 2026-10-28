@@ -52,7 +52,8 @@ one (`28=...`). Work days are Monday to Friday, less days off; "days left" count
 
 ## Settings
 
-On the bar (Apps → Pkmn Life → Setup) or in its web UI. The app reads them when it starts.
+On the bar (Apps → Pkmn Life → Setup), in its web UI, or in the [Pkmn Life Remote](../../mac) Mac app's Settings. The
+app reads them when it starts, and while **Mac remote** is on it also picks up changes within a second.
 
 | Setting | |
 | --- | --- |
@@ -61,7 +62,7 @@ On the bar (Apps → Pkmn Life → Setup) or in its web UI. The app reads them w
 | Clock | Plain, sprint bar, sprint dots or Majora's Mask |
 | Title cards, Title card time | The Majora's Mask cards each work day, and when |
 | Sprint changes | Moved or longer sprints, a new cadence, days off (above) |
-| Mac remote | Let the [Pkmn Life Remote](../../mac) Mac app play entries (the app then checks for its requests once a second) |
+| Mac remote | Let the [Pkmn Life Remote](../../mac) Mac app play entries (the app then checks for its requests, and for changed settings, once a second) |
 | Remote request | Written by the Mac app; leave it empty |
 | Time format, Show date, Colon blink | As the stock clock |
 

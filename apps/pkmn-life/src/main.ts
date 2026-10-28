@@ -1,7 +1,8 @@
 // Pkmn Life: a clock on the front (plain, or with the sprint), a move menu on the back. Turn the wheel to pick an
 // entry (FILE A TICKET, ALEX, SAM), press START to play it on the front, OK to change how it plays (a fixed style,
 // or random), hold START for today's Majora's Mask title card, BACK to stop what is playing or leave the app. The
-// Pkmn Life Remote Mac app can do the same from a desk: see remoteInbox below.
+// Pkmn Life Remote Mac app can do the same from a desk, and change the settings while the app runs (see remoteInbox
+// below).
 //
 // All motion is pre-rendered (see assets/): this file only names animation sections and draws the clock, so the
 // bar's web server sees a request per second for the clock and a few per button press.
@@ -256,15 +257,19 @@ function main(): void {
     }
   });
 
-  // --- Start ------------------------------------------------------------------------------------------------------
+  // --- Settings -------------------------------------------------------------------------------------------------
+  // Read when the app starts, and again whenever they change while it runs (the Mac app's Settings write them over
+  // the HTTP API; remoteInbox reads them once a second while "Mac remote" is on).
 
-  showMenu();
-  drawClock();
-  timers.every(1000, drawClock);
-  remoteInbox({ device, timers, field: "remote", onRequest: onRemote, enabled: () => settings.remote_control });
+  let settingsKey = "";
 
-  void device.settings().then((values) => {
+  function applySettings(values: Record<string, unknown> | null, starting: boolean): void {
     if (app.quitting) return;
+    const { remote: _request, ...rest } = values ?? {};
+    const key = JSON.stringify(rest);
+    if (!starting && key === settingsKey) return;
+    settingsKey = key;
+    const before = settings;
     settings = readSettings(values, DEFAULTS, {
       nag_style: NAG_MODES,
       redirect_style: REDIRECT_MODES,
@@ -277,12 +282,27 @@ function main(): void {
       show_date: "boolean",
       blink_colons: "boolean",
     });
-    nagMode = settings.nag_style;
-    redirectMode = settings.redirect_style;
+    // A style picked with OK on the back stays, unless the setting itself changed.
+    if (starting || settings.nag_style !== before.nag_style) nagMode = settings.nag_style;
+    if (starting || settings.redirect_style !== before.redirect_style) redirectMode = settings.redirect_style;
     drawClock();
     if (!showing) drawStyleLabel();
-    if (cardsOn() && sprintAt(new Date(), sprintConfig()).workday && !showing) playCard();
-  });
+    if (carding && !cardsOn()) stopCard();
+    if (starting && cardsOn() && sprintAt(new Date(), sprintConfig()).workday && !showing) playCard();
+  }
+
+  // --- Start ------------------------------------------------------------------------------------------------------
+
+  showMenu();
+  drawClock();
+  timers.every(1000, drawClock);
+  void device
+    .settings()
+    .catch(() => null)
+    .then((values) => {
+      applySettings(values, true);
+      remoteInbox({ device, timers, field: "remote", onRequest: onRemote, onValues: (v) => applySettings(v, false), enabled: () => settings.remote_control });
+    });
 }
 
 main();

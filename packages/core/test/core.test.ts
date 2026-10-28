@@ -192,9 +192,17 @@ test("remoteInbox acts on each new, recent request once", async () => {
   const timers = { every: (_ms: number, fn: () => void) => (ticks.push(fn), 1), cancel: () => {} };
   const now = 1_800_000_000_000;
   const seen: string[] = [];
+  let reads = 0;
   const settle = () => new Promise((r) => setTimeout(r, 0));
   field = `5 ${now / 1000 - 3} play alex random`; // written just before the app started: still plays
-  const stop = core.remoteInbox({ device: device as never, timers: timers as never, field: "remote", now: () => now, onRequest: (r) => seen.push(`${r.seq}:${r.words.join(" ")}`) });
+  const stop = core.remoteInbox({
+    device: device as never,
+    timers: timers as never,
+    field: "remote",
+    now: () => now,
+    onRequest: (r) => seen.push(`${r.seq}:${r.words.join(" ")}`),
+    onValues: (v) => (assert.equal(v.remote, field), reads++),
+  });
   await settle();
   ticks[0]!();
   await settle();
@@ -207,6 +215,7 @@ test("remoteInbox acts on each new, recent request once", async () => {
   ticks[0]!();
   await settle();
   assert.deepEqual(seen, ["5:play alex random", "7:card"]);
+  assert.equal(reads, 5);
   assert.equal(core.parseRemote("nonsense"), null);
   assert.equal(core.parseRemote(""), null);
   stop();

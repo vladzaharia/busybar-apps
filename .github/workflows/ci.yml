@@ -34,10 +34,14 @@ jobs:
             apps/*/dist/sim/
 
   mac:
-    # The Pkmn Life Remote menu bar app. The zip keeps the app's permissions and signature (an artifact alone doesn't).
-    runs-on: macos-14
+    # Pkmn Life Remote, the Mac app (macOS 26, Swift 6.2). The zip keeps the app's permissions and signature (an
+    # artifact alone doesn't).
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@v5
+      - name: Test
+        working-directory: mac/PkmnLifeRemote
+        run: swift test
       - name: Build the app
         working-directory: mac/PkmnLifeRemote
         run: ./build-app.sh
