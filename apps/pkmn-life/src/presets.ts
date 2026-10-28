@@ -13,6 +13,8 @@ export type RedirectStyle = (typeof REDIRECT_STYLES)[number];
 export type Style = NagStyle | RedirectStyle;
 
 interface Base {
+  /** A stable id, for the Mac remote and anything else that names entries ("ticket", "alex"). Lowercase. */
+  id: string;
   /** Short, move-style name for the back-screen menu (small font, up to ~110 px). */
   move: string;
   /** The text box line on the back while the entry is highlighted. */
@@ -38,9 +40,9 @@ export interface Redirect extends Base {
 export type Entry = Nag | Redirect;
 
 export const ENTRIES: Entry[] = [
-  { kind: "nag", move: "FILE A TICKET", message: "Did you file a JIRA ticket yet???", accent: ["JIRA"] },
-  { kind: "redirect", move: "ALEX", name: "ALEX", dir: 1, message: "Send them right, to ALEX." },
-  { kind: "redirect", move: "SAM", name: "SAM", dir: -1, message: "Send them left, to SAM." },
+  { kind: "nag", id: "ticket", move: "FILE A TICKET", message: "Did you file a JIRA ticket yet???", accent: ["JIRA"] },
+  { kind: "redirect", id: "alex", move: "ALEX", name: "ALEX", dir: 1, message: "Send them right, to ALEX." },
+  { kind: "redirect", id: "sam", move: "SAM", name: "SAM", dir: -1, message: "Send them left, to SAM." },
 ];
 
 /** The styles an entry can be shown in. */

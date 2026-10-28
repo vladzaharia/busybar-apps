@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleName</key>
+	<string>Pkmn Life Remote</string>
+	<key>CFBundleDisplayName</key>
+	<string>Pkmn Life Remote</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.vlad.pkmn-life-remote</string>
+	<key>CFBundleExecutable</key>
+	<string>PkmnLifeRemote</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>0.1.0</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>13.0</string>
+	<!-- A menu bar app: no Dock icon, no app menu. -->
+	<key>LSUIElement</key>
+	<true/>
+	<!-- The bar's HTTP API is plain HTTP on the local network (10.0.4.20 over USB, or its Wi-Fi address). -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Pkmn Life Remote talks to your BUSY Bar on the local network to play animations on it.</string>
+</dict>
+</plist>

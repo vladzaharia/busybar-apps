@@ -4,6 +4,7 @@ on:
   pull_request:
   push:
     branches: [main]
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -31,3 +32,19 @@ jobs:
           path: |
             apps/*/dist/*.tgz
             apps/*/dist/sim/
+
+  mac:
+    # The Pkmn Life Remote menu bar app. The zip keeps the app's permissions and signature (an artifact alone doesn't).
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build the app
+        working-directory: mac/PkmnLifeRemote
+        run: ./build-app.sh
+      - name: Zip the app
+        working-directory: mac/PkmnLifeRemote/dist
+        run: ditto -c -k --keepParent "Pkmn Life Remote.app" PkmnLifeRemote.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pkmn-life-remote
+          path: mac/PkmnLifeRemote/dist/PkmnLifeRemote.zip

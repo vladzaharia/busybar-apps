@@ -61,6 +61,8 @@ On the bar (Apps → Pkmn Life → Setup) or in its web UI. The app reads them w
 | Clock | Plain, sprint bar, sprint dots or Majora's Mask |
 | Title cards, Title card time | The Majora's Mask cards each work day, and when |
 | Sprint changes | Moved or longer sprints, a new cadence, days off (above) |
+| Mac remote | Let the [Pkmn Life Remote](../../mac) Mac app play entries (the app then checks for its requests once a second) |
+| Remote request | Written by the Mac app; leave it empty |
 | Time format, Show date, Colon blink | As the stock clock |
 
 ## Adding an entry

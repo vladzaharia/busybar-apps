@@ -184,3 +184,30 @@ test("sprint changes: moved starts, lengths, days off", () => {
   assert.deepEqual(parsed.bad, ["26=2026-13-01", "banana", "27/0w"]);
   assert.equal(parsed.off.length, 1);
 });
+
+test("remoteInbox acts on each new, recent request once", async () => {
+  let field: unknown = "";
+  const device = { settings: async () => ({ remote: field }) };
+  const ticks: (() => void)[] = [];
+  const timers = { every: (_ms: number, fn: () => void) => (ticks.push(fn), 1), cancel: () => {} };
+  const now = 1_800_000_000_000;
+  const seen: string[] = [];
+  const settle = () => new Promise((r) => setTimeout(r, 0));
+  field = `5 ${now / 1000 - 3} play alex random`; // written just before the app started: still plays
+  const stop = core.remoteInbox({ device: device as never, timers: timers as never, field: "remote", now: () => now, onRequest: (r) => seen.push(`${r.seq}:${r.words.join(" ")}`) });
+  await settle();
+  ticks[0]!();
+  await settle();
+  field = `6 ${now / 1000 - 600} play sam`; // ten minutes old: ignored
+  ticks[0]!();
+  await settle();
+  field = `7 ${now / 1000} CARD`;
+  ticks[0]!();
+  await settle();
+  ticks[0]!();
+  await settle();
+  assert.deepEqual(seen, ["5:play alex random", "7:card"]);
+  assert.equal(core.parseRemote("nonsense"), null);
+  assert.equal(core.parseRemote(""), null);
+  stop();
+});

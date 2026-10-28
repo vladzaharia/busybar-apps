@@ -7,4 +7,5 @@ export * from "./timers.ts";
 export * from "./types.ts";
 export * from "./components.ts";
 export * from "./random.ts";
+export * from "./remote.ts";
 export * from "./sprint.ts";

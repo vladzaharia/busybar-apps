@@ -108,8 +108,9 @@ function start(): void {
   requestAnimationFrame(frame);
   host.start();
 
-  // For automated tests: drive the device without the mouse.
-  (window as unknown as { barSim: unknown }).barSim = { host, device, buttons };
+  // For automated tests: drive the device without the mouse. `settings` is the live values object: changing it is
+  // like writing the app's settings over the HTTP API (the app sees it on its next read, without a restart).
+  (window as unknown as { barSim: unknown }).barSim = { host, device, buttons, settings: values };
 }
 
 start();

@@ -1,6 +1,7 @@
 // Pkmn Life: a clock on the front (plain, or with the sprint), a move menu on the back. Turn the wheel to pick an
 // entry (FILE A TICKET, ALEX, SAM), press START to play it on the front, OK to change how it plays (a fixed style,
-// or random), hold START for today's Majora's Mask title card, BACK to stop what is playing or leave the app.
+// or random), hold START for today's Majora's Mask title card, BACK to stop what is playing or leave the app. The
+// Pkmn Life Remote Mac app can do the same from a desk: see remoteInbox below.
 //
 // All motion is pre-rendered (see assets/): this file only names animation sections and draws the clock, so the
 // bar's web server sees a request per second for the clock and a few per button press.
@@ -12,16 +13,18 @@ import {
   createApp,
   label,
   readSettings,
+  remoteInbox,
   sectionSeconds,
   shuffleBag,
   sprintAt,
   sprintClockFace,
   type InputEvent,
+  type RemoteRequest,
   type SprintStyle,
 } from "@vladzaharia/bar-core";
 import manifest from "./appmeta/manifest.json";
 import { BACK, CALENDAR, CARDS, FRONT } from "./generated/clips.ts";
-import { ENTRIES, NAG_STYLES, REDIRECT_STYLES, SPRINTS, type Entry, type NagStyle, type RedirectStyle, type Style } from "./presets.ts";
+import { ENTRIES, NAG_STYLES, REDIRECT_STYLES, SPRINTS, stylesFor, type Entry, type NagStyle, type RedirectStyle, type Style } from "./presets.ts";
 
 type NagMode = "alternate" | "random" | NagStyle;
 type RedirectMode = "random" | RedirectStyle;
@@ -47,6 +50,7 @@ const DEFAULTS = {
   title_cards: true,
   title_cards_time: "09:00",
   sprint_changes: "",
+  remote_control: true,
   time_format: "24h" as "24h" | "12h",
   show_date: true,
   blink_colons: true,
@@ -152,7 +156,11 @@ function main(): void {
 
   // --- Back: the menu ---------------------------------------------------------------------------------------------
 
+  // Whether the header's style label is on screen: the bar refuses to clear an element it doesn't have.
+  let labelShown = false;
+
   function drawStyleLabel(): void {
+    labelShown = true;
     const text = styleLabel(ENTRIES[sel]!);
     void device.draw([{ ...label({ id: "style", text, font: "small", display: "back", color: "#8C8C8CFF", box: { x: 56, y: 0, width: 72, height: 11 } }), z_index: 2 }]);
   }
@@ -173,13 +181,14 @@ function main(): void {
 
   // --- Playing an entry -------------------------------------------------------------------------------------------
 
-  function start(): void {
+  /** Plays the selected entry: in `style` if given, else as its mode says. */
+  function start(style: Style = pickStyle(ENTRIES[sel]!)): void {
     if (carding) stopCard();
-    const style = pickStyle(ENTRIES[sel]!);
     const seconds = front.play(FRONT[sel]![style]!);
     menu.play(BACK, `use-${sel}`);
     menu.then(`show-${sel}-${style}`);
-    void device.clear(["style"]);
+    if (labelShown) void device.clear(["style"]);
+    labelShown = false;
     // The front clip ends on a transparent frame over the clock; remove it just after.
     showing = timers.after(seconds * 1000 + 150, () => finish(true));
   }
@@ -190,6 +199,38 @@ function main(): void {
     void front.stop();
     if (played && ENTRIES[sel]!.kind === "nag" && nagMode === "alternate") nextNag = nextNag === "encounter" ? "ticker" : "encounter";
     showMenu();
+  }
+
+  // --- Remote: the Pkmn Life Remote Mac app ----------------------------------------------------------------------
+  // It writes "<seq> <unix time> play <entry id> <default|random|style>", "... card" or "... stop" into the "remote"
+  // setting; the app checks it once a second (while "Mac remote" is on) and acts on each new request once.
+
+  function onRemote(r: RemoteRequest): void {
+    const [action, id, styleWord] = r.words;
+    if (action === "stop") {
+      if (showing) finish(false);
+      if (carding) stopCard();
+      return;
+    }
+    if (action === "card") {
+      if (showing) finish(false);
+      playCard();
+      return;
+    }
+    if (action !== "play") return;
+    const k = ENTRIES.findIndex((e) => e.id === id);
+    if (k < 0) return;
+    const entry = ENTRIES[k]!;
+    const styles = stylesFor(entry);
+    const style: Style =
+      styleWord === "random" ? (entry.kind === "nag" ? randomNag() : randomRedirect()) : styles.includes(styleWord as Style) ? (styleWord as Style) : pickStyle(entry);
+    // Whatever is playing gives way.
+    if (showing) {
+      timers.cancel(showing);
+      showing = null;
+    }
+    sel = k;
+    start(style);
   }
 
   // --- Input ------------------------------------------------------------------------------------------------------
@@ -220,6 +261,7 @@ function main(): void {
   showMenu();
   drawClock();
   timers.every(1000, drawClock);
+  remoteInbox({ device, timers, field: "remote", onRequest: onRemote, enabled: () => settings.remote_control });
 
   void device.settings().then((values) => {
     if (app.quitting) return;
@@ -230,6 +272,7 @@ function main(): void {
       title_cards: "boolean",
       title_cards_time: "string",
       sprint_changes: "string",
+      remote_control: "boolean",
       time_format: ["24h", "12h"],
       show_date: "boolean",
       blink_colons: "boolean",

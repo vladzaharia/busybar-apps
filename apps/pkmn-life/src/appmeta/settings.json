@@ -1,6 +1,6 @@
 {
   "format_version": 1,
-  "version": 4,
+  "version": 5,
   "fields": {
     "nag_style": {
       "label": "Ticket style",
@@ -103,6 +103,19 @@
       "type": "string",
       "default": "",
       "max_length": 500
+    },
+    "remote_control": {
+      "label": "Mac remote",
+      "description": "Let the Pkmn Life Remote Mac app play entries. The app checks for its requests once a second.",
+      "type": "boolean",
+      "default": true
+    },
+    "remote": {
+      "label": "Remote request",
+      "description": "Written by the Pkmn Life Remote Mac app. Leave it empty.",
+      "type": "string",
+      "default": "",
+      "max_length": 120
     },
     "time_format": {
       "label": "Time format",

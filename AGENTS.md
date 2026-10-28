@@ -12,6 +12,7 @@ built on shared libraries that grow with every app.
 | `packages/pixel` | `@vladzaharia/bar-pixel`: build-time pixel toolkit. Raster, device fonts, the `.anim` encoder/decoder, the timeline (`seq`, `layer`, `buildAnim`), the effects library, the component catalog, previews, motion tokens. | Node, at build time |
 | `packages/sim` | `@vladzaharia/bar-sim`: the simulator. Runs an app's real build in the browser against an emulated bar. | Browser |
 | `scripts/` | `new-app.ts` and the app template. | Node |
+| `mac/` | Pkmn Life Remote, a SwiftUI menu bar app that sends Pkmn Life requests through the bar's HTTP API (`remoteInbox`). Built by CI on macOS. | macOS |
 
 ## Ground rules
 
@@ -20,6 +21,8 @@ built on shared libraries that grow with every app.
 - Apps only reach the endpoints JavaScript apps are allowed (`display/draw`, `apps/settings` GET, `audio/*`,
   `display/brightness`, `busy`, `time`, `status/*`, `name`, `version`, `wifi/status`, `access`, `transport`). The
   simulator returns 403 for the rest, like the bar.
+- To control a running app from outside the bar, write a request into one of its settings over the HTTP API and read
+  it with `remoteInbox` (apps can't be sent messages directly).
 - Go through `@vladzaharia/bar-core` for anything that talks to the bar. If an app needs a new kind of call, add it to
   core, not to the app.
 - No passwords or tokens in the repository.
@@ -67,7 +70,8 @@ pnpm test                 # encoder, timeline, catalog, core, simulator rules
 cd apps/<slug> && pnpm sim    # the app in the simulator: dist/sim/index.html
 ```
 
-Drive the simulator to check behaviour: it exposes `window.barSim` (`host`, `device`, `buttons`) for scripts, and the
+Drive the simulator to check behaviour: it exposes `window.barSim` (`host`, `device`, `buttons`, and `settings`, whose changes the app sees on its next read,
+as with a write over the HTTP API) for scripts, and the
 keyboard works (S = START, arrows = wheel, Enter = OK, Esc = BACK). Look at the screens, not just the logs.
 
 Before finishing: typecheck and tests pass, the simulator runs the app without errors, new components are in the

@@ -16,4 +16,6 @@ Runtime library for on-device BUSY Bar JavaScript apps. Everything that talks to
   with the sprint, as a bar of work days, a row of dots, or in short under the time ("S22 6 left").
 - `LiveFace`: draws a set of elements whose make-up changes, clearing only ids it drew (the bar refuses a clear that
   names an unknown id). `shuffleBag`: random picks, every item once per round.
+- `remoteInbox`: requests from outside the bar (such as a Mac app), written into a settings field over the HTTP API
+  and checked once a second.
 - `textWidth` and `METRICS`: the firmware fonts' advance widths (regenerate with `pnpm metrics`).
