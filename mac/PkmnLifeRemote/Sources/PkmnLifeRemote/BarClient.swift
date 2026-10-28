@@ -33,13 +33,13 @@ struct BarClient {
             req.httpBody = body
             req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         }
-        let data: Data
-        let response: URLResponse
+        let result: (Data, URLResponse)
         do {
-            (data, response) = try await URLSession.shared.data(for: req)
+            result = try await URLSession.shared.data(for: req)
         } catch {
             throw BarError(message: "Can't reach the bar at \(host).")
         }
+        let (data, response) = result
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         switch status {
         case 200..<300: return data

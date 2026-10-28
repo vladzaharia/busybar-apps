@@ -60,8 +60,7 @@ struct ControlCenterView: View {
                 } label: {
                     Image(systemName: "ellipsis.circle")
                 }
-                .menuStyle(.button)
-                .buttonStyle(.borderless)
+                .menuStyle(.borderlessButton)
                 .menuIndicator(.hidden)
                 .fixedSize()
             }
