@@ -1,6 +1,6 @@
 {
   "format_version": 1,
-  "version": 3,
+  "version": 4,
   "fields": {
     "nag_style": {
       "label": "Ticket style",
@@ -97,32 +97,9 @@
       "type": "time",
       "default": "09:00"
     },
-    "sprint_number": {
-      "label": "Sprint number",
-      "description": "Any sprint's number; with its start date, the app works out the rest.",
-      "type": "integer",
-      "default": 22,
-      "min": 1,
-      "max": 9999
-    },
-    "sprint_start": {
-      "label": "Sprint start",
-      "description": "That sprint's first day, as YYYY-MM-DD.",
-      "type": "string",
-      "default": "2026-10-22",
-      "min_length": 10,
-      "max_length": 10
-    },
-    "sprint_weeks": {
-      "label": "Sprint length (weeks)",
-      "type": "integer",
-      "default": 2,
-      "min": 1,
-      "max": 4
-    },
     "sprint_changes": {
       "label": "Sprint changes",
-      "description": "Exceptions, separated by commas. 26=2026-12-17 moves sprint 26's start (the one before runs until then); add /3w to make it 3 weeks; 26/3w only changes its length; off=2026-12-24..2027-01-01 marks days off. Later sprints follow on by themselves.",
+      "description": "Exceptions to the two-week sprints, separated by commas. 26=2026-12-17 moves sprint 26's start (the one before runs until then); add /3w to make it 3 weeks; 26/3w only changes its length; 30+/3w makes sprint 30 and every later one 3 weeks; off=2026-12-24..2027-01-01 marks days off. Everything else is worked out.",
       "type": "string",
       "default": "",
       "max_length": 500

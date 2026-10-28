@@ -34,14 +34,16 @@ START picks a style, every style coming up once per round in a fresh order.
 | Sprint dots | The date stays on the calendar; under the time, "S22" and a dot per work day. |
 | Majora's Mask | A moon in place of the calendar that grows as the sprint runs out, with "6 Days Remain" under the time. Each work day at the set time (and when the app starts) the title cards play: "Dawn of The Fifth Day", then "-6 Days Remain-". |
 
-Sprints advance by themselves: every `Sprint length` weeks from the sprint you give in settings (number and first
-day). Anything irregular goes in **Sprint changes**, a comma-separated list you can fill in ahead of time:
+Sprints are worked out, never typed in: the team's cadence (Sprint 22 began on Thursday 22 October 2026, two-week
+sprints) is in [`src/presets.ts`](src/presets.ts), and every later sprint follows from it. Anything irregular goes in
+the **Sprint changes** setting, a comma-separated list you can fill in ahead of time:
 
 | Entry | Meaning |
 | --- | --- |
 | `26=2026-12-17` | Sprint 26 starts that day; the sprint before it runs until then |
 | `26=2026-12-17/3w` | ...and lasts 3 weeks |
 | `26/3w` | Sprint 26 lasts 3 weeks, starting when it would anyway |
+| `30+/3w` | Sprint 30 and every later sprint last 3 weeks |
 | `off=2026-12-24..2027-01-01` | Days off (or `off=2026-12-25` for one day): not work days |
 
 Sprints after a change follow on from it at the regular length; a sprint number can be skipped by starting the next
@@ -58,8 +60,7 @@ On the bar (Apps → Pkmn Life → Setup) or in its web UI. The app reads them w
 | Redirect style | ALEX and SAM's starting style: random or one of the six |
 | Clock | Plain, sprint bar, sprint dots or Majora's Mask |
 | Title cards, Title card time | The Majora's Mask cards each work day, and when |
-| Sprint number, Sprint start, Sprint length | Any sprint's number and first day (YYYY-MM-DD), and weeks per sprint |
-| Sprint changes | Moved or longer sprints and days off (above) |
+| Sprint changes | Moved or longer sprints, a new cadence, days off (above) |
 | Time format, Show date, Colon blink | As the stock clock |
 
 ## Adding an entry

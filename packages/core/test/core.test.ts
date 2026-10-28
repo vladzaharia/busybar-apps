@@ -164,6 +164,13 @@ test("sprint changes: moved starts, lengths, days off", () => {
   // Only a length: sprint 23 is 1 week, 24 starts right after.
   assert.equal(fmt(at("2026-11-12", "23/1w")), "24 Thu Nov 12 2026 - Wed Nov 25 2026 0+10/10");
 
+  // A change of cadence: from sprint 30 on, three weeks (29 starts Jan 28 as usual; 30 Feb 11; 31 Mar 4).
+  const three = "30+/3w";
+  assert.equal(fmt(at("2027-03-03", three)), "30 Thu Feb 11 2027 - Wed Mar 03 2027 14+1/15");
+  assert.equal(at("2027-03-04", three).number, 31);
+  assert.equal(at("2027-03-24", three).number, 31);
+  assert.equal(at("2027-03-25", three).number, 32);
+
   // Days off are not work days.
   const off = at("2026-10-28", "off=2026-10-30, off=2026-11-02..2026-11-03");
   assert.deepEqual([off.days, off.done, off.left], [7, 4, 3]);

@@ -1,10 +1,11 @@
 // Sprints: which one is running and how many work days it has left, and clock faces that show it.
 //
 // Sprints follow a regular cadence (`weeks` long, from a known sprint's number and first day) and advance on their
-// own. Exceptions go in `changes`, a short list such as "26=2026-12-17/3w, 30/1w, off=2026-12-24..2027-01-01":
+// own. Exceptions go in `changes`, a short list such as "26=2026-12-17/3w, 30+/3w, off=2026-12-24..2027-01-01":
 //   N=YYYY-MM-DD      sprint N starts that day (the sprint before it ends the day before, however long that makes it)
 //   N=YYYY-MM-DD/Kw   ...and lasts K weeks
 //   N/Kw              sprint N lasts K weeks, starting where it would anyway
+//   N+/Kw             sprint N and every one after it last K weeks (a change of cadence)
 //   off=YYYY-MM-DD    a day off; off=YYYY-MM-DD..YYYY-MM-DD for a range (both ends included)
 // Sprints after a change follow on from it at the regular length. Work days are Monday to Friday, less days off.
 // "Days left" counts today while it is a work day, so the last day of a sprint says 1.
@@ -59,6 +60,8 @@ export interface SprintChanges {
   starts: { number: number; start: Date; weeks?: number }[];
   /** Sprints with only a set length. */
   lengths: Map<number, number>;
+  /** Changes of cadence: from sprint `from` on, sprints last `weeks`. Sorted by `from`. */
+  cadence: { from: number; weeks: number }[];
   /** Days off, as inclusive ranges. */
   off: [Date, Date][];
   /** Entries that could not be read; they are ignored. */
@@ -67,7 +70,7 @@ export interface SprintChanges {
 
 /** Reads a `changes` list (see the top of this file). Entries are separated by commas, semicolons or new lines. */
 export function parseSprintChanges(text: string): SprintChanges {
-  const out: SprintChanges = { starts: [], lengths: new Map(), off: [], bad: [] };
+  const out: SprintChanges = { starts: [], lengths: new Map(), cadence: [], off: [], bad: [] };
   for (const raw of text.split(/[,;\n]+/)) {
     const item = raw.trim().replace(/\s+/g, "");
     if (!item) continue;
@@ -87,13 +90,15 @@ export function parseSprintChanges(text: string): SprintChanges {
       else out.bad.push(raw.trim());
       continue;
     }
-    m = /^(\d+)\/(\d+)w?$/i.exec(item);
-    if (m && Number(m[2]) >= 1) {
-      out.lengths.set(Number(m[1]), Number(m[2]));
+    m = /^(\d+)(\+?)\/(\d+)w?$/i.exec(item);
+    if (m && Number(m[3]) >= 1) {
+      if (m[2]) out.cadence.push({ from: Number(m[1]), weeks: Number(m[3]) });
+      else out.lengths.set(Number(m[1]), Number(m[3]));
       continue;
     }
     out.bad.push(raw.trim());
   }
+  out.cadence.sort((a, b) => a.from - b.from);
   return out;
 }
 
@@ -102,7 +107,8 @@ export function sprintAt(now: Date, cfg: SprintConfig): Sprint {
   const today = midnight(now);
   const defaultWeeks = Math.max(1, Math.round(cfg.weeks));
   const changes = parseSprintChanges(cfg.changes ?? "");
-  const weeksOf = (n: number, set?: number) => set ?? changes.lengths.get(n) ?? defaultWeeks;
+  const cadenceAt = (n: number) => changes.cadence.filter((c) => c.from <= n).pop()?.weeks ?? defaultWeeks;
+  const weeksOf = (n: number, set?: number) => set ?? changes.lengths.get(n) ?? cadenceAt(n);
   // Known starts, by date: the cadence's own sprint and every moved one.
   const starts = [{ number: cfg.number, start: parseDate(cfg.start) ?? today, weeks: undefined as number | undefined }, ...changes.starts]
     .sort((a, b) => a.start.getTime() - b.start.getTime());

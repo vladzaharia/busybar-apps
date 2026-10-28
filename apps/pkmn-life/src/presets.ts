@@ -45,3 +45,10 @@ export const ENTRIES: Entry[] = [
 
 /** The styles an entry can be shown in. */
 export const stylesFor = (e: Entry): readonly Style[] => (e.kind === "nag" ? NAG_STYLES : REDIRECT_STYLES);
+
+/**
+ * The team's sprint cadence: Sprint 22 began on Thursday 22 October 2026, and sprints last two weeks. Every other
+ * sprint is worked out from this. Exceptions (a moved or longer sprint, days off, a new cadence) go in the app's
+ * "Sprint changes" setting, not here.
+ */
+export const SPRINTS = { number: 22, start: "2026-10-22", weeks: 2 };
