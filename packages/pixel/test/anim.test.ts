@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
-import { decodeAnim, encodeAnim, rleCompress, rleDecompress, type AnimColorFormat } from "../src/anim.ts";
+import { AnimReader, decodeAnim, encodeAnim, rleCompress, rleDecompress, type AnimColorFormat } from "../src/anim.ts";
 import { readPng } from "../src/png.ts";
 
 function rand(seed: number) {
@@ -185,4 +185,15 @@ test("soft gradients use QOI and still round-trip", () => {
   }
   assert.ok(qoiFrames > 0, "expected QOI to be chosen for a gradient");
   decoded.frames.forEach((f, i) => assert.deepEqual(f, expected(input[i]!, "argb8888"), `frame ${i}`));
+});
+
+test("AnimReader shows any frame correctly when frames are skipped or revisited", () => {
+  const input = frames(72, 16, 40, 13);
+  const { data } = encodeAnim({ width: 72, height: 16, fps: 60, format: "rgb888", frames: input, sections: [{ name: "b", start: 20, end: 39 }] });
+  const expectedFrames = decodeAnim(data).frames;
+  const reader = new AnimReader(data);
+  const r = rand(4);
+  // Skips ahead (as a player that falls behind does), jumps back, and repeats.
+  const order = [0, 3, 4, 9, 2, 25, 21, 39, 38, 0, 17, 20, 33, ...Array.from({ length: 30 }, () => Math.floor(r() * 40))];
+  for (const f of order) assert.deepEqual(reader.frame(f), expectedFrames[f], `frame ${f}`);
 });

@@ -507,8 +507,8 @@ export interface DecodedSection extends AnimSection {
 
 /**
  * Decodes a .anim one frame at a time into a persistent canvas, as the firmware's player does: frames only carry
- * the pixels that changed, so they must be decoded in order, except at section starts, which are keyframes and
- * can be jumped to. Validates the file the way the firmware's loader does.
+ * the pixels that changed, so `frame()` replays whatever it needs to (from the current frame or a keyframe) to show
+ * any frame correctly, even when a player skips ahead. Validates the file the way the firmware's loader does.
  */
 export class AnimReader {
   readonly width: number;
@@ -582,9 +582,27 @@ export class AnimReader {
     return this.sections.find((s) => s.name === name);
   }
 
-  /** Decodes frame `f` into `canvas` and returns it. Out-of-order frames must be keyframes (section starts). */
+  /**
+   * Decodes frame `f` into `canvas` and returns it; any frame, in any order. Frames only carry the pixels that
+   * changed, so this replays every frame from the one after the current frame, or from the nearest keyframe at or
+   * before `f` (one that stores every pixel, as each section start does), whichever comes later.
+   */
   frame(f: number): Uint8Array {
     if (f === this.current) return this.canvas;
+    if (this.offsets[f] === undefined) throw new Error(`anim: no frame ${f}`);
+    let from = f;
+    while (from > 0 && from - 1 !== this.current && !this.isKeyframe(from)) from--;
+    for (let i = from; i <= f; i++) this.decode(i);
+    return this.canvas;
+  }
+
+  /** Whether frame `f` stores every pixel (a fully white mask), so it decodes without the frames before it. */
+  private isKeyframe(f: number): boolean {
+    return this.view.getUint8(this.offsets[f]!) >> 4 === Mask.FullyWhite;
+  }
+
+  /** Applies frame `f`'s changes to the canvas, which must hold frame `f - 1` unless `f` is a keyframe. */
+  private decode(f: number): void {
     const { view, data, format } = this;
     const total = this.width * this.height;
     const pos = this.offsets[f];
@@ -632,7 +650,6 @@ export class AnimReader {
     const leftover = bgra.length / 4 - n;
     if (leftover > (format === "gray4" ? 1 : 0)) throw new Error(`anim: frame ${f} has ${leftover} leftover pixels`);
     this.current = f;
-    return canvas;
   }
 }
 
