@@ -4,6 +4,7 @@
 import { inCubic, inOutCubic, inQuad, lerp, outBack, outBounce, span } from "../ease.ts";
 import { font, textWidth, type FontName } from "../font.ts";
 import { hex, mix, type Color } from "../raster.ts";
+import { MOTION } from "../motion.ts";
 import { clip, type Clip } from "../timeline.ts";
 
 const WHITE = hex("#FFFFFF");
@@ -213,3 +214,36 @@ export function popChars(text: string, at: number, chars = "?", step = 0.14): (g
 /** Eases a value in with an overshoot; exported for scenes that hand-place text. */
 export const settle = (t: number) => outBack(t, 2.2);
 export const leave = inCubic;
+
+/**
+ * A title card: lines of white text fading in one after another on black, holding, then fading out together,
+ * like a game's "Dawn of the First Day". Each line is centred; `cap` is the top row of its capitals.
+ */
+export function titleCard(o: {
+  lines: { text: string; font: FontName; cap: number }[];
+  duration: number;
+  fadeIn?: number;
+  stagger?: number;
+  fadeOut?: number;
+  color?: Color;
+}): Clip {
+  const fadeIn = o.fadeIn ?? MOTION.slow;
+  const stagger = o.stagger ?? MOTION.base;
+  const fadeOut = o.fadeOut ?? MOTION.base;
+  return clip(o.duration, (r, t) => {
+    r.fillRect(0, 0, r.width, r.height, hex("#000000"));
+    const out = 1 - span(t, o.duration - fadeOut, o.duration);
+    o.lines.forEach((l, i) => {
+      const a = span(t, i * stagger, i * stagger + fadeIn) * out;
+      if (a <= 0) return;
+      const f = font(l.font);
+      const cap = f.glyph(0x48)?.height ?? f.ascent - 2;
+      r.text(l.text, f, Math.floor((r.width - textWidth(l.text, f)) / 2), l.cap - (f.ascent - cap), o.color ?? hex("#FFFFFF"), () => ({ alpha: a }));
+    });
+  });
+}
+
+/** The biggest of `fonts` that fits `text` in `width` px (the last one if none does). */
+export function fitFont(text: string, width: number, fonts: FontName[] = ["normal", "condensed", "small"]): FontName {
+  return fonts.find((f) => textWidth(text, font(f)) <= width) ?? fonts[fonts.length - 1]!;
+}

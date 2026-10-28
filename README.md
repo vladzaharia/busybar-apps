@@ -6,8 +6,8 @@ that runs the real app builds.
 
 | | |
 | --- | --- |
-| [`apps/pkmn-life`](apps/pkmn-life) | **Pkmn Life**: Team screens. A clock that asks whether you filed a Jira ticket, as a handheld-RPG battle or a burst ticker. |
-| [`packages/core`](packages/core) | `@vladzaharia/bar-core`: device client, app lifecycle, settings, the stock-style clock, runtime components. |
+| [`apps/pkmn-life`](apps/pkmn-life) | **Pkmn Life**: Team screens. A sprint clock (Majora's Mask moon, bar or dots), a Jira-ticket nag, and "go see Alex / Sam" redirects, picked from a handheld-RPG menu on the back. |
+| [`packages/core`](packages/core) | `@vladzaharia/bar-core`: device client, app lifecycle, settings, the stock-style clock and sprint clocks, runtime components. |
 | [`packages/pixel`](packages/pixel) | `@vladzaharia/bar-pixel`: `.anim` encoder, device fonts, timeline, effects library and catalog, motion tokens. |
 | [`packages/sim`](packages/sim) | `@vladzaharia/bar-sim`: the interactive simulator. |
 

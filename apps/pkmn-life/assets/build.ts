@@ -1,16 +1,18 @@
-// Renders every asset the app needs into src/: the front nags (one .anim per preset and style), the back-screen
-// menu (one .anim, a section per state), the calendar image, the app icons, and src/generated/clips.ts with the
-// section lengths the app sequences by.
+// Renders every asset the app needs into src/: each entry's front animation in each of its styles, the Majora's Mask
+// title cards, the back-screen menu (one .anim, a section per state), the calendar and moon images, the app icons,
+// and src/generated/clips.ts with the section lengths the app sequences by.
 // Usage: pnpm assets   (also runs as part of `pnpm build` and `pnpm typecheck`)
 
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { buildAnim, calendarIcon, hex, writePng, type BuiltAnim, type Raster } from "@vladzaharia/bar-pixel";
-import { PRESETS, type NagStyle } from "../src/presets.ts";
+import { buildAnim, calendarIcon, hex, moonIcon, writePng, type BuiltAnim, type Raster } from "@vladzaharia/bar-pixel";
+import { ENTRIES, stylesFor, type Style } from "../src/presets.ts";
 import { backIcon, frontIcon } from "./icons.ts";
+import { cardParts } from "./scenes/cards.ts";
 import { encounter } from "./scenes/encounter.ts";
 import { BACK_HEIGHT, BACK_WIDTH, backParts } from "./scenes/menu.ts";
+import { REDIRECT_SCENES } from "./scenes/redirect.ts";
 import { ticker } from "./scenes/ticker.ts";
 
 const SRC = fileURLToPath(new URL("../src/", import.meta.url));
@@ -18,33 +20,45 @@ const write = (path: string, data: Uint8Array | string) => {
   mkdirSync(dirname(join(SRC, path)), { recursive: true });
   writeFileSync(join(SRC, path), data);
 };
+// Start clean, so animations of removed entries or styles never ship.
+rmSync(join(SRC, "animations"), { recursive: true, force: true });
+rmSync(join(SRC, "images"), { recursive: true, force: true });
 
-const SCENES: Record<NagStyle, typeof encounter> = { encounter, ticker };
 const kb = (n: number) => `${(n / 1024).toFixed(0)} KB`;
 let total = 0;
+const front = (parts: [string, Parameters<typeof buildAnim>[0]["parts"][number][1]][], path: string): BuiltAnim => {
+  const built = buildAnim({ width: 72, height: 16, fps: 60, format: "argb8888", parts });
+  write(path, built.data);
+  total += built.data.length;
+  console.log(`${path}: ${built.sections.default} frames, ${kb(built.data.length)}`);
+  return built;
+};
 
-// Front nags: 72×16 with alpha (they play over the live clock), 60 fps.
-const nags: Record<NagStyle, { path: string; built: BuiltAnim }[]> = { encounter: [], ticker: [] };
-for (const style of Object.keys(SCENES) as NagStyle[]) {
-  PRESETS.forEach((preset, k) => {
-    const built = buildAnim({ width: 72, height: 16, fps: 60, format: "argb8888", parts: [["default", SCENES[style](preset)]] });
-    const path = `animations/nag_${style}_${k}.anim`;
-    write(path, built.data);
-    nags[style].push({ path, built });
-    total += built.data.length;
-    console.log(`${path}: ${built.sections.default} frames, ${kb(built.data.length)}`);
-  });
-}
+// Front: 72×16 with alpha (they play over the live clock), 60 fps. One file per entry and style.
+const fronts = ENTRIES.map((entry, k) => {
+  const byStyle: Partial<Record<Style, { path: string; built: BuiltAnim }>> = {};
+  for (const style of stylesFor(entry)) {
+    const scene = entry.kind === "nag" ? (style === "encounter" ? encounter : ticker)(entry) : REDIRECT_SCENES[style as keyof typeof REDIRECT_SCENES](entry);
+    const path = `animations/front_${k}_${style}.anim`;
+    byStyle[style] = { path, built: front([["default", scene]], path) };
+  }
+  return byStyle;
+});
 
-// Back menu: 148×80 greyscale, 30 fps; the countdown sections last as long as their nags.
-const seconds = (style: NagStyle) => nags[style].map((n) => n.built.sections.default! / n.built.fps);
+// Majora's Mask title cards: a section per card.
+const cards = front(cardParts(), "animations/cards.anim");
+
+// Back menu: 148×80 greyscale, 30 fps; each countdown lasts as long as its front animation.
+const seconds = fronts.map((byStyle) =>
+  Object.fromEntries(Object.entries(byStyle).map(([style, f]) => [style, f!.built.sections.default! / f!.built.fps])),
+);
 const back = buildAnim({
   width: BACK_WIDTH,
   height: BACK_HEIGHT,
   fps: 30,
   format: "gray4",
   background: hex("#000000"),
-  parts: backParts({ encounter: seconds("encounter"), ticker: seconds("ticker") }),
+  parts: backParts(seconds),
 });
 write("animations/back.anim", back.data);
 total += back.data.length;
@@ -56,6 +70,7 @@ const png = (path: string, r: Raster) => {
   writePng(join(SRC, path), { width: r.width, height: r.height, data: r.toRGBA8() });
 };
 png("images/calendar.png", calendarIcon());
+for (let size = 7; size <= 15; size++) png(`images/moon${size}.png`, moonIcon(size));
 png("appmeta/icon_front_8x8.png", frontIcon());
 png("appmeta/icon_back_11x11.png", backIcon());
 
@@ -67,17 +82,23 @@ write(
     "// Generated by assets/build.ts. Do not edit.",
     "",
     'import type { Clip } from "@vladzaharia/bar-core";',
-    'import type { NagStyle } from "../presets.ts";',
+    'import type { Style } from "../presets.ts";',
     "",
     "/** The back-screen menu: enter-K, idle-K, go-J-K, use-K, show-K-STYLE. */",
     `export const BACK: Clip = ${clipLiteral("animations/back.anim", back)};`,
     "",
-    "/** Front nags, by style, one per preset. */",
-    "export const NAGS: Record<NagStyle, Clip[]> = {",
-    ...(Object.keys(nags) as NagStyle[]).map((s) => `  ${s}: [\n${nags[s].map((n) => `    ${clipLiteral(n.path, n.built)},`).join("\n")}\n  ],`),
-    "};",
+    "/** Front animations, by entry, then style. */",
+    "export const FRONT: Partial<Record<Style, Clip>>[] = [",
+    ...fronts.map((byStyle) => `  {\n${Object.entries(byStyle).map(([style, f]) => `    ${style}: ${clipLiteral(f!.path, f!.built)},`).join("\n")}\n  },`),
+    "];",
+    "",
+    "/** Majora's Mask title cards: dawn-1 .. dawn-20, dawn-final, remain-1 .. remain-20. */",
+    `export const CARDS: Clip = ${clipLiteral("animations/cards.anim", cards)};`,
     "",
     'export const CALENDAR = "images/calendar.png";',
+    "",
+    "/** The moon at each size from 7 to 15 px. */",
+    "export const moonImage = (size: number) => `images/moon${size}.png`;",
     "",
   ].join("\n"),
 );

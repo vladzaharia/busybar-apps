@@ -92,3 +92,57 @@ test("shuffleBag gives every item once per round, in varying orders", () => {
   }
   assert.ok(orders.size > 1, "rounds should not all come out in the same order");
 });
+
+test("sprintAt: Sprint 22 from Thursday 22 October 2026, two weeks", () => {
+  const cfg = { number: 22, start: "2026-10-22", weeks: 2 };
+  const at = (y: number, m: number, d: number) => core.sprintAt(new Date(y, m - 1, d, 14, 27), cfg);
+  const wed = at(2026, 10, 28);
+  assert.deepEqual([wed.number, wed.days, wed.done, wed.left, wed.workday], [22, 10, 4, 6, true]);
+  assert.equal(wed.end.getDate(), 4); // Wednesday 4 November
+  const lastDay = at(2026, 11, 4);
+  assert.deepEqual([lastDay.number, lastDay.left], [22, 1]);
+  const saturday = at(2026, 10, 31);
+  assert.deepEqual([saturday.done, saturday.left, saturday.workday], [7, 3, false]);
+  const next = at(2026, 11, 5);
+  assert.deepEqual([next.number, next.done, next.left], [23, 0, 10]);
+  const before = at(2026, 10, 21);
+  assert.deepEqual([before.number, before.left], [21, 1]);
+  const threeWeeks = core.sprintAt(new Date(2026, 9, 28), { ...cfg, weeks: 3 });
+  assert.deepEqual([threeWeeks.days, threeWeeks.left], [15, 11]);
+  // A bad start date falls back to today rather than failing.
+  assert.equal(core.sprintAt(new Date(2026, 9, 28), { ...cfg, start: "soon" }).number, 22);
+});
+
+test("sprint clock faces", () => {
+  const now = new Date(2026, 9, 28, 14, 27, 0);
+  const sprint = core.sprintAt(now, { number: 22, start: "2026-10-22", weeks: 2 });
+  const base = { timeFormat: "24h" as const, showDate: true, blinkColons: false, icon: "images/calendar.png", moon: (s: number) => `images/moon${s}.png` };
+  const bar = core.sprintClockFace(now, sprint, { ...base, style: "bar" });
+  const segs = bar.filter((e) => e.id.startsWith("clock.seg"));
+  assert.equal(segs.length, 10);
+  for (const s of segs) assert.equal(s.y, 15);
+  const dots = core.sprintClockFace(now, sprint, { ...base, style: "dots" });
+  assert.equal(dots.filter((e) => e.id.startsWith("clock.dot")).length, 10);
+  assert.equal((dots.find((e) => e.id === "clock.sub") as { text: string }).text, "S22");
+  const majora = core.sprintClockFace(now, sprint, { ...base, style: "majora" });
+  const icon = majora.find((e) => e.id === "clock.icon") as { path: string };
+  assert.equal(icon.path, `images/moon${core.moonSize(sprint)}.png`);
+  assert.equal((majora.find((e) => e.id === "clock.sub") as { text: string }).text, "6 Days Remain");
+  assert.ok(!majora.some((e) => e.id === "clock.day"));
+  // Every element lies on the screen.
+  for (const e of [...bar, ...dots, ...majora]) assert.ok((e.x ?? 0) >= 0 && (e.x ?? 0) < 72 && (e.y ?? 0) >= -2 && (e.y ?? 0) < 16, e.id);
+});
+
+test("LiveFace clears only ids it drew before and no longer draws", async () => {
+  const calls: string[] = [];
+  const device = {
+    draw: async (els: { id: string }[]) => void calls.push(`draw ${els.map((e) => e.id).join(",")}`),
+    clear: async (ids: string[]) => void calls.push(`clear ${ids.join(",")}`),
+  };
+  const face = new core.LiveFace(device as never, "clock");
+  const el = (id: string) => ({ type: "text", id, text: id, font: "small", x: 0, y: 0 }) as never;
+  face.draw([el("a"), el("b")]);
+  face.draw([el("a"), el("c")]);
+  face.draw([el("a"), el("c")]);
+  assert.deepEqual(calls, ["draw a,b", "clear b", "draw a,c", "draw a,c"]);
+});

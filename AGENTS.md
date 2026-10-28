@@ -8,7 +8,7 @@ built on shared libraries that grow with every app.
 | Path | What | Runs |
 | ---- | ---- | ---- |
 | `apps/<slug>/` | One app each. `src/` is the app (busy-cli layout), `assets/` renders its animations and images. | On the bar |
-| `packages/core` | `@vladzaharia/bar-core`: everything that wraps the bar's APIs. Device client, app lifecycle, timers, settings, font metrics, the stock-style clock face, runtime components (label, marquee, progress bar, toast, `AnimPlayer`). | On the bar |
+| `packages/core` | `@vladzaharia/bar-core`: everything that wraps the bar's APIs. Device client, app lifecycle, timers, settings, font metrics, the stock-style clock face, sprints and sprint clock faces, random choice (`shuffleBag`), runtime components (label, marquee, progress bar, toast, `AnimPlayer`, `LiveFace`). | On the bar |
 | `packages/pixel` | `@vladzaharia/bar-pixel`: build-time pixel toolkit. Raster, device fonts, the `.anim` encoder/decoder, the timeline (`seq`, `layer`, `buildAnim`), the effects library, the component catalog, previews, motion tokens. | Node, at build time |
 | `packages/sim` | `@vladzaharia/bar-sim`: the simulator. Runs an app's real build in the browser against an emulated bar. | Browser |
 | `scripts/` | `new-app.ts` and the app template. | Node |
@@ -46,6 +46,8 @@ built on shared libraries that grow with every app.
 - Front animations that play over live elements (the clock) are `argb8888` and transparent where the screen should
   show through. Back animations are `gray4` (16 grey levels) at 30 fps; front ones 60 fps.
 - Redraw live elements on human time scales (the clock: once a second, coalesced). Never per frame.
+- The bar refuses a clear that names an id it doesn't have, and then clears nothing: clear only ids you drew. For a
+  set of elements whose make-up changes, draw through `LiveFace`.
 - Centre lettering on its capitals (`capCentre`, `label`), as the stock screens do.
 
 ## App rules (from the firmware's JavaScript runtime)

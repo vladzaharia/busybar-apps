@@ -1,10 +1,10 @@
 {
   "format_version": 1,
-  "version": 1,
+  "version": 2,
   "fields": {
     "nag_style": {
-      "label": "Nag style",
-      "description": "How the front shows the message. OK on the back cycles it while the app runs.",
+      "label": "Ticket style",
+      "description": "How FILE A TICKET plays on the front. OK on the back changes it while the app runs.",
       "type": "enum",
       "default": "alternate",
       "options": [
@@ -13,6 +13,67 @@
         { "value": "encounter", "label": "Wild encounter" },
         { "value": "ticker", "label": "Burst ticker" }
       ]
+    },
+    "redirect_style": {
+      "label": "Redirect style",
+      "description": "How ALEX and SAM play on the front. OK on the back changes it while the app runs.",
+      "type": "enum",
+      "default": "random",
+      "options": [
+        { "value": "random", "label": "Random" },
+        { "value": "runway", "label": "Runway" },
+        { "value": "nudge", "label": "Nudge" },
+        { "value": "sign", "label": "Wayfinding sign" },
+        { "value": "walker", "label": "Walker" },
+        { "value": "trainer", "label": "Trainer" },
+        { "value": "scroller", "label": "Scroller" }
+      ]
+    },
+    "clock_style": {
+      "label": "Clock",
+      "description": "The front clock, with or without the sprint.",
+      "type": "enum",
+      "default": "majora",
+      "options": [
+        { "value": "plain", "label": "Plain clock" },
+        { "value": "bar", "label": "Sprint bar" },
+        { "value": "dots", "label": "Sprint dots" },
+        { "value": "majora", "label": "Majora's Mask" }
+      ]
+    },
+    "title_cards": {
+      "label": "Title cards",
+      "description": "With the Majora's Mask clock: 'Dawn of the Nth Day' each work day, and when the app starts. Hold START to see it.",
+      "type": "boolean",
+      "default": true
+    },
+    "title_cards_time": {
+      "label": "Title card time",
+      "type": "time",
+      "default": "09:00"
+    },
+    "sprint_number": {
+      "label": "Sprint number",
+      "description": "Any sprint's number; with its start date, the app works out the rest.",
+      "type": "integer",
+      "default": 22,
+      "min": 1,
+      "max": 9999
+    },
+    "sprint_start": {
+      "label": "Sprint start",
+      "description": "That sprint's first day, as YYYY-MM-DD.",
+      "type": "string",
+      "default": "2026-10-22",
+      "min_length": 10,
+      "max_length": 10
+    },
+    "sprint_weeks": {
+      "label": "Sprint length (weeks)",
+      "type": "integer",
+      "default": 2,
+      "min": 1,
+      "max": 4
     },
     "time_format": {
       "label": "Time format",
@@ -25,6 +86,7 @@
     },
     "show_date": {
       "label": "Show date",
+      "description": "The calendar (and the date line on the plain and sprint bar clocks). The Majora's Mask clock always shows its moon.",
       "type": "boolean",
       "default": true
     },

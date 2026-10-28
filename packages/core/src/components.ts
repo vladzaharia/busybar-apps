@@ -210,3 +210,27 @@ export class AnimPlayer {
     return this.device.clear([this.base.id]);
   }
 }
+
+/**
+ * A set of elements redrawn over time whose make-up can change, such as a clock face switching style. Each draw
+ * clears the ids the previous draw had and this one doesn't. The bar refuses a clear that names an id it doesn't
+ * have (and then clears nothing), so only ids drawn here are ever cleared.
+ */
+export class LiveFace {
+  private readonly device: Device;
+  private readonly coalesce: string | undefined;
+  private ids = new Set<string>();
+
+  constructor(device: Device, coalesce?: string) {
+    this.device = device;
+    this.coalesce = coalesce;
+  }
+
+  draw(elements: DisplayElement[]): void {
+    const next = new Set(elements.map((e) => e.id));
+    const stale = [...this.ids].filter((id) => !next.has(id));
+    this.ids = next;
+    if (stale.length) void this.device.clear(stale);
+    void this.device.draw(elements, { coalesce: this.coalesce });
+  }
+}

@@ -359,7 +359,7 @@ export function settingsForm(root: HTMLElement, fields: Record<string, SettingFi
       row.classList.add("check");
     } else {
       input = document.createElement("input");
-      input.type = f.type === "integer" ? "number" : f.type === "color" ? "color" : "text";
+      input.type = f.type === "integer" ? "number" : f.type === "color" ? "color" : f.type === "time" ? "time" : "text";
       input.value = String(values[id]);
       input.addEventListener("change", () => ((values[id] = f.type === "integer" ? Number(input.value) : input.value), onChange()));
     }

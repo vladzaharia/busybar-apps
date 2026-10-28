@@ -32,7 +32,7 @@ import {
   textWidth,
   type Clip,
 } from "@vladzaharia/bar-pixel";
-import type { Preset } from "../../src/presets.ts";
+import type { Nag } from "../../src/presets.ts";
 
 const WHITE = hex("#FFFFFF");
 const BLUE = hex("#579DFF");
@@ -40,7 +40,7 @@ const TEXT_X0 = 16;
 const MARK = { x: 1, y: 2, size: 12 };
 const ROLL = 0.26;
 
-export function ticker(preset: Preset): Clip {
+export function ticker(preset: Nag): Clip {
   const text = preset.message.toUpperCase();
   const f = font("extra_large");
   const total = textWidth(text, f);

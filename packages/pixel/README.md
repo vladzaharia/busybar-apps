@@ -4,9 +4,11 @@ Build-time toolkit for pre-rendered BUSY Bar animation.
 
 - `.anim` encoder and decoder (`encodeAnim`, `AnimReader`, `decodeAnim`): raw, RLE and QOI frames, change masks,
   sections. Checked against the firmware's own code (see below).
-- `Raster`, the firmware's fonts (`font`, `textWidth`), masks, PNG I/O, the Jira mark sprites.
+- `Raster`, the firmware's fonts (`font`, `textWidth`), masks, PNG I/O, the Jira mark sprites, icons (calendar,
+  monograms, a capture ball, a moon).
 - Timeline: `clip`, `seq`, `layer`, `buildAnim` (named parts → sections, with their lengths).
-- Effects (`src/fx/`): transitions, backgrounds, text, HUD and modifiers. Every one is in `src/catalog.ts` with a
+- Effects (`src/fx/`): transitions, backgrounds, text (including title cards), HUD, wayfinding (chevrons, arrows,
+  a chevron chase, a scrolling band, a walking figure) and modifiers. Every one is in `src/catalog.ts` with a
   demo; `pnpm gallery <out-dir>` renders the browsable gallery.
 - `MOTION` and `readTime`: durations calibrated against the stock animations.
 - `writePreview`, `drawElements`: preview pages and a draw-element emulator.

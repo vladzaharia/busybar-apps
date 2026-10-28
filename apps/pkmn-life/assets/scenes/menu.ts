@@ -1,4 +1,4 @@
-// The back screen: the presets as a move list in a double-ruled box, a ▶ cursor, and a text box typing out the
+// The back screen: the entries as a move list in a double-ruled box, a ▶ cursor, and a text box typing out the
 // highlighted message. START "uses the move": the screen wipes to a "Now on front" view whose HP-style bar counts
 // down while the front plays, with a capture ball rocking in the corner. "PKMN" is the handheld games' symbol.
 //
@@ -26,17 +26,19 @@ import {
   type Color,
   type Raster,
 } from "@vladzaharia/bar-pixel";
-import { PRESETS, type NagStyle } from "../../src/presets.ts";
+import { ENTRIES, stylesFor, type Style } from "../../src/presets.ts";
 
 const W = 148;
 const H = 80;
 // Header rows 0-10, a blank row, the list box, a blank row, the text box. Inside each box the lettering sits with
-// equal space above and below (3 rows in the list, centred in the text box).
-const ROW = 8;
+// equal space above and below: the list's rows are spread over its 43 inner rows (up to 12 px apart), centred.
 const LIST = { x: 0, y: 12, w: W, h: 49 };
 const BOX = { y: 62, h: 18 };
+const INNER = LIST.h - 6;
+const ROW = ENTRIES.length > 1 ? Math.min(12, Math.floor((INNER - 5) / (ENTRIES.length - 1))) : 0;
+const LIST_TOP = LIST.y + 3 + Math.floor((INNER - (5 + (ENTRIES.length - 1) * ROW)) / 2);
 /** Top row of item i's capitals. */
-const itemTop = (i: number) => LIST.y + 6 + i * ROW;
+const itemTop = (i: number) => LIST_TOP + i * ROW;
 const CPS = 45;
 const GLIDE = 0.12;
 
@@ -44,7 +46,7 @@ const grey = (v: number, a = 1): Color => ({ r: v, g: v, b: v, a });
 const GREY_TONES = [grey(1), grey(0.8), grey(0.58)];
 
 /** Seconds to type a message into the text box. */
-export const typeTime = (k: number) => PRESETS[k]!.message.length / CPS + 0.15;
+export const typeTime = (k: number) => ENTRIES[k]!.message.length / CPS + 0.15;
 
 function ruledBox(r: Raster, x: number, y: number, w: number, h: number, alpha = 1): void {
   r.roundRect(x, y, w, h, 2, (px, py) => {
@@ -69,17 +71,17 @@ function menu(r: Raster, o: { sel: number; k: number; typed: number; nudge: bool
   // "PKMN LIFE", with the handheld games' PKMN symbol.
   drawPkmn(r, 15, 1, grey(0.9));
   r.text("LIFE", small, 15 + PKMN_SIZE.width + 3, 1, grey(0.9));
-  const idx = `${o.k + 1}/${PRESETS.length}`;
+  const idx = `${o.k + 1}/${ENTRIES.length}`;
   r.text(idx, small, W - 2 - textWidth(idx, small), 1, grey(0.55));
   ruledBox(r, LIST.x, LIST.y, LIST.w, LIST.h);
-  PRESETS.forEach((p, i) => {
+  ENTRIES.forEach((p, i) => {
     const on = Math.abs(i - o.sel) < 0.5;
     r.text(p.move, small, 14, itemTop(i) - 2, grey(on ? 1 : 0.6));
   });
   cursor(r, 5 + (o.nudge ? 1 : 0), Math.round(itemTop(o.sel)));
   ruledBox(r, 0, BOX.y, W, BOX.h);
   let n = 0;
-  r.text(PRESETS[o.k]!.message, small, 6, BOX.y + 4, grey(0.92), () => ({ hidden: n++ >= o.typed }));
+  r.text(ENTRIES[o.k]!.message, small, 6, BOX.y + 4, grey(0.92), () => ({ hidden: n++ >= o.typed }));
 }
 
 const enter = (k: number): Clip => clip(typeTime(k), (r, t) => menu(r, { sel: k, k, typed: Math.floor(t * CPS), nudge: false }));
@@ -115,7 +117,8 @@ const show = (k: number, seconds: number): Clip =>
     // A capture ball rocking while the move plays out on the front.
     ballShake({ duration: seconds, x: 10, y: 5, fadeIn: 0.3 }).draw(r, t);
     r.text("NOW ON FRONT", small, 17, 1, grey(0.9, a));
-    const move = PRESETS[k]!.move;
+    const entry = ENTRIES[k]!;
+    const move = entry.move;
     r.text(move, normal, Math.round((W - textWidth(move, normal)) / 2), 14, grey(1, a));
     const left = Math.max(0, 1 - t / seconds);
     r.text("HP", font("tiny"), 14, 33, grey(0.8, a));
@@ -124,22 +127,28 @@ const show = (k: number, seconds: number): Clip =>
     const secs = `${Math.ceil(left * seconds)}/${Math.ceil(seconds)}`;
     r.text(secs, small, 134 - textWidth(secs, small), 40, grey(0.6, a));
     ruledBox(r, 0, 54, W, 26, a);
-    // "PKMN LIFE used MOVE!", typed out with the PKMN symbol as its first character.
     const typed = Math.floor((t - 0.25) * 40);
-    if (typed >= 1) drawPkmn(r, 6, 59, grey(0.92), a);
-    let n = 1;
-    r.text(`LIFE used ${move}!`, small, 6 + PKMN_SIZE.width + 3, 59, grey(0.92, a), () => ({ hidden: n++ >= typed }));
+    if (entry.kind === "nag") {
+      // "PKMN LIFE used MOVE!", typed out with the PKMN symbol as its first character.
+      if (typed >= 1) drawPkmn(r, 6, 59, grey(0.92), a);
+      let n = 1;
+      r.text(`LIFE used ${move}!`, small, 6 + PKMN_SIZE.width + 3, 59, grey(0.92, a), () => ({ hidden: n++ >= typed }));
+    } else {
+      // A redirect sends someone out, as a trainer sends out a monster.
+      let n = 0;
+      r.text(`Go! ${entry.name}!`, small, 6, 59, grey(0.92, a), () => ({ hidden: n++ >= typed }));
+    }
     r.text("BACK to run away", small, 6, 67, grey(0.45, a));
   });
 
-/** Every section of the back screen, given how long each front nag runs. */
-export function backParts(nagSeconds: Record<NagStyle, number[]>): [string, Clip][] {
+/** Every section of the back screen, given how long each entry's front animation runs in each style. */
+export function backParts(frontSeconds: Partial<Record<Style, number>>[]): [string, Clip][] {
   const parts: [string, Clip][] = [];
-  PRESETS.forEach((_, k) => {
+  ENTRIES.forEach((entry, k) => {
     parts.push([`enter-${k}`, enter(k)], [`idle-${k}`, idle(k)], [`use-${k}`, use(k)]);
-    for (const style of ["encounter", "ticker"] as const) parts.push([`show-${k}-${style}`, show(k, nagSeconds[style][k]!)]);
+    for (const style of stylesFor(entry)) parts.push([`show-${k}-${style}`, show(k, frontSeconds[k]![style]!)]);
     if (k > 0) parts.push([`go-${k - 1}-${k}`, go(k - 1, k)]);
-    if (k < PRESETS.length - 1) parts.push([`go-${k + 1}-${k}`, go(k + 1, k)]);
+    if (k < ENTRIES.length - 1) parts.push([`go-${k + 1}-${k}`, go(k + 1, k)]);
   });
   return parts;
 }

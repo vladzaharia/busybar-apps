@@ -14,6 +14,14 @@ export interface ClockOptions {
   icon: string;
   /** Element id prefix, so the face can live beside the app's other elements. */
   prefix?: string;
+  /** Text for the line under the time instead of the date (shown even when `showDate` is off). */
+  sub?: string;
+  /** Lay out as if the line under the time were this wide, so a changing line never shifts the clock. */
+  reserve?: number;
+  /** Rows to move the whole face down (negative: up). */
+  dy?: number;
+  /** The number on the calendar icon instead of the day of the month; null leaves the page blank. */
+  iconLabel?: string | null;
 }
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -37,6 +45,9 @@ const DAY_COLOR = "#323232FF";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const center = (size: number, space: number) => Math.max(0, Math.floor((space - size) / 2));
+
+/** The stock date line: "Oct, Wed". */
+export const dateLine = (d: Date) => `${MONTHS[d.getMonth()]}, ${DAYS[d.getDay()]}`;
 
 /** The time as digits and colons, plus a separate AM/PM suffix in 12-hour format. */
 export function formatTime(d: Date, format: ClockOptions["timeFormat"]): { time: string; suffix: string } {
@@ -62,24 +73,26 @@ export function clockFace(now: Date, o: ClockOptions): DisplayElement[] {
   });
 
   const { time, suffix } = formatTime(now, o.timeFormat);
-  const sub = o.showDate ? `${MONTHS[now.getMonth()]}, ${DAYS[now.getDay()]}` : "";
+  const sub = o.sub ?? (o.showDate ? dateLine(now) : "");
   const dim = o.blinkColons && now.getSeconds() % 2 === 1;
 
   const timeW = textWidth(time, "bold") + (suffix ? SUFFIX_GAP + textWidth(suffix, "small") : 0);
-  const width = Math.max(timeW, textWidth(sub, "small"));
+  const width = Math.max(timeW, textWidth(sub, "small"), o.reserve ?? 0);
   const height = sub ? TIME_H + LINE_GAP + SUB_H : TIME_H;
   const iconSpace = o.showDate ? ICON.width + ICON_GAP : 0;
   const left = center(iconSpace + width, SCREEN_W);
-  const top = center(height, SCREEN_H);
+  const top = center(height, SCREEN_H) + (o.dy ?? 0);
   let x = left + iconSpace;
 
   const out: DisplayElement[] = [];
   if (o.showDate) {
-    const iconY = center(ICON.height, SCREEN_H);
-    const day = String(now.getDate());
-    const dayX = left + center(textWidth(day, "superscript"), ICON.width) + DAY_OFFSET.dx;
+    const iconY = center(ICON.height, SCREEN_H) + (o.dy ?? 0);
+    const day = o.iconLabel === undefined ? String(now.getDate()) : o.iconLabel;
     out.push({ type: "image", id: `${p}icon`, path: o.icon, x: left, y: iconY, display: "front" });
-    out.push(text("day", day, "superscript", DAY_COLOR, dayX, iconY + DAY_OFFSET.dy - CAP_TOP));
+    if (day !== null) {
+      const dayX = left + center(textWidth(day, "superscript"), ICON.width) + DAY_OFFSET.dx;
+      out.push(text("day", day, "superscript", DAY_COLOR, dayX, iconY + DAY_OFFSET.dy - CAP_TOP));
+    }
   }
 
   // Digits and colons are separate elements, so a colon can blink without the digits moving.

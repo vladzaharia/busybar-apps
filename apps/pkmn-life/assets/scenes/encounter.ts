@@ -24,7 +24,7 @@ import {
   type Color,
   type Raster,
 } from "@vladzaharia/bar-pixel";
-import type { Preset } from "../../src/presets.ts";
+import type { Nag } from "../../src/presets.ts";
 
 const BLACK = hex("#000000");
 const INK = hex("#141820");
@@ -49,7 +49,7 @@ function battle(r: Raster, o: { markX: number; hop?: number; hud: number; hp: nu
 const emphasis = (_i: number, ch: string, t: number): Color | undefined =>
   ch === "?" ? mix(INK, BLUE, 0.5 + 0.5 * Math.sin(t * 12)) : undefined;
 
-export function encounter(preset: Preset): Clip {
+export function encounter(preset: Nag): Clip {
   // 1. The encounter: three flashes over the clock, then the stripes close.
   const intro = seq(flash({ count: 3 }), holdEnd(stripes({ mode: "cover" }), 0.02));
 
