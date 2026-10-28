@@ -34,7 +34,8 @@ const CAP_TOP = 2;
 const TIME_H = METRICS.bold.ascent - CAP_TOP;
 const SUB_H = METRICS.small.ascent - CAP_TOP;
 const SUFFIX_GAP = 1;
-const ICON_GAP = 2;
+/** Space between the calendar and the time; wider than the stock clock's 2 px, for breathing room. */
+const ICON_GAP = 4;
 const LINE_GAP = 2;
 const DAY_OFFSET = { dx: 1, dy: 7 };
 

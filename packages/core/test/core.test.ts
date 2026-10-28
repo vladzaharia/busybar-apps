@@ -21,7 +21,7 @@ test("label centres on the capitals", () => {
   assert.equal(l.x, Math.floor((72 - core.textWidth("DID YOU", "extra_large")) / 2));
 });
 
-test("clock face matches the stock clock layout", () => {
+test("clock face follows the stock clock layout, with a wider gap after the icon", () => {
   const els = core.clockFace(new Date(2026, 9, 27, 14, 27, 1), {
     timeFormat: "24h",
     showDate: true,
@@ -29,14 +29,15 @@ test("clock face matches the stock clock layout", () => {
     icon: "images/calendar.png",
   });
   const byId = Object.fromEntries(els.map((e) => [e.id, e]));
-  // The stock Clock app's arithmetic for 14:27 on Tue 27 Oct: "14:27" is 30 px in bold, "Oct, Tue" 28 px in small,
-  // plus 13 + 2 px for the icon, so 45 px centred in 72 starts at x = 13 and the time at 28.
-  assert.deepEqual([byId["clock.icon"]!.x, byId["clock.icon"]!.y], [13, 1]);
-  assert.deepEqual([byId["clock.day"]!.x, byId["clock.day"]!.y], [16, 6]);
-  assert.deepEqual([byId["clock.time0"]!.x, byId["clock.time0"]!.y], [28, -1]);
-  assert.deepEqual([byId["clock.time1"]!.x, byId["clock.time1"]!.y], [44, -1]);
+  // The stock Clock app's arithmetic for 14:27 on Tue 27 Oct, with 4 px after the icon instead of its 2: "14:27" is
+  // 30 px in bold, "Oct, Tue" 28 px in small, plus 13 + 4 px for the icon, so 47 px centred in 72 starts at x = 12
+  // and the time at 29.
+  assert.deepEqual([byId["clock.icon"]!.x, byId["clock.icon"]!.y], [12, 1]);
+  assert.deepEqual([byId["clock.day"]!.x, byId["clock.day"]!.y], [15, 6]);
+  assert.deepEqual([byId["clock.time0"]!.x, byId["clock.time0"]!.y], [29, -1]);
+  assert.deepEqual([byId["clock.time1"]!.x, byId["clock.time1"]!.y], [45, -1]);
   assert.equal((byId["clock.colon1"] as { color: string }).color, "#FFFFFF66");
-  assert.deepEqual([byId["clock.sub"]!.x, byId["clock.sub"]!.y], [28, 8]);
+  assert.deepEqual([byId["clock.sub"]!.x, byId["clock.sub"]!.y], [29, 8]);
 });
 
 test("settings fall back field by field", () => {
@@ -116,7 +117,7 @@ test("sprintAt: Sprint 22 from Thursday 22 October 2026, two weeks", () => {
 test("sprint clock faces", () => {
   const now = new Date(2026, 9, 28, 14, 27, 0);
   const sprint = core.sprintAt(now, { number: 22, start: "2026-10-22", weeks: 2 });
-  const base = { timeFormat: "24h" as const, showDate: true, blinkColons: false, icon: "images/calendar.png", moon: (s: number) => `images/moon${s}.png` };
+  const base = { timeFormat: "24h" as const, showDate: true, blinkColons: false, icon: "images/calendar.png" };
   const bar = core.sprintClockFace(now, sprint, { ...base, style: "bar" });
   const segs = bar.filter((e) => e.id.startsWith("clock.seg"));
   assert.equal(segs.length, 10);
@@ -125,10 +126,9 @@ test("sprint clock faces", () => {
   assert.equal(dots.filter((e) => e.id.startsWith("clock.dot")).length, 10);
   assert.equal((dots.find((e) => e.id === "clock.sub") as { text: string }).text, "S22");
   const majora = core.sprintClockFace(now, sprint, { ...base, style: "majora" });
-  const icon = majora.find((e) => e.id === "clock.icon") as { path: string };
-  assert.equal(icon.path, `images/moon${core.moonSize(sprint)}.png`);
-  assert.equal((majora.find((e) => e.id === "clock.sub") as { text: string }).text, "6 Days Remain");
-  assert.ok(!majora.some((e) => e.id === "clock.day"));
+  assert.equal((majora.find((e) => e.id === "clock.icon") as { path: string }).path, "images/calendar.png");
+  assert.equal((majora.find((e) => e.id === "clock.sub") as { text: string }).text, "S22 6 left");
+  assert.ok(majora.some((e) => e.id === "clock.day"));
   // Every element lies on the screen.
   for (const e of [...bar, ...dots, ...majora]) assert.ok((e.x ?? 0) >= 0 && (e.x ?? 0) < 72 && (e.y ?? 0) >= -2 && (e.y ?? 0) < 16, e.id);
 });

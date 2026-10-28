@@ -166,14 +166,15 @@ export function sprintAt(now: Date, cfg: SprintConfig): Sprint {
 /** "6 days left", "1 day left". */
 export const daysLeftText = (s: Sprint) => (s.left === 1 ? "1 day left" : `${s.left} days left`);
 
+/** The sprint and days left in short: "S22 6 left", or "S22 last day". */
+export const sprintShortText = (s: Sprint) => (s.left <= 1 ? `S${s.number} last day` : `S${s.number} ${s.left} left`);
+
 // --- Clock faces -------------------------------------------------------------------------------------------------
 
 export type SprintStyle = "plain" | "bar" | "dots" | "majora";
 
 export interface SprintClockOptions extends ClockOptions {
   style: SprintStyle;
-  /** For "majora": the path of the moon image at each size, 7 to 15 px (e.g. s => `images/moon${s}.png`). */
-  moon?: (size: number) => string;
 }
 
 const WHITE = "#FFFFFFFF";
@@ -183,9 +184,6 @@ const DONE_DOT = "#FFFFFF33";
 const TODAY_DIM = "#FFFFFF55";
 /** The small font's capitals start this far below an element's top, as clockFace places the line under the time. */
 const CAP_TOP = 2;
-
-/** The moon grows from 7 px at the start of a sprint to 15 px on its last day. */
-export const moonSize = (s: Sprint) => Math.round(7 + (s.days > 1 ? (s.done / (s.days - 1)) * 8 : 8));
 
 const rect = (id: string, x: number, y: number, width: number, height: number, color: string): RectangleElement => ({
   type: "rectangle",
@@ -208,7 +206,7 @@ const rect = (id: string, x: number, y: number, width: number, height: number, c
  *   bar    — a segment per work day along the bottom edge (done, today blinking, to go); the line under the time
  *            alternates the date and "Sprint N".
  *   dots   — the date stays on the calendar; under the time, "SN" and a dot per work day.
- *   majora — a moon in place of the calendar, growing as the sprint runs out; "N Days Remain" under the time.
+ *   majora — the sprint and days left in short under the time ("S22 6 left"); the app adds the title cards.
  */
 export function sprintClockFace(now: Date, sprint: Sprint, o: SprintClockOptions): DisplayElement[] {
   const p = o.prefix ?? "clock.";
@@ -240,16 +238,6 @@ export function sprintClockFace(now: Date, sprint: Sprint, o: SprintClockOptions
     }
     return out;
   }
-  if (o.style === "majora") {
-    const size = moonSize(sprint);
-    const sub = sprint.left <= 1 ? "Final Day" : `${sprint.left} Days Remain`;
-    const out = clockFace(now, { ...o, showDate: true, sub, iconLabel: null });
-    const icon = out.find((e) => e.id === `${p}icon`);
-    if (icon && icon.type === "image" && o.moon) {
-      // Centre the moon where the calendar was (13 x 14 at its x, y).
-      Object.assign(icon, { path: o.moon(size), x: (icon.x ?? 0) + Math.round((13 - size) / 2), y: (icon.y ?? 0) + Math.round((14 - size) / 2) });
-    }
-    return out;
-  }
+  if (o.style === "majora") return clockFace(now, { ...o, sub: sprintShortText(sprint) });
   return clockFace(now, o);
 }

@@ -20,7 +20,7 @@ import {
   type SprintStyle,
 } from "@vladzaharia/bar-core";
 import manifest from "./appmeta/manifest.json";
-import { BACK, CALENDAR, CARDS, FRONT, moonImage } from "./generated/clips.ts";
+import { BACK, CALENDAR, CARDS, FRONT } from "./generated/clips.ts";
 import { ENTRIES, NAG_STYLES, REDIRECT_STYLES, SPRINTS, type Entry, type NagStyle, type RedirectStyle, type Style } from "./presets.ts";
 
 type NagMode = "alternate" | "random" | NagStyle;
@@ -119,7 +119,7 @@ function main(): void {
       icon: CALENDAR,
     };
     const style = settings.clock_style;
-    const face = style === "plain" ? clockFace(now, options) : sprintClockFace(now, sprint, { ...options, style, moon: moonImage });
+    const face = style === "plain" ? clockFace(now, options) : sprintClockFace(now, sprint, { ...options, style });
     clock.draw(face);
 
     // The morning title card, once a work day at the set time.

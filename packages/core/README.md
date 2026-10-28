@@ -9,11 +9,11 @@ Runtime library for on-device BUSY Bar JavaScript apps. Everything that talks to
 - `AnimPlayer`: plays `.anim` sections (`play` now, `then` queued for when the current one ends).
 - Components: `label` (centred on the capitals), `marquee` (firmware scrolling), `progressBar`, `toast` (removes
   itself).
-- `clockFace`: the stock Clock app's layout. `readSettings`: typed settings with per-field fallback.
+- `clockFace`: the stock Clock app's layout (with 4 px after the calendar instead of 2). `readSettings`: typed settings with per-field fallback.
 - `sprintAt(now, { number, start, weeks, changes })`: the running sprint and its work days left, following a
   regular cadence plus a list of changes (moved or longer sprints, a new cadence, days off; `parseSprintChanges`
   reads it). `sprintClockFace`: the clock
-  with the sprint, as a bar of work days, a row of dots, or a growing moon ("majora").
+  with the sprint, as a bar of work days, a row of dots, or in short under the time ("S22 6 left").
 - `LiveFace`: draws a set of elements whose make-up changes, clearing only ids it drew (the bar refuses a clear that
   names an unknown id). `shuffleBag`: random picks, every item once per round.
 - `textWidth` and `METRICS`: the firmware fonts' advance widths (regenerate with `pnpm metrics`).

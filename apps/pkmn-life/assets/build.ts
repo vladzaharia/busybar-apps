@@ -1,12 +1,12 @@
 // Renders every asset the app needs into src/: each entry's front animation in each of its styles, the Majora's Mask
-// title cards, the back-screen menu (one .anim, a section per state), the calendar and moon images, the app icons,
+// title cards, the back-screen menu (one .anim, a section per state), the calendar image, the app icons,
 // and src/generated/clips.ts with the section lengths the app sequences by.
 // Usage: pnpm assets   (also runs as part of `pnpm build` and `pnpm typecheck`)
 
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { buildAnim, calendarIcon, hex, moonIcon, writePng, type BuiltAnim, type Raster } from "@vladzaharia/bar-pixel";
+import { buildAnim, calendarIcon, hex, writePng, type BuiltAnim, type Raster } from "@vladzaharia/bar-pixel";
 import { ENTRIES, stylesFor, type Style } from "../src/presets.ts";
 import { backIcon, frontIcon } from "./icons.ts";
 import { cardParts } from "./scenes/cards.ts";
@@ -70,7 +70,6 @@ const png = (path: string, r: Raster) => {
   writePng(join(SRC, path), { width: r.width, height: r.height, data: r.toRGBA8() });
 };
 png("images/calendar.png", calendarIcon());
-for (let size = 7; size <= 15; size++) png(`images/moon${size}.png`, moonIcon(size));
 png("appmeta/icon_front_8x8.png", frontIcon());
 png("appmeta/icon_back_11x11.png", backIcon());
 
@@ -96,9 +95,6 @@ write(
     `export const CARDS: Clip = ${clipLiteral("animations/cards.anim", cards)};`,
     "",
     'export const CALENDAR = "images/calendar.png";',
-    "",
-    "/** The moon at each size from 7 to 15 px. */",
-    "export const moonImage = (size: number) => `images/moon${size}.png`;",
     "",
   ].join("\n"),
 );

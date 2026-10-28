@@ -121,7 +121,7 @@
     },
     "show_date": {
       "label": "Show date",
-      "description": "The calendar (and the date line on the plain and sprint bar clocks). The Majora's Mask clock always shows its moon.",
+      "description": "The calendar, and the date line on the plain and sprint bar clocks.",
       "type": "boolean",
       "default": true
     },

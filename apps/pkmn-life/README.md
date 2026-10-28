@@ -32,7 +32,7 @@ START picks a style, every style coming up once per round in a fresh order.
 | Plain | The stock clock. |
 | Sprint bar | A segment per work day along the bottom edge: done, today (blinking), to go. The line under the time alternates the date and "Sprint 22". |
 | Sprint dots | The date stays on the calendar; under the time, "S22" and a dot per work day. |
-| Majora's Mask | A moon in place of the calendar that grows as the sprint runs out, with "6 Days Remain" under the time. Each work day at the set time (and when the app starts) the title cards play: "Dawn of The Fifth Day", then "-6 Days Remain-". |
+| Majora's Mask | The sprint and days left in short under the time ("S22 6 left", "S22 last day"). Each work day at the set time (and when the app starts) the title cards play: "Dawn of The Fifth Day", then "-6 Days Remain-". |
 
 Sprints are worked out, never typed in: the team's cadence (Sprint 22 began on Thursday 22 October 2026, two-week
 sprints) is in [`src/presets.ts`](src/presets.ts), and every later sprint follows from it. Anything irregular goes in
@@ -48,7 +48,7 @@ the **Sprint changes** setting, a comma-separated list you can fill in ahead of 
 
 Sprints after a change follow on from it at the regular length; a sprint number can be skipped by starting the next
 one (`28=...`). Work days are Monday to Friday, less days off; "days left" counts today, so the last day says 1
-("Final Day"). Entries that can't be read are ignored.
+("last day"). Entries that can't be read are ignored.
 
 ## Settings
 
