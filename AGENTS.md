@@ -11,7 +11,7 @@ built on shared libraries that grow with every app.
 | `packages/core` | `@vladzaharia/bar-core`: everything that wraps the bar's APIs. Device client, app lifecycle, timers, settings, font metrics, the stock-style clock face, sprints and sprint clock faces, random choice (`shuffleBag`), runtime components (label, marquee, progress bar, toast, `AnimPlayer`, `LiveFace`). | On the bar |
 | `packages/pixel` | `@vladzaharia/bar-pixel`: build-time pixel toolkit. Raster, device fonts, the `.anim` encoder/decoder, the timeline (`seq`, `layer`, `buildAnim`), the effects library, the component catalog, previews, motion tokens. | Node, at build time |
 | `packages/sim` | `@vladzaharia/bar-sim`: the simulator. Runs an app's real build in the browser against an emulated bar. | Browser |
-| `scripts/` | `new-app.ts` and the app template. | Node |
+| `scripts/` | `setup.sh` (sets up a machine or session; the SessionStart hook runs it), `new-app.ts` and the app template. | Node |
 | `mac/` | Pkmn Life Remote, a SwiftUI panel (macOS 26) that sends Pkmn Life requests and settings through the bar's HTTP API (`remoteInbox`). `PkmnLifeRemoteKit` holds the testable part; its tests check the Mac's copy of the entries and settings against `apps/pkmn-life`. Built by CI on macOS. | macOS |
 
 ## Ground rules
@@ -64,10 +64,15 @@ built on shared libraries that grow with every app.
 
 ## Checking your work
 
+Start from [`HANDOFF.md`](HANDOFF.md) (where things stand, what's unverified, what's next) and keep it current when you
+finish a piece of work. A fresh machine needs `scripts/setup.sh` first (cloud sessions run it automatically).
+
 ```sh
 pnpm typecheck            # every package and app (apps render their assets first)
 pnpm test                 # encoder, timeline, catalog, core, simulator rules
 cd apps/<slug> && pnpm sim    # the app in the simulator: dist/sim/index.html
+cd mac/PkmnLifeRemote && swift test                  # the Mac app's logic (works on Linux)
+cd mac/PkmnLifeRemote && Tools/screenshots.sh        # the Mac app in every state, as PNGs (macOS 26)
 ```
 
 Drive the simulator to check behaviour: it exposes `window.barSim` (`host`, `device`, `buttons`, and `settings`, whose changes the app sees on its next read,

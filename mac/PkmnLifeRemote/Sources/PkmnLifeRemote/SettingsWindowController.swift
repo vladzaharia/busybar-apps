@@ -5,10 +5,16 @@ import SwiftUI
 /// own settings on the bar). Built in AppKit because the floating panel lives outside SwiftUI's scenes, where
 /// SwiftUI's openSettings doesn't reach.
 final class SettingsWindowController {
+    enum Tab: String {
+        case general
+        case pkmnLife = "pkmn-life"
+    }
+
     private let model: RemoteModel
     private let barSettings: BarSettingsModel
     private let panel: () -> PanelController
     private var window: NSWindow?
+    private var tabs: NSTabViewController?
 
     init(model: RemoteModel, barSettings: BarSettingsModel, panel: @escaping () -> PanelController) {
         self.model = model
@@ -16,12 +22,13 @@ final class SettingsWindowController {
         self.panel = panel
     }
 
-    func show() {
+    func show(tab: Tab? = nil) {
         if window == nil {
             let tabs = NSTabViewController()
+            self.tabs = tabs
             tabs.tabStyle = .toolbar
-            tabs.addTabViewItem(tab("General", symbol: "gearshape", GeneralSettingsView(model: model, panel: panel())))
-            tabs.addTabViewItem(tab("Pkmn Life", symbol: "rectangle.3.group", BarAppSettingsView(settings: barSettings)))
+            tabs.addTabViewItem(makeTab("General", symbol: "gearshape", GeneralSettingsView(model: model, panel: panel())))
+            tabs.addTabViewItem(makeTab("Pkmn Life", symbol: "rectangle.3.group", BarAppSettingsView(settings: barSettings)))
             let window = NSWindow(contentViewController: tabs)
             window.styleMask = [.titled, .closable]
             window.toolbarStyle = .preference
@@ -29,13 +36,14 @@ final class SettingsWindowController {
             window.center()
             self.window = window
         }
+        if let tab { tabs?.selectedTabViewItemIndex = tab == .general ? 0 : 1 }
         // Re-read the bar's settings each time, in case they were changed on the bar.
         if window?.isVisible != true { barSettings.load() }
         NSApp.activate()
         window?.makeKeyAndOrderFront(nil)
     }
 
-    private func tab(_ label: String, symbol: String, _ view: some View) -> NSTabViewItem {
+    private func makeTab(_ label: String, symbol: String, _ view: some View) -> NSTabViewItem {
         let host = NSHostingController(rootView: view)
         host.sizingOptions = .preferredContentSize
         let item = NSTabViewItem(viewController: host)

@@ -1,0 +1,49 @@
+name: Mac visual check
+
+# Builds Pkmn Life Remote on a macOS 26 runner, runs it against a mock bar in each state (shown, tucked, peeking,
+# pinned, both Settings tabs; light and dark) and uploads the screenshots as the "mac-screens" artifact.
+# Start it from the Actions tab (Run workflow); it also runs on pull requests that touch the Mac app.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths: ["mac/**", "apps/pkmn-life/src/appmeta/settings.json", "apps/pkmn-life/src/presets.ts"]
+
+concurrency:
+  group: mac-visual-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  screens:
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - name: Use Xcode 26
+        run: |
+          xcode=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1 || true)
+          if [ -n "$xcode" ]; then sudo xcode-select -s "$xcode"; fi
+          xcodebuild -version
+          swift --version
+      - name: Test
+        working-directory: mac/PkmnLifeRemote
+        run: swift test
+      - name: Capture
+        working-directory: mac/PkmnLifeRemote
+        run: Tools/screenshots.sh screens
+      - name: Summary
+        if: always()
+        working-directory: mac/PkmnLifeRemote
+        run: |
+          {
+            echo "## Pkmn Life Remote screens"
+            echo
+            echo "Download the **mac-screens** artifact. Files:"
+            echo
+            find screens -name '*.png' | sort | sed 's/^/- /'
+          } >>"$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mac-screens
+          path: mac/PkmnLifeRemote/screens/

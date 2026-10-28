@@ -6,7 +6,7 @@ that runs the real app builds.
 
 | | |
 | --- | --- |
-| [`apps/pkmn-life`](apps/pkmn-life) | **Pkmn Life**: Team screens. A sprint clock (Majora's Mask moon, bar or dots), a Jira-ticket nag, and "go see Alex / Sam" redirects, picked from a handheld-RPG menu on the back. |
+| [`apps/pkmn-life`](apps/pkmn-life) | **Pkmn Life**: Team screens. A sprint clock (Majora's Mask title cards, bar or dots), a Jira-ticket nag, and "go see Alex / Sam" redirects, picked from a handheld-RPG menu on the back. |
 | [`packages/core`](packages/core) | `@vladzaharia/bar-core`: device client, app lifecycle, settings, the stock-style clock and sprint clocks, runtime components. |
 | [`packages/pixel`](packages/pixel) | `@vladzaharia/bar-pixel`: `.anim` encoder, device fonts, timeline, effects library and catalog, motion tokens. |
 | [`packages/sim`](packages/sim) | `@vladzaharia/bar-sim`: the interactive simulator. |
@@ -14,12 +14,16 @@ that runs the real app builds.
 
 ## Setup
 
-Node 22.18+ (24 recommended, see `.nvmrc`) and pnpm.
+Needs Node 22.18+ (24 recommended, see `.nvmrc`). One script sets up any machine, and is safe to run again:
 
 ```sh
-pnpm install
+scripts/setup.sh          # pnpm and the packages; Swift for the Mac app's tests (Xcode 26 on a Mac, a download on Linux)
 pnpm typecheck && pnpm test
 ```
+
+Claude Code cloud sessions run it on start (`.claude/hooks/session-start.sh`), so a new session can typecheck, test,
+run the simulator and run the Mac app's Swift tests straight away. Where things stand and what's next:
+[`HANDOFF.md`](HANDOFF.md).
 
 ## Run an app
 

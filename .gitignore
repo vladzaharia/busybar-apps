@@ -16,3 +16,6 @@ design-out/
 .DS_Store
 .build/
 .swiftpm/
+
+# Pkmn Life Remote screenshots (mac/PkmnLifeRemote/Tools/screenshots.sh)
+screens/

@@ -33,12 +33,28 @@ jobs:
             apps/*/dist/*.tgz
             apps/*/dist/sim/
 
+  mac-kit:
+    # The Mac app's tests (PkmnLifeRemoteKit) also run on Linux, which is quicker to get than a Mac runner. They check
+    # the Mac's copy of Pkmn Life's entries and settings against apps/pkmn-life.
+    runs-on: ubuntu-latest
+    container: swift:6.2-noble
+    steps:
+      - uses: actions/checkout@v5
+      - name: Test
+        working-directory: mac/PkmnLifeRemote
+        run: swift test
+
   mac:
     # Pkmn Life Remote, the Mac app (macOS 26, Swift 6.2). The zip keeps the app's permissions and signature (an
     # artifact alone doesn't).
     runs-on: macos-26
     steps:
       - uses: actions/checkout@v5
+      - name: Use Xcode 26
+        run: |
+          xcode=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1 || true)
+          if [ -n "$xcode" ]; then sudo xcode-select -s "$xcode"; fi
+          swift --version
       - name: Test
         working-directory: mac/PkmnLifeRemote
         run: swift test

@@ -23,8 +23,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         // A menu bar app: no Dock icon (Info.plist's LSUIElement does the same in the app bundle).
         NSApp.setActivationPolicy(.accessory)
+        let options = LaunchOptions.current
+        if let name = options.appearance { NSApp.appearance = NSAppearance(named: name) }
         panel.show()
         model.checkConnection()
+        if options.pin { panel.reveal() }
+        if options.peek { panel.hover(true) }
+        if let tab = options.settingsTab { settingsWindow.show(tab: tab) }
+        if let directory = options.snapshotDirectory {
+            Task {
+                try? await Task.sleep(for: .seconds(3))
+                Snapshot.write(to: directory)
+                NSApp.terminate(nil)
+            }
+        }
     }
 
     /// Opened again from Finder or Spotlight: bring the panel out.

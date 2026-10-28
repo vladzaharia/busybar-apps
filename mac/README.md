@@ -47,10 +47,23 @@ On a Mac with macOS 26 and Xcode 26 (or its command-line tools):
 
 ```sh
 cd mac/PkmnLifeRemote
-swift test                           # the PkmnLifeRemoteKit tests
+swift test                           # the PkmnLifeRemoteKit tests (these also run on Linux)
 ./build-app.sh                       # dist/Pkmn Life Remote.app
 open "dist/Pkmn Life Remote.app"     # or drag it to /Applications
 ```
+
+To try it without a bar, run the mock bar and point the app at it (any saved preference can be overridden for one
+run this way):
+
+```sh
+Tools/mock-bar.py &                                                   # prints each request the app makes
+"dist/Pkmn Life Remote.app/Contents/MacOS/PkmnLifeRemote" -host 127.0.0.1:8787 -dockMode tucked
+```
+
+`Tools/screenshots.sh` builds the app and captures it in every state (shown, tucked, peeking, pinned, both Settings
+tabs; light and dark) into `screens/`. The **Mac visual check** workflow runs it on a macOS 26 runner (Actions → Mac
+visual check → Run workflow) and uploads the `mac-screens` artifact. The app's launch options for this
+(`--appearance`, `--pin`, `--peek`, `--settings`, `--snapshot`) are listed in `LaunchOptions.swift`.
 
 CI builds it too: download the `pkmn-life-remote` artifact and unzip it. The app is signed ad hoc, not notarised, so
 the first time macOS may ask you to open it from Finder with right-click → Open.
@@ -77,7 +90,8 @@ Pkmn Life has to be running on the bar. The remote doesn't start it on every cli
 | `Sources/PkmnLifeRemoteKit` | The part that needs no UI, and its tests: the bar's HTTP API (`BarClient`), the request format, Pkmn Life's entries (`Catalog`) and settings (`PkmnSettings`), and where the panel goes (`ScreenLayout`) |
 | `Sources/PkmnLifeRemote/Panel` | The floating panel and its placement (`PanelController`) |
 | `Sources/PkmnLifeRemote/Views` | The SwiftUI views: the panel's tiles, the tab, the two Settings tabs |
-| `Sources/PkmnLifeRemote` | The app, its state (`RemoteModel`, `BarSettingsModel`), the Settings window, the keychain |
+| `Sources/PkmnLifeRemote` | The app, its state (`RemoteModel`, `BarSettingsModel`), the Settings window, the keychain, launch options |
+| `Tools` | `mock-bar.py` (the bar's HTTP API, in memory) and `screenshots.sh` |
 
 `Catalog` and `PkmnSettings` mirror `apps/pkmn-life/src/presets.ts` and `appmeta/settings.json`. When you add an
 entry or a setting there, add it here too; `swift test` fails until the two match.
