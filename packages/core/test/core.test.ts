@@ -146,3 +146,34 @@ test("LiveFace clears only ids it drew before and no longer draws", async () => 
   face.draw([el("a"), el("c")]);
   assert.deepEqual(calls, ["draw a,b", "clear b", "draw a,c", "draw a,c"]);
 });
+
+test("sprint changes: moved starts, lengths, days off", () => {
+  const base = { number: 22, start: "2026-10-22", weeks: 2 };
+  const at = (date: string, changes: string) => core.sprintAt(new Date(`${date}T12:00:00`), { ...base, changes });
+  const fmt = (s: ReturnType<typeof core.sprintAt>) => `${s.number} ${s.start.toDateString()} - ${s.end.toDateString()} ${s.done}+${s.left}/${s.days}`;
+
+  // No changes: regular cadence, far ahead too.
+  assert.equal(fmt(at("2027-03-04", "")), "31 Thu Feb 25 2027 - Wed Mar 10 2027 5+5/10");
+
+  // Sprint 26 moved a week later and made 3 weeks long; sprint 25 runs until it, later sprints follow on.
+  const moved = "26=2026-12-24/3w";
+  assert.equal(fmt(at("2026-12-21", moved)), "25 Thu Dec 03 2026 - Wed Dec 23 2026 12+3/15");
+  assert.equal(fmt(at("2026-12-28", moved)), "26 Thu Dec 24 2026 - Wed Jan 13 2027 2+13/15");
+  assert.equal(at("2027-01-14", moved).number, 27);
+
+  // Only a length: sprint 23 is 1 week, 24 starts right after.
+  assert.equal(fmt(at("2026-11-12", "23/1w")), "24 Thu Nov 12 2026 - Wed Nov 25 2026 0+10/10");
+
+  // Days off are not work days.
+  const off = at("2026-10-28", "off=2026-10-30, off=2026-11-02..2026-11-03");
+  assert.deepEqual([off.days, off.done, off.left], [7, 4, 3]);
+  assert.equal(at("2026-10-30", "off=2026-10-30").workday, false);
+
+  // A renumbering: sprint 28 starts after 26 (27 skipped).
+  assert.equal(at("2027-01-14", "28=2027-01-14").number, 28);
+
+  // Bad entries are reported and ignored.
+  const parsed = core.parseSprintChanges("26=2026-13-01, banana, 27/0w, off=2026-12-25");
+  assert.deepEqual(parsed.bad, ["26=2026-13-01", "banana", "27/0w"]);
+  assert.equal(parsed.off.length, 1);
+});

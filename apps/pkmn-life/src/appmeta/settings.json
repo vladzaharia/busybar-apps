@@ -1,6 +1,6 @@
 {
   "format_version": 1,
-  "version": 2,
+  "version": 3,
   "fields": {
     "nag_style": {
       "label": "Ticket style",
@@ -8,10 +8,22 @@
       "type": "enum",
       "default": "alternate",
       "options": [
-        { "value": "alternate", "label": "Alternate" },
-        { "value": "random", "label": "Random" },
-        { "value": "encounter", "label": "Wild encounter" },
-        { "value": "ticker", "label": "Burst ticker" }
+        {
+          "value": "alternate",
+          "label": "Alternate"
+        },
+        {
+          "value": "random",
+          "label": "Random"
+        },
+        {
+          "value": "encounter",
+          "label": "Wild encounter"
+        },
+        {
+          "value": "ticker",
+          "label": "Burst ticker"
+        }
       ]
     },
     "redirect_style": {
@@ -20,13 +32,34 @@
       "type": "enum",
       "default": "random",
       "options": [
-        { "value": "random", "label": "Random" },
-        { "value": "runway", "label": "Runway" },
-        { "value": "nudge", "label": "Nudge" },
-        { "value": "sign", "label": "Wayfinding sign" },
-        { "value": "walker", "label": "Walker" },
-        { "value": "trainer", "label": "Trainer" },
-        { "value": "scroller", "label": "Scroller" }
+        {
+          "value": "random",
+          "label": "Random"
+        },
+        {
+          "value": "runway",
+          "label": "Runway"
+        },
+        {
+          "value": "nudge",
+          "label": "Nudge"
+        },
+        {
+          "value": "sign",
+          "label": "Wayfinding sign"
+        },
+        {
+          "value": "walker",
+          "label": "Walker"
+        },
+        {
+          "value": "trainer",
+          "label": "Trainer"
+        },
+        {
+          "value": "scroller",
+          "label": "Scroller"
+        }
       ]
     },
     "clock_style": {
@@ -35,10 +68,22 @@
       "type": "enum",
       "default": "majora",
       "options": [
-        { "value": "plain", "label": "Plain clock" },
-        { "value": "bar", "label": "Sprint bar" },
-        { "value": "dots", "label": "Sprint dots" },
-        { "value": "majora", "label": "Majora's Mask" }
+        {
+          "value": "plain",
+          "label": "Plain clock"
+        },
+        {
+          "value": "bar",
+          "label": "Sprint bar"
+        },
+        {
+          "value": "dots",
+          "label": "Sprint dots"
+        },
+        {
+          "value": "majora",
+          "label": "Majora's Mask"
+        }
       ]
     },
     "title_cards": {
@@ -75,13 +120,26 @@
       "min": 1,
       "max": 4
     },
+    "sprint_changes": {
+      "label": "Sprint changes",
+      "description": "Exceptions, separated by commas. 26=2026-12-17 moves sprint 26's start (the one before runs until then); add /3w to make it 3 weeks; 26/3w only changes its length; off=2026-12-24..2027-01-01 marks days off. Later sprints follow on by themselves.",
+      "type": "string",
+      "default": "",
+      "max_length": 500
+    },
     "time_format": {
       "label": "Time format",
       "type": "enum",
       "default": "24h",
       "options": [
-        { "value": "24h", "label": "24-hour" },
-        { "value": "12h", "label": "12-hour" }
+        {
+          "value": "24h",
+          "label": "24-hour"
+        },
+        {
+          "value": "12h",
+          "label": "12-hour"
+        }
       ]
     },
     "show_date": {

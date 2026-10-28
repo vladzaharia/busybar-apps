@@ -1,6 +1,12 @@
 // Sprints: which one is running and how many work days it has left, and clock faces that show it.
 //
-// A sprint is `weeks` long and starts on the same weekday as the reference sprint; work days are Monday to Friday.
+// Sprints follow a regular cadence (`weeks` long, from a known sprint's number and first day) and advance on their
+// own. Exceptions go in `changes`, a short list such as "26=2026-12-17/3w, 30/1w, off=2026-12-24..2027-01-01":
+//   N=YYYY-MM-DD      sprint N starts that day (the sprint before it ends the day before, however long that makes it)
+//   N=YYYY-MM-DD/Kw   ...and lasts K weeks
+//   N/Kw              sprint N lasts K weeks, starting where it would anyway
+//   off=YYYY-MM-DD    a day off; off=YYYY-MM-DD..YYYY-MM-DD for a range (both ends included)
+// Sprints after a change follow on from it at the regular length. Work days are Monday to Friday, less days off.
 // "Days left" counts today while it is a work day, so the last day of a sprint says 1.
 
 import { clockFace, dateLine, type ClockOptions } from "./clock.ts";
@@ -14,6 +20,8 @@ export interface SprintConfig {
   start: string;
   /** Weeks per sprint. */
   weeks: number;
+  /** Exceptions to the cadence and days off (see above). */
+  changes?: string;
 }
 
 export interface Sprint {
@@ -33,7 +41,6 @@ export interface Sprint {
 
 const DAY = 864e5;
 const midnight = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
-const isWorkday = (d: Date) => d.getDay() >= 1 && d.getDay() <= 5;
 
 /** "2026-10-22" as local midnight, or null if it isn't a real date. */
 export function parseDate(s: string): Date | null {
@@ -47,22 +54,107 @@ export function parseDate(s: string): Date | null {
 const daysBetween = (a: Date, b: Date) => Math.round((Date.UTC(b.getFullYear(), b.getMonth(), b.getDate()) - Date.UTC(a.getFullYear(), a.getMonth(), a.getDate())) / DAY);
 const addDays = (d: Date, n: number) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
 
-/** The sprint running on `now`'s date. Before the reference sprint, counts back. */
+export interface SprintChanges {
+  /** Sprints with a set start (and maybe length). */
+  starts: { number: number; start: Date; weeks?: number }[];
+  /** Sprints with only a set length. */
+  lengths: Map<number, number>;
+  /** Days off, as inclusive ranges. */
+  off: [Date, Date][];
+  /** Entries that could not be read; they are ignored. */
+  bad: string[];
+}
+
+/** Reads a `changes` list (see the top of this file). Entries are separated by commas, semicolons or new lines. */
+export function parseSprintChanges(text: string): SprintChanges {
+  const out: SprintChanges = { starts: [], lengths: new Map(), off: [], bad: [] };
+  for (const raw of text.split(/[,;\n]+/)) {
+    const item = raw.trim().replace(/\s+/g, "");
+    if (!item) continue;
+    let m = /^off=(\d{4}-\d{2}-\d{2})(?:\.\.(\d{4}-\d{2}-\d{2}))?$/i.exec(item);
+    if (m) {
+      const a = parseDate(m[1]!);
+      const b = m[2] ? parseDate(m[2]) : a;
+      if (a && b && a.getTime() <= b.getTime()) out.off.push([a, b]);
+      else out.bad.push(raw.trim());
+      continue;
+    }
+    m = /^(\d+)=(\d{4}-\d{2}-\d{2})(?:\/(\d+)w?)?$/i.exec(item);
+    if (m) {
+      const start = parseDate(m[2]!);
+      const weeks = m[3] ? Number(m[3]) : undefined;
+      if (start && (weeks === undefined || weeks >= 1)) out.starts.push({ number: Number(m[1]), start, weeks });
+      else out.bad.push(raw.trim());
+      continue;
+    }
+    m = /^(\d+)\/(\d+)w?$/i.exec(item);
+    if (m && Number(m[2]) >= 1) {
+      out.lengths.set(Number(m[1]), Number(m[2]));
+      continue;
+    }
+    out.bad.push(raw.trim());
+  }
+  return out;
+}
+
+/** The sprint running on `now`'s date, following the cadence and its changes. Before the first known sprint, counts back. */
 export function sprintAt(now: Date, cfg: SprintConfig): Sprint {
-  const base = parseDate(cfg.start) ?? midnight(now);
-  const length = Math.max(1, Math.round(cfg.weeks)) * 7;
-  const index = Math.floor(daysBetween(base, now) / length);
-  const start = addDays(base, index * length);
-  const today = midnight(now).getTime();
+  const today = midnight(now);
+  const defaultWeeks = Math.max(1, Math.round(cfg.weeks));
+  const changes = parseSprintChanges(cfg.changes ?? "");
+  const weeksOf = (n: number, set?: number) => set ?? changes.lengths.get(n) ?? defaultWeeks;
+  // Known starts, by date: the cadence's own sprint and every moved one.
+  const starts = [{ number: cfg.number, start: parseDate(cfg.start) ?? today, weeks: undefined as number | undefined }, ...changes.starts]
+    .sort((a, b) => a.start.getTime() - b.start.getTime());
+  const first = starts[0]!;
+
+  let number: number;
+  let start: Date;
+  let end: Date;
+  if (today.getTime() < first.start.getTime()) {
+    // Before anything known: count back at the regular length.
+    const length = defaultWeeks * 7;
+    const index = Math.floor(daysBetween(first.start, today) / length);
+    number = first.number + index;
+    start = addDays(first.start, index * length);
+    end = addDays(start, length - 1);
+  } else {
+    // Walk forward from the first known start: each sprint runs its length, or until the next known start.
+    let i = 0;
+    number = first.number;
+    start = first.start;
+    let weeks = weeksOf(number, first.weeks);
+    for (let guard = 0; ; guard++) {
+      const next = starts[i + 1];
+      let stop = addDays(start, weeks * 7 - 1);
+      // A known start cuts this sprint short; and if the next sprint in line is the one with a known start, this
+      // one runs until it begins.
+      if (next && (next.start.getTime() <= stop.getTime() || number + 1 >= next.number)) stop = addDays(next.start, -1);
+      if (today.getTime() <= stop.getTime() || guard > 5000) {
+        end = stop;
+        break;
+      }
+      if (next && next.start.getTime() === addDays(stop, 1).getTime()) {
+        i++;
+        [number, start, weeks] = [next.number, next.start, weeksOf(next.number, next.weeks)];
+      } else {
+        number++;
+        start = addDays(stop, 1);
+        weeks = weeksOf(number);
+      }
+    }
+  }
+
+  const isOff = (d: Date) => changes.off.some(([a, b]) => d.getTime() >= a.getTime() && d.getTime() <= b.getTime());
+  const isWorkday = (d: Date) => d.getDay() >= 1 && d.getDay() <= 5 && !isOff(d);
   let days = 0;
   let done = 0;
-  for (let i = 0; i < length; i++) {
-    const d = addDays(start, i);
+  for (let d = start; d.getTime() <= end.getTime(); d = addDays(d, 1)) {
     if (!isWorkday(d)) continue;
     days++;
-    if (d.getTime() < today) done++;
+    if (d.getTime() < today.getTime()) done++;
   }
-  return { number: cfg.number + index, start, end: addDays(start, length - 1), days, done, left: days - done, workday: isWorkday(now) };
+  return { number, start, end, days, done, left: days - done, workday: isWorkday(today) };
 }
 
 /** "6 days left", "1 day left". */
@@ -119,7 +211,7 @@ export function sprintClockFace(now: Date, sprint: Sprint, o: SprintClockOptions
     const lines = [dateLine(now), `Sprint ${sprint.number}`];
     const which = Math.floor(now.getTime() / 4000) % 2;
     const out = clockFace(now, { ...o, sub: lines[which], reserve: Math.max(...lines.map((l) => textWidth(l, "small"))), dy: -1 });
-    const seg = Math.max(1, Math.floor((72 + 1) / sprint.days) - 1);
+    const seg = Math.max(1, Math.floor((72 + 1) / Math.max(1, sprint.days)) - 1);
     const x0 = Math.floor((72 - (sprint.days * (seg + 1) - 1)) / 2);
     for (let i = 0; i < sprint.days; i++) {
       const today = sprint.workday && i === sprint.done;

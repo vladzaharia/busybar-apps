@@ -49,6 +49,7 @@ const DEFAULTS = {
   sprint_number: 22,
   sprint_start: "2026-10-22",
   sprint_weeks: 2,
+  sprint_changes: "",
   time_format: "24h" as "24h" | "12h",
   show_date: true,
   blink_colons: true,
@@ -82,7 +83,12 @@ function main(): void {
   let carding: ReturnType<typeof setTimeout> | null = null;
   let cardShownOn = "";
 
-  const sprintConfig = () => ({ number: settings.sprint_number, start: settings.sprint_start, weeks: settings.sprint_weeks });
+  const sprintConfig = () => ({
+    number: settings.sprint_number,
+    start: settings.sprint_start,
+    weeks: settings.sprint_weeks,
+    changes: settings.sprint_changes,
+  });
   const dayKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 
   // --- Styles ---------------------------------------------------------------------------------------------------
@@ -233,6 +239,7 @@ function main(): void {
       sprint_number: "integer",
       sprint_start: "string",
       sprint_weeks: "integer",
+      sprint_changes: "string",
       time_format: ["24h", "12h"],
       show_date: "boolean",
       blink_colons: "boolean",
