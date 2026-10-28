@@ -17,10 +17,11 @@ About ten seconds later the clock comes back.
 | --- | --- | --- |
 | Wheel | Choose the message | |
 | START | Play it on the front | |
-| OK (press the wheel) | Cycle the style: alternate → encounter → ticker | |
+| OK (press the wheel) | Cycle the style: alternate → random → encounter → ticker | |
 | BACK | Leave the app | Stop the nag |
 
-The style the next START will play is shown in the back screen's header. In "alternate" it switches after each nag.
+The style the next START will play is shown in the back screen's header. In "alternate" it switches after each nag;
+in "random" each START picks one, every style coming up once per round in a fresh order.
 
 ## Settings
 

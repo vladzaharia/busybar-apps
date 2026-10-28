@@ -6,3 +6,4 @@ export * from "./settings.ts";
 export * from "./timers.ts";
 export * from "./types.ts";
 export * from "./components.ts";
+export * from "./random.ts";

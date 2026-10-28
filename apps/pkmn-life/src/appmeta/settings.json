@@ -9,6 +9,7 @@
       "default": "alternate",
       "options": [
         { "value": "alternate", "label": "Alternate" },
+        { "value": "random", "label": "Random" },
         { "value": "encounter", "label": "Wild encounter" },
         { "value": "ticker", "label": "Burst ticker" }
       ]

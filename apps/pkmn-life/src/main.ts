@@ -1,15 +1,16 @@
 // Pkmn Life: the stock-style clock on the front, a move menu of nags on the back. Turn the wheel to pick a nag,
-// press START to play it on the front, OK to switch the nag's style, BACK to stop a nag or leave the app.
+// press START to play it on the front, OK to switch the nag's style (alternate, random, or one fixed style), BACK to
+// stop a nag or leave the app.
 //
 // All motion is pre-rendered (see assets/): this file only names animation sections and draws the clock, so the
 // bar's web server sees a request per second for the clock and a few per button press.
 
-import { AnimPlayer, clockFace, createApp, label, readSettings, type InputEvent } from "@vladzaharia/bar-core";
+import { AnimPlayer, clockFace, createApp, label, readSettings, shuffleBag, type InputEvent } from "@vladzaharia/bar-core";
 import manifest from "./appmeta/manifest.json";
 import { BACK, CALENDAR, NAGS } from "./generated/clips.ts";
 import { PRESETS, type NagStyle } from "./presets.ts";
 
-type Mode = "alternate" | NagStyle;
+type Mode = "alternate" | "random" | NagStyle;
 
 const DEFAULTS = {
   nag_style: "alternate" as Mode,
@@ -18,7 +19,8 @@ const DEFAULTS = {
   blink_colons: true,
 };
 
-const MODES: Mode[] = ["alternate", "encounter", "ticker"];
+const MODES: Mode[] = ["alternate", "random", "encounter", "ticker"];
+const STYLES: NagStyle[] = ["encounter", "ticker"];
 const STYLE_NAMES: Record<NagStyle, string> = { encounter: "ENCOUNTER", ticker: "TICKER" };
 
 /** Entry point, called at the end of the file: the device runs this script top to bottom and starts nothing itself. */
@@ -31,10 +33,13 @@ function main(): void {
   let settings = DEFAULTS;
   let mode: Mode = DEFAULTS.nag_style;
   let nextStyle: NagStyle = "encounter";
+  // Random: every style once per round, in a fresh order each round.
+  const randomStyle = shuffleBag(STYLES);
   let sel = 0;
   let showing: ReturnType<typeof setTimeout> | null = null;
 
-  const style = (): NagStyle => (mode === "alternate" ? nextStyle : mode);
+  /** The style the next START plays; random picks only when it starts, so the header says RANDOM until then. */
+  const style = (): NagStyle => (mode === "alternate" ? nextStyle : mode === "random" ? randomStyle() : mode);
 
   // --- Front: the clock ---------------------------------------------------------------------------------------
 
@@ -52,7 +57,7 @@ function main(): void {
 
   /** The style the next START will play, in the header between the title and the counter. */
   function drawStyleLabel(): void {
-    const text = mode === "alternate" ? `ALT: ${STYLE_NAMES[style()]}` : STYLE_NAMES[style()];
+    const text = mode === "random" ? "RANDOM" : mode === "alternate" ? `ALT: ${STYLE_NAMES[nextStyle]}` : STYLE_NAMES[mode];
     void device.draw([{ ...label({ id: "style", text, font: "small", display: "back", color: "#8C8C8CFF", box: { x: 56, y: 0, width: 72, height: 11 } }), z_index: 2 }]);
   }
 

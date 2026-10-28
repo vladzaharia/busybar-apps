@@ -79,3 +79,16 @@ test("progress bar and toast build valid elements", () => {
   const t = core.toast({ id: "s", text: "STYLE: TICKER", seconds: 2 });
   assert.ok(t.every((e) => e.timeout === 2 && e.display === "back"));
 });
+
+test("shuffleBag gives every item once per round, in varying orders", () => {
+  let seed = 7;
+  const random = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x80000000);
+  const next = core.shuffleBag(["a", "b", "c"], random);
+  const orders = new Set<string>();
+  for (let round = 0; round < 20; round++) {
+    const got = [next(), next(), next()];
+    assert.deepEqual([...got].sort(), ["a", "b", "c"]);
+    orders.add(got.join(""));
+  }
+  assert.ok(orders.size > 1, "rounds should not all come out in the same order");
+});
