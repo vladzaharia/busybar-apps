@@ -62,7 +62,7 @@ not code to keep as-is.
 | id | label | prototype |
 | --- | --- | --- |
 | `motorway` | Motorway sign | `redirect-motorway-go`: the tab says **GO!** (owner) |
-| `exit` | Exit sign | `redirect-exit-table`, changed (owner): the person sits at **their own table** on their side (a seated figure at a desk with a monitor), and the running figure is a **visitor** who dashes over to them and stops beside the table, rather than sitting down at a desk of their own |
+| `exit` | Exit sign | `redirect-exit-table`, changed (owner): the person sits at **their own table** on their side (a seated figure at a desk with a monitor), and the pictogram figure is a **visitor** who **walks** a few steps over to them (a short walk, not running on the spot and dashing) and stops beside the table, rather than sitting down at a desk of their own |
 | `parcel` | Parcel van | `redirect-parcel` |
 | `plane` | Paper plane | `redirect-plane` |
 | `hand` | Pointing hand | `redirect-hand` |
