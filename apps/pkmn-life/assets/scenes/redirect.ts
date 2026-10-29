@@ -32,7 +32,6 @@ import {
   lerp,
   mix,
   outBack,
-  outCubic,
   scrollBand,
   seq,
   span,
