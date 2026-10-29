@@ -1,16 +1,16 @@
 {
   "format_version": 1,
-  "version": 6,
+  "version": 7,
   "fields": {
     "nag_style": {
       "label": "Ticket style",
-      "description": "How FILE A TICKET plays on the front. OK on the back changes it while the app runs.",
+      "description": "How FILE A TICKET plays on the front: one style, each in turn, or random. OK on the back changes it while the app runs.",
       "type": "enum",
       "default": "alternate",
       "options": [
         {
           "value": "alternate",
-          "label": "Alternate"
+          "label": "Each in turn"
         },
         {
           "value": "random",
@@ -23,6 +23,42 @@
         {
           "value": "ticker",
           "label": "Burst ticker"
+        },
+        {
+          "value": "board",
+          "label": "Departure board"
+        },
+        {
+          "value": "progress",
+          "label": "Stuck progress bar"
+        },
+        {
+          "value": "notfound",
+          "label": "404"
+        },
+        {
+          "value": "squash",
+          "label": "Bug squash"
+        },
+        {
+          "value": "buddy",
+          "label": "Ticket buddy"
+        },
+        {
+          "value": "slots",
+          "label": "Slot machine"
+        },
+        {
+          "value": "eightball",
+          "label": "Magic 8-ball"
+        },
+        {
+          "value": "invaders",
+          "label": "Ticket invaders"
+        },
+        {
+          "value": "forecast",
+          "label": "Forecast"
         }
       ]
     },
@@ -59,6 +95,42 @@
         {
           "value": "scroller",
           "label": "Scroller"
+        },
+        {
+          "value": "motorway",
+          "label": "Motorway sign"
+        },
+        {
+          "value": "exit",
+          "label": "Exit sign"
+        },
+        {
+          "value": "parcel",
+          "label": "Parcel van"
+        },
+        {
+          "value": "plane",
+          "label": "Paper plane"
+        },
+        {
+          "value": "hand",
+          "label": "Pointing hand"
+        },
+        {
+          "value": "train",
+          "label": "Little train"
+        },
+        {
+          "value": "dog",
+          "label": "Growlithe"
+        },
+        {
+          "value": "shout",
+          "label": "Shout"
+        },
+        {
+          "value": "map",
+          "label": "Treasure map"
         }
       ]
     },

@@ -40,10 +40,16 @@ public enum PkmnSettings {
     }
 
     public static let fields: [SettingField] = [
-        SettingField("nag_style", "Ticket style", options([("alternate", "Alternate"), ("random", "Random"), ("encounter", "Wild encounter"), ("ticker", "Burst ticker")]),
-                     .string("alternate"), group: "Entries", help: "How FILE A TICKET plays when started on the bar. OK on the back changes it until the next change here."),
+        SettingField("nag_style", "Ticket style",
+                     options([("alternate", "Each in turn"), ("random", "Random"), ("encounter", "Wild encounter"), ("ticker", "Burst ticker"), ("board", "Departure board"),
+                              ("progress", "Stuck progress bar"), ("notfound", "404"), ("squash", "Bug squash"), ("buddy", "Ticket buddy"), ("slots", "Slot machine"),
+                              ("eightball", "Magic 8-ball"), ("invaders", "Ticket invaders"), ("forecast", "Forecast")]),
+                     .string("alternate"), group: "Entries",
+                     help: "How FILE A TICKET plays when started on the bar: one style, each in turn, or random. OK on the back changes it until the next change here."),
         SettingField("redirect_style", "Redirect style",
-                     options([("random", "Random"), ("runway", "Runway"), ("nudge", "Nudge"), ("sign", "Wayfinding sign"), ("walker", "Walker"), ("trainer", "Trainer"), ("scroller", "Scroller")]),
+                     options([("random", "Random"), ("runway", "Runway"), ("nudge", "Nudge"), ("sign", "Wayfinding sign"), ("walker", "Walker"), ("trainer", "Trainer"),
+                              ("scroller", "Scroller"), ("motorway", "Motorway sign"), ("exit", "Exit sign"), ("parcel", "Parcel van"), ("plane", "Paper plane"),
+                              ("hand", "Pointing hand"), ("train", "Little train"), ("dog", "Growlithe"), ("shout", "Shout"), ("map", "Treasure map")]),
                      .string("random"), group: "Entries", help: "How the redirects play when started on the bar."),
         SettingField("clock_animation", "Clock animation", options([("none", "None"), ("majora", "Majora's Mask: dawn"), ("majora_day", "Majora's Mask: all day")]),
                      .string("majora_day"), group: "Clock",

@@ -24,13 +24,9 @@ import {
 } from "@vladzaharia/bar-core";
 import manifest from "./appmeta/manifest.json";
 import { BACK, CALENDAR, CARDS, FRONT } from "./generated/clips.ts";
-import { ENTRIES, NAG_STYLES, REDIRECT_STYLES, SPRINTS, stylesFor, type Entry, type NagStyle, type RedirectStyle, type Style } from "./presets.ts";
+import { ENTRIES, NAG_STYLES, REDIRECT_STYLES, SPRINTS, type Entry, type NagStyle, type Style } from "./presets.ts";
+import { NAG_MODES, REDIRECT_MODES, STYLE_NAMES, nextInTurn, nextMode, requestedStyle, type NagMode, type RedirectMode } from "./styles.ts";
 
-type NagMode = "alternate" | "random" | NagStyle;
-type RedirectMode = "random" | RedirectStyle;
-
-const NAG_MODES: NagMode[] = ["alternate", "random", ...NAG_STYLES];
-const REDIRECT_MODES: RedirectMode[] = ["random", ...REDIRECT_STYLES];
 const SPRINT_DISPLAYS: SprintStyle[] = ["none", "bar", "dots", "short"];
 /**
  * What plays over the clock on work days, independent of how it shows the sprint: nothing, the Majora's Mask dawn card,
@@ -40,34 +36,6 @@ const CLOCK_ANIMATIONS = ["none", "majora", "majora_day"] as const;
 type ClockAnimation = (typeof CLOCK_ANIMATIONS)[number];
 /** The parts of a work day with a title card (assets/scenes/cards.ts names their sections). */
 type DayPart = "dawn" | "meal" | "dusk";
-const STYLE_NAMES: Record<Style, string> = {
-  encounter: "ENCOUNTER",
-  ticker: "TICKER",
-  board: "BOARD",
-  progress: "PROGRESS",
-  notfound: "404",
-  squash: "SQUASH",
-  buddy: "BUDDY",
-  slots: "SLOTS",
-  eightball: "8-BALL",
-  invaders: "INVADERS",
-  forecast: "FORECAST",
-  runway: "RUNWAY",
-  nudge: "NUDGE",
-  sign: "SIGN",
-  walker: "WALKER",
-  trainer: "TRAINER",
-  scroller: "SCROLLER",
-  motorway: "MOTORWAY",
-  exit: "EXIT",
-  parcel: "PARCEL",
-  plane: "PLANE",
-  hand: "HAND",
-  train: "TRAIN",
-  dog: "GROWLITHE",
-  shout: "SHOUT",
-  map: "MAP",
-};
 
 const DEFAULTS = {
   nag_style: "alternate" as NagMode,
@@ -136,8 +104,8 @@ function main(): void {
 
   /** OK: the next style for the selected entry's kind. */
   function cycleStyle(e: Entry): void {
-    if (e.kind === "nag") nagMode = NAG_MODES[(NAG_MODES.indexOf(nagMode) + 1) % NAG_MODES.length]!;
-    else redirectMode = REDIRECT_MODES[(REDIRECT_MODES.indexOf(redirectMode) + 1) % REDIRECT_MODES.length]!;
+    if (e.kind === "nag") nagMode = nextMode(nagMode, NAG_MODES);
+    else redirectMode = nextMode(redirectMode, REDIRECT_MODES);
   }
 
   // --- Front: the clock and the title cards ---------------------------------------------------------------------
@@ -243,7 +211,8 @@ function main(): void {
     timers.cancel(showing ?? undefined);
     showing = null;
     void front.stop();
-    if (played && ENTRIES[sel]!.kind === "nag" && nagMode === "alternate") nextNag = nextNag === "encounter" ? "ticker" : "encounter";
+    // "Each in turn": the next nag in NAG_STYLES after every play, the first again after the last.
+    if (played && ENTRIES[sel]!.kind === "nag" && nagMode === "alternate") nextNag = nextInTurn(nextNag);
     showMenu();
   }
 
@@ -267,9 +236,10 @@ function main(): void {
     const k = ENTRIES.findIndex((e) => e.id === id);
     if (k < 0) return;
     const entry = ENTRIES[k]!;
-    const styles = stylesFor(entry);
+    // "random" draws from the entry's bag; a style the entry has plays as asked; anything else ("default", a style
+    // this version doesn't know) plays as the bar's own setting says.
     const style: Style =
-      styleWord === "random" ? (entry.kind === "nag" ? randomNag() : randomRedirect()) : styles.includes(styleWord as Style) ? (styleWord as Style) : pickStyle(entry);
+      styleWord === "random" ? (entry.kind === "nag" ? randomNag() : randomRedirect()) : requestedStyle(entry, styleWord, () => pickStyle(entry));
     // Whatever is playing gives way.
     if (showing) {
       timers.cancel(showing);

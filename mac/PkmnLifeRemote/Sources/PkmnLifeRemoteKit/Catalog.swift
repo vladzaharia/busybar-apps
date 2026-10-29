@@ -93,6 +93,15 @@ public enum Catalog {
     public static let nagStyles = [
         Style(id: "encounter", name: "Wild Encounter"),
         Style(id: "ticker", name: "Burst Ticker"),
+        Style(id: "board", name: "Departure Board"),
+        Style(id: "progress", name: "Stuck Progress Bar"),
+        Style(id: "notfound", name: "404"),
+        Style(id: "squash", name: "Bug Squash"),
+        Style(id: "buddy", name: "Ticket Buddy"),
+        Style(id: "slots", name: "Slot Machine"),
+        Style(id: "eightball", name: "Magic 8-Ball"),
+        Style(id: "invaders", name: "Ticket Invaders"),
+        Style(id: "forecast", name: "Forecast"),
     ]
 
     public static let redirectStyles = [
@@ -102,6 +111,15 @@ public enum Catalog {
         Style(id: "walker", name: "Walker"),
         Style(id: "trainer", name: "Trainer"),
         Style(id: "scroller", name: "Scroller"),
+        Style(id: "motorway", name: "Motorway Sign"),
+        Style(id: "exit", name: "Exit Sign"),
+        Style(id: "parcel", name: "Parcel Van"),
+        Style(id: "plane", name: "Paper Plane"),
+        Style(id: "hand", name: "Pointing Hand"),
+        Style(id: "train", name: "Little Train"),
+        Style(id: "dog", name: "Growlithe"),
+        Style(id: "shout", name: "Shout"),
+        Style(id: "map", name: "Treasure Map"),
     ]
 
     public static let ticket = Entry(id: "ticket", title: "File a Ticket", shortTitle: "Ticket", symbol: "ticket.fill", styles: nagStyles, kind: .nag)
