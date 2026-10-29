@@ -55,10 +55,10 @@ private func screen(_ x: CGFloat, _ width: CGFloat, _ height: CGFloat, menuBar: 
     }
 
     @Test func applyKeepsTheRest() throws {
-        let doc: [String: JSONValue] = ["version": .int(5), "values": .object(["clock_style": .string("majora"), "title_cards": .bool(true)])]
+        let doc: [String: JSONValue] = ["version": .int(5), "values": .object(["sprint_display": .string("short"), "clock_animation": .string("majora")])]
         let out = try #require(RemoteRequest.apply("stop", at: Date(timeIntervalSince1970: 10), to: doc))
         #expect(out["version"] == .int(5))
-        #expect(out["values"] == .object(["clock_style": .string("majora"), "title_cards": .bool(true), "remote": .string("10000 10 stop")]))
+        #expect(out["values"] == .object(["sprint_display": .string("short"), "clock_animation": .string("majora"), "remote": .string("10000 10 stop")]))
     }
 
     @Test func applyRespectsMacRemoteOff() {
@@ -96,23 +96,40 @@ private func screen(_ x: CGFloat, _ width: CGFloat, _ height: CGFloat, menuBar: 
     }
 }
 
+@Suite struct BarConnectionTests {
+    @Test func hosts() {
+        #expect(BarConnection.simulator.host(custom: "192.168.1.42") == "127.0.0.1:2879")
+        #expect(BarConnection.usb.host(custom: "192.168.1.42") == "10.0.4.20")
+        #expect(BarConnection.ip.host(custom: " 192.168.1.42:80 ") == "192.168.1.42:80")
+    }
+
+    @Test func savedBeforeThereWasAChoice() {
+        #expect(BarConnection.saved(nil, host: nil) == .usb)
+        #expect(BarConnection.saved(nil, host: "10.0.4.20") == .usb)
+        #expect(BarConnection.saved(nil, host: "192.168.1.42") == .ip)
+        #expect(BarConnection.saved(nil, host: "127.0.0.1:2879") == .simulator)
+        #expect(BarConnection.saved("simulator", host: "192.168.1.42") == .simulator)
+        #expect(BarConnection.saved("nonsense", host: nil) == .usb)
+    }
+}
+
 @Suite struct PkmnSettingsTests {
     @Test func valuesFallBackToDefaults() {
         let doc: [String: JSONValue] = ["values": .object([
-            "clock_style": .string("dots"), "show_date": .string("yes"), "title_cards_time": .string("25:00"), "remote": .string("1 1 stop"),
+            "sprint_display": .string("dots"), "show_date": .string("yes"), "dawn_time": .string("25:00"), "remote": .string("1 1 stop"),
         ])]
         let values = PkmnSettings.values(in: doc)
-        #expect(values["clock_style"] == .string("dots"))
+        #expect(values["sprint_display"] == .string("dots"))
         #expect(values["show_date"] == .bool(true))
-        #expect(values["title_cards_time"] == .string("09:00"))
+        #expect(values["dawn_time"] == .string("09:00"))
         #expect(values["remote"] == nil)
         #expect(values.count == PkmnSettings.fields.count)
     }
 
     @Test func mergeKeepsTheRequestAndUnknownValues() {
         let doc: [String: JSONValue] = ["version": .int(5), "values": .object(["remote": .string("1 1 stop"), "future": .int(3)])]
-        let out = PkmnSettings.merge(["clock_style": .string("bar"), "remote": .string("")], into: doc)
-        #expect(out == ["version": .int(5), "values": .object(["remote": .string("1 1 stop"), "future": .int(3), "clock_style": .string("bar")])])
+        let out = PkmnSettings.merge(["sprint_display": .string("bar"), "remote": .string("")], into: doc)
+        #expect(out == ["version": .int(5), "values": .object(["remote": .string("1 1 stop"), "future": .int(3), "sprint_display": .string("bar")])])
     }
 
     @Test func times() {
@@ -130,6 +147,12 @@ private func screen(_ x: CGFloat, _ width: CGFloat, _ height: CGFloat, menuBar: 
         .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
         .deletingLastPathComponent().deletingLastPathComponent()
     private static let app = repo.appending(path: "apps/pkmn-life/src")
+
+    @Test func simulatorPortMatchesItsServer() throws {
+        let serve = try String(contentsOf: Self.repo.appending(path: "packages/sim/scripts/serve.ts"), encoding: .utf8)
+        let port = try #require(BarConnection.simulatorHost.split(separator: ":").last)
+        #expect(serve.contains("export const DEFAULT_PORT = \(port);"))
+    }
 
     @Test func settingsMatchSettingsJSON() throws {
         let data = try Data(contentsOf: Self.app.appending(path: "appmeta/settings.json"))

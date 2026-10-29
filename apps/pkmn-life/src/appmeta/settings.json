@@ -1,6 +1,6 @@
 {
   "format_version": 1,
-  "version": 5,
+  "version": 6,
   "fields": {
     "nag_style": {
       "label": "Ticket style",
@@ -62,15 +62,15 @@
         }
       ]
     },
-    "clock_style": {
-      "label": "Clock",
-      "description": "The front clock, with or without the sprint.",
+    "sprint_display": {
+      "label": "Sprint",
+      "description": "How the clock shows the sprint: not at all, a bar of work days along the bottom, a dot per work day, or the days left in short (S22 | 6 left).",
       "type": "enum",
-      "default": "majora",
+      "default": "short",
       "options": [
         {
-          "value": "plain",
-          "label": "Plain clock"
+          "value": "none",
+          "label": "Not shown"
         },
         {
           "value": "bar",
@@ -81,21 +81,45 @@
           "label": "Sprint dots"
         },
         {
-          "value": "majora",
-          "label": "Majora's Mask"
+          "value": "short",
+          "label": "Days left"
         }
       ]
     },
-    "title_cards": {
-      "label": "Title cards",
-      "description": "With the Majora's Mask clock: 'Dawn of the Nth Day' each work day, and when the app starts. Hold START to see it.",
-      "type": "boolean",
-      "default": true
+    "clock_animation": {
+      "label": "Clock animation",
+      "description": "Plays over the clock on work days, and when the app starts, whatever the sprint display. Majora's Mask: 'Dawn of the Nth Day', then '-N Days Remain-', at dawn; all day adds 'Meal of the Nth Day' and 'Dusk of the Nth Day'. Hold START to see the one for now.",
+      "type": "enum",
+      "default": "majora_day",
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "majora",
+          "label": "Majora's Mask: dawn"
+        },
+        {
+          "value": "majora_day",
+          "label": "Majora's Mask: all day"
+        }
+      ]
     },
-    "title_cards_time": {
-      "label": "Title card time",
+    "dawn_time": {
+      "label": "Dawn time",
       "type": "time",
       "default": "09:00"
+    },
+    "meal_time": {
+      "label": "Meal time",
+      "type": "time",
+      "default": "12:00"
+    },
+    "dusk_time": {
+      "label": "Dusk time",
+      "type": "time",
+      "default": "17:00"
     },
     "sprint_changes": {
       "label": "Sprint changes",
@@ -134,7 +158,7 @@
     },
     "show_date": {
       "label": "Show date",
-      "description": "The calendar, and the date line on the plain and sprint bar clocks.",
+      "description": "The calendar, and the date line under the time when the sprint isn't shown or is a sprint bar.",
       "type": "boolean",
       "default": true
     },

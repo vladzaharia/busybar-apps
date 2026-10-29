@@ -13,8 +13,17 @@ struct GeneralSettingsView: View {
     var body: some View {
         Form {
             Section {
-                TextField("Address", text: $model.host, prompt: Text("10.0.4.20"))
-                SecureField("API password", text: $token, prompt: Text("Not needed over USB"))
+                Picker("Connection", selection: $model.connection) {
+                    ForEach(BarConnection.allCases) { Text($0.title).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .onChange(of: model.connection) { model.checkConnection() }
+                if model.connection == .ip {
+                    TextField("Address", text: $model.customHost, prompt: Text("192.168.1.42"))
+                    SecureField("API password", text: $token, prompt: Text("If password protection is on"))
+                } else {
+                    LabeledContent("Address", value: model.connection.host(custom: model.customHost))
+                }
                 LabeledContent("Status") {
                     HStack(spacing: 6) {
                         StatusDot(model: model)
@@ -30,7 +39,7 @@ struct GeneralSettingsView: View {
             } header: {
                 Text("BUSY Bar")
             } footer: {
-                Text("10.0.4.20 when the bar is connected by USB; otherwise its Wi-Fi address, shown in the bar's web UI. The API password is the bar's HTTP API password (web UI: Network, HTTP API), kept in your keychain.")
+                Text(model.connection.detail)
                     .foregroundStyle(.secondary)
             }
 

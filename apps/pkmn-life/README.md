@@ -5,7 +5,7 @@ current sprint. The back is a handheld-RPG move menu: pick an entry and press ST
 
 | Entry | What the front shows | Styles |
 | --- | --- | --- |
-| FILE A TICKET | "Did you file a JIRA ticket yet???" | **Wild encounter**: the screen flashes and stripes away, a wild ISSUE slides in with its HP bar, and the message plays out in typed dialogue boxes. **Burst ticker**: the clock switches off into a burst, the Jira chevrons fly in, the message glides in letter by letter, then rolls up in full. |
+| FILE A TICKET | "Did you file a JIRA ticket yet???" | **Wild encounter**: the screen flashes and stripes away, a wild ISSUE (a bug) scuttles in with its HP bar, and the message plays out in typed dialogue boxes. Then TRAINER uses FILE JIRA TICKET: the Jira mark flies at the bug, its HP drains, it's super effective, and the bug turns into a Jira ticket. **Burst ticker**: the clock switches off into a burst, the Jira chevrons fly in, the message glides in letter by letter, then rolls up in full. |
 | A person, e.g. ALEX | Sends people to Alex, on the right | **Runway** (amber chevrons chasing their way), **Nudge** (a big arrow pointing and nudging), **Wayfinding sign** (a yellow airport sign sliding in from their side), **Walker** (a little person walks in, points, and heads off their way), **Trainer** ("TRAINER ALEX can help you!"), **Scroller** (chevrons and the name streaming their way). Mirrored for someone on the left. |
 
 "Right" and "left" are as someone facing the front display sees them.
@@ -31,7 +31,7 @@ is its name in lower case without spaces or punctuation: `alex`. Give the [Mac a
 | --- | --- | --- |
 | Wheel | Choose an entry | |
 | START | Play it on the front | |
-| Hold START | Today's Majora's Mask title card (with that clock) | |
+| Hold START | The Majora's Mask title card for now: dawn, meal or dusk (when that is the clock animation) | |
 | OK (press the wheel) | Change how the selected entry plays: a style, or random | |
 | BACK | Leave the app | Stop it |
 
@@ -41,12 +41,23 @@ START picks a style, every style coming up once per round in a fresh order.
 
 ## Clock
 
-| Clock | |
+The front clock is laid out like the stock one. Two settings change it, each on its own: how it shows the sprint, and
+what plays over it each work day.
+
+| Sprint | |
 | --- | --- |
-| Plain | The stock clock. |
+| Not shown | The stock clock. |
 | Sprint bar | A segment per work day along the bottom edge: done, today (blinking), to go. The line under the time alternates the date and "Sprint 22". |
 | Sprint dots | The date stays on the calendar; under the time, "S22" and a dot per work day. |
-| Majora's Mask | The sprint and days left in short under the time ("S22 6 left", "S22 last day"). Each work day at the set time (and when the app starts) the title cards play: "Dawn of The Fifth Day", then "-6 Days Remain-". |
+| Days left | The sprint and days left in short under the time, a thin rule between them ("S22 \| 6 left", "S22 \| last day"). |
+
+| Clock animation | |
+| --- | --- |
+| None | Nothing plays over the clock. |
+| Majora's Mask: dawn | Each work day at the dawn time the title cards play: "Dawn of The Fifth Day", then "-6 Days Remain-", counting through the sprint. |
+| Majora's Mask: all day | As dawn, and also "Meal of The Fifth Day" at the meal time and "Dusk of The Fifth Day" at the dusk time. On the last day of the sprint, "The Final Day". |
+
+When the app starts on a work day, and when you hold START, the card for the part of the day it is plays.
 
 Sprints are worked out, never typed in: the team's cadence (Sprint 22 began on Thursday 22 October 2026, two-week
 sprints) is in [`src/presets.ts`](src/presets.ts), and every later sprint follows from it. Anything irregular goes in
@@ -73,8 +84,8 @@ app reads them when it starts, and while **Mac remote** is on it also picks up c
 | --- | --- |
 | Ticket style | FILE A TICKET's starting style: alternate, random, wild encounter or burst ticker |
 | Redirect style | The redirects' starting style: random or one of the six |
-| Clock | Plain, sprint bar, sprint dots or Majora's Mask |
-| Title cards, Title card time | The Majora's Mask cards each work day, and when |
+| Sprint | How the clock shows the sprint: not shown, sprint bar, sprint dots or days left |
+| Clock animation; Dawn, Meal, Dusk time | None, or the Majora's Mask title cards on work days, at dawn or all day; and when |
 | Sprint changes | Moved or longer sprints, a new cadence, days off (above) |
 | Mac remote | Let the [Pkmn Life Remote](../../mac) Mac app play entries (the app then checks for its requests, and for changed settings, once a second) |
 | Remote request | Written by the Mac app; leave it empty |
@@ -104,7 +115,7 @@ Over Wi-Fi: `pnpm app:install --addr <bar-ip> --password <http-api-password>`.
 | `src/presets.ts` | The entries and their styles |
 | `assets/scenes/encounter.ts`, `ticker.ts` | Front: the two nag styles |
 | `assets/scenes/redirect.ts` | Front: the six redirect looks |
-| `assets/scenes/cards.ts` | Front: the Majora's Mask title cards |
+| `assets/scenes/cards.ts` | Front: the Majora's Mask title cards (dawn, meal, dusk, days remaining) |
 | `assets/scenes/menu.ts` | Back: the move menu and the "now on front" countdown |
 | `assets/build.ts` | Renders everything into `src/` (animations, images, `generated/clips.ts`) |
 

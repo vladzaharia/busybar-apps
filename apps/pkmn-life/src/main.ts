@@ -1,8 +1,8 @@
-// Pkmn Life: a clock on the front (plain, or with the sprint), a move menu on the back. Turn the wheel to pick an
-// entry (FILE A TICKET, then a redirect per person), press START to play it on the front, OK to change how it plays
-// (a fixed style, or random), hold START for today's Majora's Mask title card, BACK to stop what is playing or leave
-// the app. The Pkmn Life Remote Mac app can do the same from a desk, and change the settings while the app runs (see
-// remoteInbox below).
+// Pkmn Life: a clock on the front (with or without the sprint, and the Majora's Mask title cards each work day if
+// they are on), a move menu on the back. Turn the wheel to pick an entry (FILE A TICKET, then a redirect per person),
+// press START to play it on the front, OK to change how it plays (a fixed style, or random), hold START for today's
+// title card, BACK to stop what is playing or leave the app. The Pkmn Life Remote Mac app can do the same from a
+// desk, and change the settings while the app runs (see remoteInbox below).
 //
 // All motion is pre-rendered (see assets/): this file only names animation sections and draws the clock, so the
 // bar's web server sees a request per second for the clock and a few per button press.
@@ -10,7 +10,6 @@
 import {
   AnimPlayer,
   LiveFace,
-  clockFace,
   createApp,
   label,
   readSettings,
@@ -32,7 +31,15 @@ type RedirectMode = "random" | RedirectStyle;
 
 const NAG_MODES: NagMode[] = ["alternate", "random", ...NAG_STYLES];
 const REDIRECT_MODES: RedirectMode[] = ["random", ...REDIRECT_STYLES];
-const CLOCK_STYLES: SprintStyle[] = ["plain", "bar", "dots", "majora"];
+const SPRINT_DISPLAYS: SprintStyle[] = ["none", "bar", "dots", "short"];
+/**
+ * What plays over the clock on work days, independent of how it shows the sprint: nothing, the Majora's Mask dawn card,
+ * or its cards for each part of the day.
+ */
+const CLOCK_ANIMATIONS = ["none", "majora", "majora_day"] as const;
+type ClockAnimation = (typeof CLOCK_ANIMATIONS)[number];
+/** The parts of a work day with a title card (assets/scenes/cards.ts names their sections). */
+type DayPart = "dawn" | "meal" | "dusk";
 const STYLE_NAMES: Record<Style, string> = {
   encounter: "ENCOUNTER",
   ticker: "TICKER",
@@ -47,9 +54,11 @@ const STYLE_NAMES: Record<Style, string> = {
 const DEFAULTS = {
   nag_style: "alternate" as NagMode,
   redirect_style: "random" as RedirectMode,
-  clock_style: "majora" as SprintStyle,
-  title_cards: true,
-  title_cards_time: "09:00",
+  sprint_display: "short" as SprintStyle,
+  clock_animation: "majora_day" as ClockAnimation,
+  dawn_time: "09:00",
+  meal_time: "12:00",
+  dusk_time: "17:00",
   sprint_changes: "",
   remote_control: true,
   time_format: "24h" as "24h" | "12h",
@@ -83,7 +92,8 @@ function main(): void {
   let sel = 0;
   let showing: ReturnType<typeof setTimeout> | null = null;
   let carding: ReturnType<typeof setTimeout> | null = null;
-  let cardShownOn = "";
+  /** The day each part of the day's card last played on its own, so it plays once a day. */
+  const cardShownOn: Record<DayPart, string> = { dawn: "", meal: "", dusk: "" };
 
   // The cadence is the team's (presets.ts); only its exceptions are a setting.
   const sprintConfig = () => ({ ...SPRINTS, changes: settings.sprint_changes });
@@ -123,30 +133,47 @@ function main(): void {
       blinkColons: settings.blink_colons,
       icon: CALENDAR,
     };
-    const style = settings.clock_style;
-    const face = style === "plain" ? clockFace(now, options) : sprintClockFace(now, sprint, { ...options, style });
-    clock.draw(face);
+    clock.draw(sprintClockFace(now, sprint, { ...options, style: settings.sprint_display }));
 
-    // The morning title card, once a work day at the set time.
-    const at = minutesOf(settings.title_cards_time);
+    // Each part of the day's title card, once a work day at its time.
     const minute = now.getHours() * 60 + now.getMinutes();
-    if (cardsOn() && sprint.workday && at !== null && minute === at && cardShownOn !== dayKey(now) && !showing) playCard();
+    const due = dayParts().find((p) => p.at === minute && cardShownOn[p.part] !== dayKey(now));
+    if (due && sprint.workday && !showing) playCard(due.part);
   }
 
-  const cardsOn = () => settings.clock_style === "majora" && settings.title_cards;
+  const cardsOn = () => settings.clock_animation !== "none";
 
-  /** Today's "Dawn of the Nth Day", then "-N Days Remain-". */
-  function playCard(): void {
+  /** The parts of the day whose cards play, with their times in minutes after midnight (null if unreadable). */
+  function dayParts(): { part: DayPart; at: number | null }[] {
+    if (settings.clock_animation === "none") return [];
+    const dawn = { part: "dawn" as const, at: minutesOf(settings.dawn_time) };
+    if (settings.clock_animation === "majora") return [dawn];
+    return [dawn, { part: "meal", at: minutesOf(settings.meal_time) }, { part: "dusk", at: minutesOf(settings.dusk_time) }];
+  }
+
+  /** The part of the day it is: the latest whose time has come, or dawn before any has. */
+  function partNow(now: Date): DayPart {
+    const minute = now.getHours() * 60 + now.getMinutes();
+    let latest: { part: DayPart; at: number } | undefined;
+    for (const { part, at } of dayParts()) if (at !== null && at <= minute && (!latest || at >= latest.at)) latest = { part, at };
+    return latest?.part ?? "dawn";
+  }
+
+  /** Today's card for `part` of the day: "Dawn of the Nth Day" then "-N Days Remain-", "Meal of ..." or "Dusk of ...". */
+  function playCard(part: DayPart = partNow(new Date())): void {
     const now = new Date();
     const sprint = sprintAt(now, sprintConfig());
-    cardShownOn = dayKey(now);
-    const day = Math.min(20, sprint.done + 1);
-    const dawn = sprint.left <= 1 ? "dawn-final" : `dawn-${day}`;
-    const remain = `remain-${Math.max(1, Math.min(20, sprint.left))}`;
+    cardShownOn[part] = dayKey(now);
+    const title = sprint.left <= 1 ? `${part}-final` : `${part}-${Math.min(20, sprint.done + 1)}`;
     timers.cancel(carding ?? undefined);
-    card.play(CARDS, dawn);
-    card.then(remain);
-    carding = timers.after((sectionSeconds(CARDS, dawn) + sectionSeconds(CARDS, remain)) * 1000 + 150, stopCard);
+    card.play(CARDS, title);
+    let seconds = sectionSeconds(CARDS, title);
+    if (part === "dawn") {
+      const remain = `remain-${Math.max(1, Math.min(20, sprint.left))}`;
+      card.then(remain);
+      seconds += sectionSeconds(CARDS, remain);
+    }
+    carding = timers.after(seconds * 1000 + 150, stopCard);
   }
 
   function stopCard(): void {
@@ -273,9 +300,11 @@ function main(): void {
     settings = readSettings(values, DEFAULTS, {
       nag_style: NAG_MODES,
       redirect_style: REDIRECT_MODES,
-      clock_style: CLOCK_STYLES,
-      title_cards: "boolean",
-      title_cards_time: "string",
+      sprint_display: SPRINT_DISPLAYS,
+      clock_animation: CLOCK_ANIMATIONS,
+      dawn_time: "string",
+      meal_time: "string",
+      dusk_time: "string",
       sprint_changes: "string",
       remote_control: "boolean",
       time_format: ["24h", "12h"],

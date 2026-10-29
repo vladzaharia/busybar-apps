@@ -11,7 +11,7 @@
 // "Days left" counts today while it is a work day, so the last day of a sprint says 1.
 
 import { clockFace, dateLine, type ClockOptions } from "./clock.ts";
-import { textWidth } from "./metrics.ts";
+import { METRICS, textWidth } from "./metrics.ts";
 import type { DisplayElement, RectangleElement, TextElement } from "./types.ts";
 
 export interface SprintConfig {
@@ -171,7 +171,8 @@ export const sprintShortText = (s: Sprint) => (s.left <= 1 ? `S${s.number} last 
 
 // --- Clock faces -------------------------------------------------------------------------------------------------
 
-export type SprintStyle = "plain" | "bar" | "dots" | "majora";
+/** How a clock face shows the sprint: not at all, a bar of work days, a row of dots, or in short. */
+export type SprintStyle = "none" | "bar" | "dots" | "short";
 
 export interface SprintClockOptions extends ClockOptions {
   style: SprintStyle;
@@ -184,6 +185,9 @@ const DONE_DOT = "#FFFFFF33";
 const TODAY_DIM = "#FFFFFF55";
 /** The small font's capitals start this far below an element's top, as clockFace places the line under the time. */
 const CAP_TOP = 2;
+const SMALL_CAP_H = METRICS.small.ascent - CAP_TOP;
+/** The rule between the sprint and the days left on the short face: 1 x 3, centred on the capitals, dimmer than them. */
+const RULE = { color: "#FFFFFF40", height: 3, gap: 3 };
 
 const rect = (id: string, x: number, y: number, width: number, height: number, color: string): RectangleElement => ({
   type: "rectangle",
@@ -202,11 +206,11 @@ const rect = (id: string, x: number, y: number, width: number, height: number, c
 /**
  * The clock with the sprint, at `now`. Redraw it once a second, as the plain clock: the line under the time changes
  * every 4 s in "bar", and today's segment or dot blinks.
- *   plain  — the stock clock.
- *   bar    — a segment per work day along the bottom edge (done, today blinking, to go); the line under the time
- *            alternates the date and "Sprint N".
- *   dots   — the date stays on the calendar; under the time, "SN" and a dot per work day.
- *   majora — the sprint and days left in short under the time ("S22 6 left"); the app adds the title cards.
+ *   none  — the stock clock.
+ *   bar   — a segment per work day along the bottom edge (done, today blinking, to go); the line under the time
+ *           alternates the date and "Sprint N".
+ *   dots  — the date stays on the calendar; under the time, "SN" and a dot per work day.
+ *   short — the sprint and days left in short under the time, a thin rule between them ("S22 | 6 left").
  */
 export function sprintClockFace(now: Date, sprint: Sprint, o: SprintClockOptions): DisplayElement[] {
   const p = o.prefix ?? "clock.";
@@ -238,6 +242,19 @@ export function sprintClockFace(now: Date, sprint: Sprint, o: SprintClockOptions
     }
     return out;
   }
-  if (o.style === "majora") return clockFace(now, { ...o, sub: sprintShortText(sprint) });
+  if (o.style === "short") {
+    // The rule is drawn, not typed (the fonts have no thin bar): "S22" is the line under the time, then the rule, then
+    // the days left as a second text beside it.
+    const label = `S${sprint.number}`;
+    const rest = sprint.left <= 1 ? "last day" : `${sprint.left} left`;
+    const toRule = textWidth(label, "small") + RULE.gap;
+    const out = clockFace(now, { ...o, sub: label, reserve: toRule + 1 + RULE.gap + textWidth(rest, "small") });
+    const sub = out.find((e) => e.id === `${p}sub`) as TextElement;
+    const x = (sub.x ?? 0) + toRule;
+    const y = (sub.y ?? 0) + CAP_TOP + (SMALL_CAP_H - RULE.height) / 2;
+    out.push(rect(`${p}rule`, x, y, 1, RULE.height, RULE.color));
+    out.push({ ...sub, id: `${p}left`, text: rest, x: x + 1 + RULE.gap });
+    return out;
+  }
   return clockFace(now, o);
 }

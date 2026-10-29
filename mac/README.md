@@ -31,8 +31,9 @@ amber, Title Card in the bar's orange.
 While the pointer is on the panel, a second card comes out under the buttons (and goes away a moment after the
 pointer leaves, not while a menu is open or a request is on its way):
 
-- **Title Card**: today's Majora's Mask "Dawn of the Nth Day".
-- **Stop**: stops whatever is playing.
+- The orange calendar (**Title Card**): the Majora's Mask title card for now ("Dawn of", "Meal of" or "Dusk of the Nth
+  Day").
+- **Stop**: stops whatever is playing, the card's one big button.
 - The gear: Settings. Its dot is the connection: green while the bar answers, orange for the simulator, red when the
   last request failed or the bar needs something (Mac remote off). Point at the gear for the status in full.
 - **…**: start Pkmn Life on the bar, check the connection, the panel's placement, Quit.
@@ -41,13 +42,15 @@ The menu bar icon has all of the same, plus **Show Panel**.
 
 ## Settings
 
-- **General**: the bar's address (`10.0.4.20` over USB, otherwise its Wi-Fi address from the bar's web UI), its HTTP
-  API password if password protection is on (web UI: Network, HTTP API; not needed over USB; kept in your keychain),
-  who the redirects send to, and where the panel stays. **Redirects** takes the same list as Pkmn Life's
+- **General**: where Pkmn Life is. **Simulator** is the simulator on this Mac at `127.0.0.1:2879` (run
+  `pnpm sim:serve` in `apps/pkmn-life` and keep the page it prints open), **USB** the bar on USB at `10.0.4.20`, and
+  **IP Address** a bar on the network by its Wi-Fi address (from the bar's web UI), with its HTTP API password if
+  password protection is on (web UI: Network, HTTP API; kept in your keychain). Also who the redirects send to, and
+  where the panel stays. **Redirects** takes the same list as Pkmn Life's
   `redirects.json` ([apps/pkmn-life](../apps/pkmn-life#who-the-redirects-send-to)): `< Sam, Alex >`, where `< Sam`
   sits to the left of the bar and `Alex >` to the right. The names stay in this Mac's preferences.
 - **Pkmn Life**: the app's own settings on the bar, the same as on the bar and in its web UI: the ticket and redirect
-  styles, the clock, the title cards, sprint changes, Mac remote. Changes go to the bar as you make them, and Pkmn
+  styles, the clock and its animation, the sprint display, sprint changes, Mac remote. Changes go to the bar as you make them, and Pkmn
   Life picks them up within a second while **Mac remote** is on (otherwise when it next starts).
 
 Pkmn Life must be installed on the bar, with **Mac remote** on (the default). macOS asks once for permission to reach
@@ -70,7 +73,7 @@ HTTP API, so a click on the panel plays on the simulated bar and Settings edits 
 
 ```sh
 cd apps/pkmn-life && pnpm sim:serve                                   # then open http://127.0.0.1:2879/
-"dist/Pkmn Life Remote.app/Contents/MacOS/PkmnLifeRemote" -host 127.0.0.1:2879   # or type it in Settings
+open "dist/Pkmn Life Remote.app"                                      # Settings, General, Connection: Simulator
 ```
 
 The status then reads "Connected to the simulator", with an orange dot. For checks that need no browser, the mock bar

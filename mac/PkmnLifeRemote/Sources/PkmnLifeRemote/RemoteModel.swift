@@ -15,11 +15,21 @@ final class RemoteModel {
     /// The button whose request is on its way, if any.
     private(set) var sending: String?
 
-    /// Saved only when it changes, so `-host` on the command line (Tools/screenshots.sh) stays a one-run override even
-    /// when a text field writes back the same value.
-    var host: String {
-        didSet { if host != oldValue { UserDefaults.standard.set(host, forKey: "host") } }
+    /// Where Pkmn Life is: the simulator on this Mac, the bar on USB, or a bar at an address.
+    var connection: BarConnection {
+        didSet { if connection != oldValue { UserDefaults.standard.set(connection.rawValue, forKey: "connection") } }
     }
+
+    /// The address typed in for an IP connection. Saved only when it changes, so `-host` on the command line stays a
+    /// one-run override even when a text field writes back the same value.
+    var customHost: String {
+        didSet { if customHost != oldValue { UserDefaults.standard.set(customHost, forKey: "host") } }
+    }
+
+    /// Where requests go. `-host` on the command line (Tools/screenshots.sh, Tools/mock-bar.py) sets it for one run,
+    /// whatever the connection.
+    var host: String { hostOverride ?? connection.host(custom: customHost) }
+    private let hostOverride = UserDefaults.standard.volatileDomain(forName: UserDefaults.argumentDomain)["host"] as? String
 
     /// Who Pkmn Life's redirects send people to, the same list as its redirects.json. The names stay in this Mac's
     /// preferences.
@@ -36,7 +46,9 @@ final class RemoteModel {
     }
 
     init() {
-        host = UserDefaults.standard.string(forKey: "host") ?? "10.0.4.20"
+        let savedHost = UserDefaults.standard.string(forKey: "host")
+        connection = BarConnection.saved(UserDefaults.standard.string(forKey: "connection"), host: savedHost)
+        customHost = [BarConnection.usbHost, BarConnection.simulatorHost].contains(savedHost ?? "") ? "" : savedHost ?? ""
         people = Person.list(UserDefaults.standard.string(forKey: "people") ?? "") ?? []
         clickChoices = UserDefaults.standard.dictionary(forKey: "clickChoices") as? [String: String] ?? [:]
     }

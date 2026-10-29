@@ -125,12 +125,22 @@ test("sprint clock faces", () => {
   const dots = core.sprintClockFace(now, sprint, { ...base, style: "dots" });
   assert.equal(dots.filter((e) => e.id.startsWith("clock.dot")).length, 10);
   assert.equal((dots.find((e) => e.id === "clock.sub") as { text: string }).text, "S22");
-  const majora = core.sprintClockFace(now, sprint, { ...base, style: "majora" });
-  assert.equal((majora.find((e) => e.id === "clock.icon") as { path: string }).path, "images/calendar.png");
-  assert.equal((majora.find((e) => e.id === "clock.sub") as { text: string }).text, "S22 6 left");
-  assert.ok(majora.some((e) => e.id === "clock.day"));
+  const short = core.sprintClockFace(now, sprint, { ...base, style: "short" });
+  assert.equal((short.find((e) => e.id === "clock.icon") as { path: string }).path, "images/calendar.png");
+  assert.equal((short.find((e) => e.id === "clock.sub") as { text: string }).text, "S22");
+  assert.equal((short.find((e) => e.id === "clock.left") as { text: string }).text, "6 left");
+  const rule = short.find((e) => e.id === "clock.rule")!;
+  const sub = short.find((e) => e.id === "clock.sub")!;
+  const left = short.find((e) => e.id === "clock.left")!;
+  // Between the two texts, 1 x 3, centred on the small capitals (5 tall, 2 below the text's top).
+  assert.ok(sub.x! < rule.x! && rule.x! < left.x!);
+  assert.deepEqual([(rule as { width: number }).width, (rule as { height: number }).height, rule.y], [1, 3, sub.y! + 3]);
+  assert.equal(left.y, sub.y);
+  assert.ok(short.some((e) => e.id === "clock.day"));
+  const none = core.sprintClockFace(now, sprint, { ...base, style: "none" });
+  assert.deepEqual(none, core.clockFace(now, base));
   // Every element lies on the screen.
-  for (const e of [...bar, ...dots, ...majora]) assert.ok((e.x ?? 0) >= 0 && (e.x ?? 0) < 72 && (e.y ?? 0) >= -2 && (e.y ?? 0) < 16, e.id);
+  for (const e of [...bar, ...dots, ...short]) assert.ok((e.x ?? 0) >= 0 && (e.x ?? 0) < 72 && (e.y ?? 0) >= -2 && (e.y ?? 0) < 16, e.id);
 });
 
 test("LiveFace clears only ids it drew before and no longer draws", async () => {

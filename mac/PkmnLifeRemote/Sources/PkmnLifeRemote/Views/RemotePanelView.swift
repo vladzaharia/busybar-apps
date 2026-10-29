@@ -63,20 +63,17 @@ struct RemotePanelView: View {
     }
 }
 
-/// The card that shows while the pointer is on the panel, one row: Title Card, Stop, Settings and the … menu. The
-/// connection's dot sits on the gear; the status in full is its tooltip, and in Settings.
+/// The card that shows while the pointer is on the panel, one row: Title Card, Stop (its one big button), Settings and
+/// the … menu. The connection's dot sits on the gear; the status in full is its tooltip, and in Settings.
 struct DetailsCard: View {
     let model: RemoteModel
     let controller: PanelController
 
     var body: some View {
         HStack(spacing: 6) {
-            PillButton(title: "Title Card", symbol: "calendar.badge.clock", color: Palette.busy, busy: model.sending == "card") {
-                model.titleCard()
-            }
-            .fixedSize(horizontal: true, vertical: false)
-            .help("Plays today's Majora's Mask title card")
-            .accessibilityHint("Plays today's Majora's Mask title card on the bar.")
+            IconButton(symbol: "calendar.badge.clock", label: "Title Card", help: "Title Card: the Majora's Mask card for now (dawn, meal or dusk)",
+                       color: Palette.busy, busy: model.sending == "card") { model.titleCard() }
+                .accessibilityHint("Plays the Majora's Mask title card for this part of the day on the bar.")
             PillButton(title: "Stop", symbol: "stop.fill", color: Palette.stop, busy: model.sending == "stop") {
                 model.stop()
             }

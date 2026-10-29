@@ -153,12 +153,62 @@ export function jiraFlyIn(o: {
   });
 }
 
+/** The Jira ticket is 22 px wide and 13 tall. */
+export const TICKET_SIZE = { width: 22, height: 13 } as const;
+
+// An issue card as on a Jira board: room for the 11 px mark on the left, two summary lines, the Task type's
+// checkbox under them, and a shadow along the bottom.
+const TICKET = [
+  ".WWWWWWWWWWWWWWWWWWWW.",
+  "WWWWWWWWWWWWWWWWWWWWWW",
+  "WWWWWWWWWWWWWggggggggW",
+  "WWWWWWWWWWWWWWWWWWWWWW",
+  "WWWWWWWWWWWWWggggggWWW",
+  "WWWWWWWWWWWWWWWWWWWWWW",
+  "WWWWWWWWWWWWWWWWWWWWWW",
+  "WWWWWWWWWWWWWbbbbbWWWW",
+  "WWWWWWWWWWWWWbbbbwWWWW",
+  "WWWWWWWWWWWWWbwbwbWWWW",
+  "WWWWWWWWWWWWWbbwbbWWWW",
+  "WWWWWWWWWWWWWbbbbbWWWW",
+  ".ssssssssssssssssssss.",
+];
+
+const TICKET_PALETTE: Record<string, Color> = {
+  // Softer than white: a block of white LEDs is glaring.
+  W: hex("#DCE3EE"),
+  s: hex("#9AA7BA"),
+  g: hex("#6B778C"),
+  b: hex("#4BADE8"),
+  w: hex("#FFFFFF"),
+};
+
+/**
+ * A Jira ticket: an issue card with the mark on it, summary lines and the Task checkbox, top-left at (x, y).
+ * `sheen` 0..1 sweeps a diagonal shine across it, left to right.
+ */
+export function drawJiraTicket(r: Raster, x: number, y: number, o: { alpha?: number; sheen?: number } = {}): void {
+  x = Math.round(x);
+  y = Math.round(y);
+  const alpha = o.alpha ?? 1;
+  stampPalette(r, TICKET, x, y, TICKET_PALETTE, alpha);
+  drawJiraMark(r, x + 1, y + 1, 11, { poses: [0, 1, 2].map(() => ({ alpha })) });
+  if (o.sheen === undefined || o.sheen <= 0 || o.sheen >= 1) return;
+  const at = lerp(-4, TICKET_SIZE.width + TICKET_SIZE.height + 4, o.sheen);
+  TICKET.forEach((row, ry) =>
+    [...row].forEach((c, rx) => {
+      const d = Math.abs(rx + ry - at);
+      if (c !== "." && d < 2.5) r.blend(x + rx, y + ry, hex("#FFFFFF"), (1 - d / 2.5) * 0.7 * alpha);
+    }),
+  );
+}
+
 /** Stamps string pixel art ("#" lit, anything else empty) in one colour. */
 export function stamp(r: Raster, art: string[], x: number, y: number, color: Color, alpha = 1, mode: BlendMode = "over"): void {
   art.forEach((row, ry) => [...row].forEach((c, rx) => c === "#" && r.blend(x + rx, y + ry, color, alpha, mode)));
 }
 
 /** Stamps multi-colour pixel art: each character maps to a colour in `palette`; unmapped characters stay empty. */
-export function stampPalette(r: Raster, art: string[], x: number, y: number, palette: Record<string, Color>): void {
-  art.forEach((row, ry) => [...row].forEach((c, rx) => palette[c] && r.blend(x + rx, y + ry, palette[c]!)));
+export function stampPalette(r: Raster, art: string[], x: number, y: number, palette: Record<string, Color>, alpha = 1): void {
+  art.forEach((row, ry) => [...row].forEach((c, rx) => palette[c] && r.blend(x + rx, y + ry, palette[c]!, alpha)));
 }

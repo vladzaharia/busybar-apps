@@ -4,7 +4,7 @@
 
 import * as fx from "./fx/index.ts";
 import { capCentre } from "./fx/text.ts";
-import { drawJiraMark, jiraFlyIn, JIRA_TONES_WHITE } from "./jira.ts";
+import { drawJiraMark, drawJiraTicket, jiraFlyIn, JIRA_TONES_WHITE, TICKET_SIZE } from "./jira.ts";
 import { moonIcon } from "./icons.ts";
 import { font, textWidth } from "./font.ts";
 import { hex, mix, type Raster } from "./raster.ts";
@@ -362,6 +362,19 @@ export const CATALOG: CatalogEntry[] = [
     }),
   },
   {
+    id: "bug",
+    name: "Bug",
+    group: "HUD",
+    about: "An issue as a creature: an 11 × 12 red bug whose legs scuttle on bugFrame(t). The wild ISSUE in a battle.",
+    usage: "drawBug(r, x, y, { frame: bugFrame(t) })",
+    display: "front",
+    demo: clip(3, (r, t) => {
+      const x = Math.min(10, -12 + t * 18);
+      fx.drawBug(r, x, 2, { frame: x < 10 ? fx.bugFrame(t) : 0 });
+      if (x >= 10) r.text("A wild ISSUE!", font("small"), 26, capCentre("small"), W);
+    }),
+  },
+  {
     id: "ball-shake",
     name: "Capture ball",
     group: "HUD",
@@ -423,6 +436,15 @@ export const CATALOG: CatalogEntry[] = [
     usage: "jiraFlyIn({ x: 1, y: 2, size: 12, duration })  ·  drawJiraMark(r, x, y, 12)",
     display: "front",
     demo: layer(seq(fx.burst({ duration: 0.7 }), pause(1.6)), { clip: jiraFlyIn({ x: 30, y: 2, size: 12, duration: 2.3 }), at: 0 }),
+  },
+  {
+    id: "jira-ticket",
+    name: "Jira ticket",
+    group: "Logo",
+    about: "A Jira issue as a 22 × 13 card: the mark, two summary lines and the Task checkbox. sheen runs a shine across it.",
+    usage: "drawJiraTicket(r, x, y, { sheen })  // sheen 0..1",
+    display: "front",
+    demo: clip(3, (r, t) => drawJiraTicket(r, Math.round((r.width - TICKET_SIZE.width) / 2), 1, { sheen: (t % 1.5) / MOTION.slow })),
   },
 
   // Modifiers -----------------------------------------------------------------------------------------------------

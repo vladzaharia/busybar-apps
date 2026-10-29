@@ -91,7 +91,7 @@ write(
     ...fronts.map((byStyle) => `  {\n${Object.entries(byStyle).map(([style, f]) => `    ${style}: ${clipLiteral(f!.path, f!.built)},`).join("\n")}\n  },`),
     "];",
     "",
-    "/** Majora's Mask title cards: dawn-1 .. dawn-20, dawn-final, remain-1 .. remain-20. */",
+    "/** Majora's Mask title cards: dawn-1 .. dawn-20 and dawn-final, the same for meal and dusk, remain-1 .. remain-20. */",
     `export const CARDS: Clip = ${clipLiteral("animations/cards.anim", cards)};`,
     "",
     'export const CALENDAR = "images/calendar.png";',

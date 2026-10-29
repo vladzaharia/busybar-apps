@@ -13,7 +13,7 @@ Runtime library for on-device BUSY Bar JavaScript apps. Everything that talks to
 - `sprintAt(now, { number, start, weeks, changes })`: the running sprint and its work days left, following a
   regular cadence plus a list of changes (moved or longer sprints, a new cadence, days off; `parseSprintChanges`
   reads it). `sprintClockFace`: the clock
-  with the sprint, as a bar of work days, a row of dots, or in short under the time ("S22 6 left").
+  with the sprint, as a bar of work days, a row of dots, or in short under the time with a thin drawn rule between ("S22 | 6 left").
 - `LiveFace`: draws a set of elements whose make-up changes, clearing only ids it drew (the bar refuses a clear that
   names an unknown id). `shuffleBag`: random picks, every item once per round.
 - `remoteInbox`: requests from outside the bar (such as a Mac app), written into a settings field over the HTTP API

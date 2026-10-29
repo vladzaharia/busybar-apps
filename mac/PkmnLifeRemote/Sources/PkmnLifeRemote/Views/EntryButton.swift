@@ -84,11 +84,14 @@ struct PillButton: View {
     }
 }
 
-/// A small round button holding only a symbol. Its tooltip is `help`, or else its label.
+/// A small round button holding only a symbol, in `color` if given; `busy` while its request is on its way, as the
+/// pills. Its tooltip is `help`, or else its label.
 struct IconButton: View {
     let symbol: String
     let label: String
     var help: String?
+    var color: Color?
+    var busy = false
     let action: () -> Void
 
     @State private var hovering = false
@@ -96,7 +99,9 @@ struct IconButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: symbol)
-                .iconButtonFace(hovering: hovering)
+                .foregroundStyle(busy ? AnyShapeStyle(.white) : color.map { AnyShapeStyle($0) } ?? AnyShapeStyle(.primary))
+                .symbolEffect(.pulse, isActive: busy)
+                .iconButtonFace(hovering: hovering, busy: busy)
         }
         .buttonStyle(PressStyle())
         .onHover { hovering = $0 }
@@ -132,10 +137,10 @@ extension View {
     }
 
     /// A symbol in a small circle, for IconButton and the … menu.
-    func iconButtonFace(hovering: Bool) -> some View {
+    func iconButtonFace(hovering: Bool, busy: Bool = false) -> some View {
         font(.body.weight(.medium))
             .frame(width: 28, height: 28)
-            .panelFill(Circle(), hovering: hovering)
+            .panelFill(Circle(), hovering: hovering, busy: busy)
             .contentShape(.circle)
     }
 }
