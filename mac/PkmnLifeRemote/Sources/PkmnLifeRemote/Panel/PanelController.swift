@@ -12,6 +12,8 @@ final class PanelState {
     /// Out while tucking: pointed at, or pinned open from its tab.
     var open = false
     var pinned = false
+    /// The card under the buttons (status, Title Card, Stop, Settings): out while the pointer is on the panel.
+    var details = false
     var dockMode: DockMode {
         didSet { UserDefaults.standard.set(dockMode.rawValue, forKey: "dockMode") }
     }
@@ -26,15 +28,25 @@ final class PanelState {
 /// Keeps the remote's panel in the top-right corner: out all the time on an ultrawide display, otherwise tucked into
 /// the right edge with only its tab showing, sliding out while the pointer is on it.
 final class PanelController {
+    /// The parts of the panel the pointer can be on. It is on the panel while it is on any of them; the gaps between
+    /// them are transparent and belong to the window below.
+    enum Part {
+        case tab
+        case buttons
+        case details
+    }
+
     let state = PanelState()
     /// Opens the Settings window (the app delegate's).
     let openSettings: () -> Void
     private let model: RemoteModel
     private let panel = FloatingPanel.make()
     private var hosting: FirstClickHostingView<RemotePanelView>!
-    private var hovering = false
+    private var pointedAt: Set<Part> = []
+    private var hovering: Bool { !pointedAt.isEmpty }
     private var menuTracking = false
     private var tuckTask: Task<Void, Never>?
+    private var detailsTask: Task<Void, Never>?
     private var observers: [NSObjectProtocol] = []
 
     init(model: RemoteModel, openSettings: @escaping () -> Void) {
@@ -62,7 +74,10 @@ final class PanelController {
                 MainActor.assumeIsolated {
                     guard let self else { return }
                     self.menuTracking = false
-                    if !self.hovering { self.tuckLater() }
+                    if !self.hovering {
+                        self.hideDetailsLater()
+                        self.tuckLater()
+                    }
                 }
             },
         ]
@@ -91,16 +106,22 @@ final class PanelController {
 
     // --- From the view ---------------------------------------------------------------------------------------------
 
-    func hover(_ inside: Bool) {
-        hovering = inside
-        guard state.tucks else { return }
-        if inside {
+    /// The pointer came onto or left a part of the panel: bring out the card under the buttons (and the panel, if it
+    /// is tucked), or put them away a moment after it has left.
+    func hover(_ part: Part, _ inside: Bool) {
+        // The tab's strip is empty while the panel doesn't tuck.
+        if part == .tab && inside && !state.tucks { return }
+        if inside { pointedAt.insert(part) } else { pointedAt.remove(part) }
+        if hovering {
             tuckTask?.cancel()
-            if !state.open {
+            detailsTask?.cancel()
+            showDetails(true)
+            if state.tucks && !state.open {
                 state.open = true
                 layout(animated: true)
             }
         } else {
+            hideDetailsLater()
             tuckLater()
         }
     }
@@ -116,6 +137,32 @@ final class PanelController {
             state.open = true
         }
         layout(animated: true)
+    }
+
+    // --- The card under the buttons -------------------------------------------------------------------------------
+
+    private func hideDetailsLater(after seconds: Double = 0.5) {
+        detailsTask?.cancel()
+        guard state.details else { return }
+        detailsTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(seconds))
+            guard !Task.isCancelled, let self, !self.hovering, !self.menuTracking else { return }
+            // Wait for a request on its way, so Title Card's or Stop's progress stays in view.
+            if self.model.sending != nil {
+                self.hideDetailsLater()
+                return
+            }
+            self.showDetails(false)
+        }
+    }
+
+    private func showDetails(_ shown: Bool) {
+        guard state.details != shown else { return }
+        if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+            state.details = shown
+        } else {
+            withAnimation(.smooth(duration: 0.25)) { state.details = shown }
+        }
     }
 
     // --- Placement -------------------------------------------------------------------------------------------------

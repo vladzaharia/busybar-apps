@@ -41,14 +41,20 @@ final class SettingsWindowController {
         if window?.isVisible != true { barSettings.load() }
         NSApp.activate()
         window?.makeKeyAndOrderFront(nil)
+        // macOS may turn the activation down (the app is a menu bar app, opened from a panel that never takes focus):
+        // the window comes to the front anyway, so it isn't left behind the app in use.
+        window?.orderFrontRegardless()
     }
 
     private func makeTab(_ label: String, symbol: String, _ view: some View) -> NSTabViewItem {
         let host = NSHostingController(rootView: view)
         host.sizingOptions = .preferredContentSize
+        // The window takes the shown tab's title, as the system's settings windows do.
+        host.title = label
         let item = NSTabViewItem(viewController: host)
         item.label = label
         item.image = NSImage(systemSymbolName: symbol, accessibilityDescription: label)
         return item
     }
 }
+

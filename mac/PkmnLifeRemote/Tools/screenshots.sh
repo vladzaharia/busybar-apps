@@ -11,7 +11,6 @@
 set -eu
 cd "$(dirname "$0")/.."
 OUT="${1:-screens}"
-PORT=8787
 rm -rf "$OUT"
 mkdir -p "$OUT"
 OUT="$(cd "$OUT" && pwd)"
@@ -19,10 +18,23 @@ OUT="$(cd "$OUT" && pwd)"
 ./build-app.sh
 BIN="$PWD/dist/Pkmn Life Remote.app/Contents/MacOS/PkmnLifeRemote"
 
-python3 Tools/mock-bar.py --port "$PORT" --log "$OUT/requests.log" >/dev/null 2>&1 &
+# A free port: the mock's default, 8787, is often taken (it is wrangler dev's), and the app would talk to whatever
+# holds it.
+PORT=$(python3 -c 'import socket; s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1])')
+python3 Tools/mock-bar.py --port "$PORT" --log "$OUT/requests.log" >"$OUT/mock.log" 2>&1 &
 MOCK=$!
 trap 'kill $MOCK 2>/dev/null || true' EXIT
-sleep 1
+# Wait until the mock itself answers, then forget that request so the log holds only the app's.
+for _ in $(seq 50); do
+  curl -sf "http://127.0.0.1:$PORT/api/version" 2>/dev/null | grep -q mock && break
+  sleep 0.1
+done
+if ! curl -sf "http://127.0.0.1:$PORT/api/version" 2>/dev/null | grep -q mock; then
+  echo "The mock bar didn't start:" >&2
+  cat "$OUT/mock.log" >&2
+  exit 1
+fi
+: >"$OUT/requests.log"
 
 # The screen's size in pixels, for the corner crop.
 WIDTH=0
@@ -51,6 +63,7 @@ shoot() {
 
 for look in light dark; do
   shoot "shown-$look" -dockMode alwaysShown --appearance "$look"
+  shoot "hover-$look" -dockMode alwaysShown --peek --appearance "$look"
   shoot "tucked-$look" -dockMode tucked --appearance "$look"
   shoot "peeking-$look" -dockMode tucked --peek --appearance "$look"
   shoot "pinned-$look" -dockMode tucked --pin --appearance "$look"

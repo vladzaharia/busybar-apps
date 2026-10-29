@@ -5,7 +5,7 @@
   "description": "On-device JavaScript apps for the BUSY Bar, and the shared libraries they are built from",
   "packageManager": "pnpm@10.28.0",
   "engines": {
-    "node": ">=22.18 <26"
+    "node": ">=22.18 <27"
   },
   "scripts": {
     "build": "pnpm -r --filter \"./apps/*\" build",

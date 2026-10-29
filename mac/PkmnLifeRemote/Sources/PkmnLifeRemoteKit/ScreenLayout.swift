@@ -1,4 +1,8 @@
 import Foundation
+#if canImport(CoreGraphics)
+// On macOS CGRect's Equatable conformance lives in CoreGraphics, which Foundation no longer re-exports (macOS 27 SDK).
+import CoreGraphics
+#endif
 
 /// A display, in AppKit's global coordinates (origin at the bottom left of the main display, y up).
 public struct ScreenInfo: Sendable, Equatable {

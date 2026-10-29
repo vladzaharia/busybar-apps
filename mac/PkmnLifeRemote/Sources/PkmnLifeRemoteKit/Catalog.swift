@@ -15,13 +15,16 @@ public struct Style: Identifiable, Hashable, Sendable {
 public struct Entry: Identifiable, Hashable, Sendable {
     public let id: String
     public let title: String
-    /// SF Symbol for the tile.
+    /// The name under the panel's button, where the full title doesn't fit.
+    public let shortTitle: String
+    /// SF Symbol for the panel's button.
     public let symbol: String
     public let styles: [Style]
 
-    public init(id: String, title: String, symbol: String, styles: [Style]) {
+    public init(id: String, title: String, shortTitle: String? = nil, symbol: String, styles: [Style]) {
         self.id = id
         self.title = title
+        self.shortTitle = shortTitle ?? title
         self.symbol = symbol
         self.styles = styles
     }
@@ -46,7 +49,7 @@ public enum Catalog {
     ]
 
     public static let entries = [
-        Entry(id: "ticket", title: "File a Ticket", symbol: "ticket.fill", styles: nagStyles),
+        Entry(id: "ticket", title: "File a Ticket", shortTitle: "Ticket", symbol: "ticket.fill", styles: nagStyles),
         Entry(id: "alex", title: "Alex", symbol: "arrow.right", styles: redirectStyles),
         Entry(id: "sam", title: "Sam", symbol: "arrow.left", styles: redirectStyles),
     ]

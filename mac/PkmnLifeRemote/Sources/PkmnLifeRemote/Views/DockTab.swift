@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// The handle on the panel's left. Tucked, it is all that shows at the screen edge; point at it and the panel slides
-/// out. Click it to keep the panel out, and again to let it tuck away.
+/// The handle on the panel's left, as tall as the card of buttons beside it. Tucked, it is all that shows at the
+/// screen edge; point at it and the panel slides out. Click it to keep the panel out, and again to let it tuck away.
 struct DockTab: View {
     let state: PanelState
     let action: () -> Void
@@ -15,7 +15,8 @@ struct DockTab: View {
             Image(systemName: symbol)
                 .font(.body.weight(.semibold))
                 .contentTransition(.symbolEffect(.replace))
-                .frame(width: Self.width, height: 72)
+                .frame(width: Self.width)
+                .frame(maxHeight: .infinity)
                 .contentShape(.capsule)
         }
         .buttonStyle(.plain)

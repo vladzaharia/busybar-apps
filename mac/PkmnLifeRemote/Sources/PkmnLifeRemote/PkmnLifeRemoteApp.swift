@@ -17,8 +17,9 @@ struct PkmnLifeRemoteApp: App {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let model = RemoteModel()
     private(set) lazy var barSettings = BarSettingsModel(remote: model)
-    private(set) lazy var settingsWindow = SettingsWindowController(model: model, barSettings: barSettings) { [unowned self] in panel }
-    private(set) lazy var panel = PanelController(model: model) { [unowned self] in settingsWindow.show() }
+    // Typed: each refers to the other, which the compiler can't infer.
+    private(set) lazy var settingsWindow: SettingsWindowController = SettingsWindowController(model: model, barSettings: barSettings) { [unowned self] in panel }
+    private(set) lazy var panel: PanelController = PanelController(model: model) { [unowned self] in settingsWindow.show() }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // A menu bar app: no Dock icon (Info.plist's LSUIElement does the same in the app bundle).
@@ -28,7 +29,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         panel.show()
         model.checkConnection()
         if options.pin { panel.reveal() }
-        if options.peek { panel.hover(true) }
+        if options.peek { panel.hover(.buttons, true) }
         if let tab = options.settingsTab { settingsWindow.show(tab: tab) }
         if let directory = options.snapshotDirectory {
             Task {

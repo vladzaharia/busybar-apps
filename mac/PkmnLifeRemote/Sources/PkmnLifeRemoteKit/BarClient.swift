@@ -46,7 +46,12 @@ public struct BarClient: Sendable {
 
     /// Whether the bar answers at all.
     public func ping() async throws {
-        _ = try await request("GET", "version")
+        do {
+            _ = try await request("GET", "version")
+        } catch let error as BarError where error == BarError.status(404) {
+            // Every BUSY Bar has /api/version: this is some other web server.
+            throw BarError("Something at \(host) answered, but it isn't a BUSY Bar.")
+        }
     }
 
     /// Pkmn Life's settings document: {"version": n, "values": {...}}.

@@ -1,7 +1,7 @@
 name: Mac visual check
 
-# Builds Pkmn Life Remote on a macOS 26 runner, runs it against a mock bar in each state (shown, tucked, peeking,
-# pinned, both Settings tabs; light and dark) and uploads the screenshots as the "mac-screens" artifact.
+# Builds Pkmn Life Remote on a macOS 26 runner, runs it against a mock bar in each state (shown, hovered, tucked,
+# peeking, pinned, both Settings tabs; light and dark) and uploads the screenshots as the "mac-screens" artifact.
 # Start it from the Actions tab (Run workflow); it also runs on pull requests that touch the Mac app.
 
 on:

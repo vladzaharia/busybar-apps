@@ -5,8 +5,8 @@ needs macOS 26 Tahoe: it is built with Liquid Glass.
 
 ## The panel
 
-The remote is a small panel of glass tiles in the top-right corner of the screen, floating above your windows on every
-Space. Clicking it never takes focus from the app you're in.
+The remote is a small glass card of round buttons in the top-right corner of the screen, floating above your windows
+on every Space. Clicking it never takes focus from the app you're in.
 
 - **With an ultrawide display connected** (21:9 or wider, or 3000 points across), the panel stays out on it all the
   time.
@@ -20,12 +20,18 @@ without sliding.
 
 On the panel:
 
-- **File a Ticket**, **Alex**, **Sam**: click a tile to play it. The caption says what a click plays. Right-click
-  (or Control-click) to play a particular version now, or to change what a click plays: the bar's own setting,
-  random, or one version.
+- **Sam**, **Ticket** (File a Ticket), **Alex**, left to right as the redirects point: click a button to play it.
+  Its tooltip says what a click plays. Right-click (or Control-click) to play a particular version now, or to change
+  what a click plays: the bar's own setting, random, or one version.
+
+While the pointer is on the panel, a second card comes out under the buttons (and goes away a moment after the
+pointer leaves, not while a menu is open or a request is on its way):
+
+- The status: whether the bar answers, and how the last request went.
 - **Title Card**: today's Majora's Mask "Dawn of the Nth Day".
 - **Stop**: stops whatever is playing.
-- **…**: start Pkmn Life on the bar, check the connection, the panel's placement, Settings, Quit.
+- The gear: Settings.
+- **…**: start Pkmn Life on the bar, check the connection, the panel's placement, Quit.
 
 The menu bar icon has all of the same, plus **Show Panel**.
 
@@ -60,10 +66,15 @@ Tools/mock-bar.py &                                                   # prints e
 "dist/Pkmn Life Remote.app/Contents/MacOS/PkmnLifeRemote" -host 127.0.0.1:8787 -dockMode tucked
 ```
 
-`Tools/screenshots.sh` builds the app and captures it in every state (shown, tucked, peeking, pinned, both Settings
-tabs; light and dark) into `screens/`. The **Mac visual check** workflow runs it on a macOS 26 runner (Actions → Mac
-visual check → Run workflow) and uploads the `mac-screens` artifact. The app's launch options for this
-(`--appearance`, `--pin`, `--peek`, `--settings`, `--snapshot`) are listed in `LaunchOptions.swift`.
+If something else already listens on 8787 (`wrangler dev` does by default), give the mock `--port` and the app the
+same port. The app says so if the address answers but isn't a bar.
+
+`Tools/screenshots.sh` builds the app and captures it in every state (shown, hovered, tucked, peeking, pinned, both
+Settings tabs; light and dark) into `screens/`, with the mock on a free port. The **Mac visual check** workflow runs
+it on a macOS 26 runner (Actions → Mac visual check → Run workflow) and uploads the `mac-screens` artifact. The app's
+launch options for this (`--appearance`, `--pin`, `--peek`, `--settings`, `--snapshot`) are listed in
+`LaunchOptions.swift`. Screen captures need Screen Recording permission and an unlocked screen; `--snapshot` works
+without either, and its `panel-render.png` (drawn by SwiftUI, with stand-in glass) is the one to look at then.
 
 CI builds it too: download the `pkmn-life-remote` artifact and unzip it. The app is signed ad hoc, not notarised, so
 the first time macOS may ask you to open it from Finder with right-click → Open.
@@ -89,7 +100,7 @@ Pkmn Life has to be running on the bar. The remote doesn't start it on every cli
 | --- | --- |
 | `Sources/PkmnLifeRemoteKit` | The part that needs no UI, and its tests: the bar's HTTP API (`BarClient`), the request format, Pkmn Life's entries (`Catalog`) and settings (`PkmnSettings`), and where the panel goes (`ScreenLayout`) |
 | `Sources/PkmnLifeRemote/Panel` | The floating panel and its placement (`PanelController`) |
-| `Sources/PkmnLifeRemote/Views` | The SwiftUI views: the panel's tiles, the tab, the two Settings tabs |
+| `Sources/PkmnLifeRemote/Views` | The SwiftUI views: the panel's cards and buttons, the tab, the two Settings tabs |
 | `Sources/PkmnLifeRemote` | The app, its state (`RemoteModel`, `BarSettingsModel`), the Settings window, the keychain, launch options |
 | `Tools` | `mock-bar.py` (the bar's HTTP API, in memory) and `screenshots.sh` |
 
