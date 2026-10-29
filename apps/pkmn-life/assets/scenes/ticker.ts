@@ -37,9 +37,11 @@ import type { Nag } from "../../src/presets.ts";
 
 const WHITE = hex("#FFFFFF");
 const BLUE = hex("#579DFF");
-const TEXT_X0 = 16;
-// The 12 px mark in the 16 px square beside the text, by its optical centre: (1, 3).
-const MARK = { ...jiraMarkIn({ x: 0, y: 0, width: TEXT_X0, height: 16 }, 12), size: 12 as const };
+/** Where the text's room begins: just past the mark's 16 px square (x 3 to 18). */
+const TEXT_X0 = 19;
+// The 12 px mark in that square, by its optical centre: (4, 3), which leaves 4 px before it, the lockup's 8 px gap
+// (ink to text) and 6 px after the resting text.
+const MARK = { ...jiraMarkIn({ x: 3, y: 0, width: 16, height: 16 }, 12), size: 12 as const };
 const ROLL = 0.26;
 
 export function ticker(preset: Nag): Clip {
@@ -139,12 +141,15 @@ export function ticker(preset: Nag): Clip {
         });
       }),
       at: recapAt,
+      // The last page stays up to the end of the body, which is what the collapse takes as its picture (`outroAt -
+      // recapAt` can come out a rounding error longer than `recapLen`, and the page would be missing).
+      hold: true,
     },
   );
 
   return clip(outroAt + COLLAPSE + SWITCH_ON, (r, t) => {
     if (t < outroAt) return body.draw(r, t);
-    if (t < outroAt + COLLAPSE) return collapse({ duration: COLLAPSE }).draw(r, t - outroAt);
+    if (t < outroAt + COLLAPSE) return collapse({ duration: COLLAPSE, source: body }).draw(r, t - outroAt);
     crt({ duration: SWITCH_ON, mode: "reveal" }).draw(r, t - outroAt - COLLAPSE);
   });
 }

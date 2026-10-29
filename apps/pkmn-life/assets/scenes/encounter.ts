@@ -8,6 +8,7 @@ import {
   bugFrame,
   clip,
   dialogue,
+  dialogueRise,
   drawBug,
   drawDialogue,
   drawHpBox,
@@ -19,6 +20,7 @@ import {
   holdEnd,
   inCubic,
   inQuad,
+  layer,
   lerp,
   mix,
   MOTION,
@@ -42,8 +44,8 @@ const GRASS = hex("#2F6B45");
 const SPARK = hex("#85B8FF");
 const WHITE = hex("#FFFFFF");
 /** Where the issue stands; its platform is centred under it. */
-const ISSUE = { x: 57, y: 2 };
-/** Where the ticket it turns into stands: on the same platform, a pixel in from the screen's edge. */
+const ISSUE = { x: 55, y: 2 };
+/** Where the ticket it turns into stands: centred on the same platform (to the half pixel), a pixel in from the screen's edge. */
 const TICKET = { x: 72 - TICKET_SIZE.width - 1, y: 1 };
 /** The thrown Jira mark's size (one of its hand-placed sprites). */
 const MARK = 11;
@@ -77,6 +79,19 @@ function sparks(r: Raster, p: number): void {
   }
 }
 
+/** The dialogue box dropping away from the bottom edge over the battle (as `dialogueRise` raises it), 0.18 s. */
+function dialogueDrop(hp: number): Clip {
+  return clip(0.18, (r, t) => {
+    battle(r, { issueX: ISSUE.x, hud: 1, hp, t });
+    drawDialogue(r, { lines: [], typed: -1, t, rise: 1 - inCubic(t / 0.18) });
+  });
+}
+
+/** The empty dialogue box rising over the battle, the issue at `hp`. */
+function dialogueRaise(hp: number): Clip {
+  return layer(clip(0.18, (r, t) => battle(r, { issueX: ISSUE.x, hud: 1, hp, t })), dialogueRise());
+}
+
 /** "???" and other question marks pulse blue on the dark ink. */
 const emphasis = (_i: number, ch: string, t: number): Color | undefined =>
   ch === "?" ? mix(INK, BLUE, 0.5 + 0.5 * Math.sin(t * 12)) : undefined;
@@ -90,7 +105,7 @@ export function encounter(preset: Nag): Clip {
   const HUD = 0.3;
   const CRY = 0.3;
   const arrive = clip(SLIDE + HUD + CRY, (r, t) => {
-    const issueX = lerp(-18, ISSUE.x, Math.min(1, t / SLIDE));
+    const issueX = lerp(-18, ISSUE.x, outCubic(Math.min(1, t / SLIDE)));
     const hud = span(t, SLIDE, SLIDE + HUD);
     const cry = span(t, SLIDE + HUD, SLIDE + HUD + CRY);
     const hop = cry > 0 && cry < 1 ? -Math.abs(Math.sin(cry * Math.PI * 2)) * 2 : 0;
@@ -98,22 +113,20 @@ export function encounter(preset: Nag): Clip {
   });
 
   // 3. The dialogue box rises over the scene, then the talking.
-  const rise = clip(0.18, (r, t) => {
-    battle(r, { issueX: ISSUE.x, hud: 1, hp: 1, t });
-    drawDialogue(r, { lines: [], typed: 0, t, rise: outCubic(t / 0.18) });
-  });
+  const rise = dialogueRaise(1);
   const talk = dialogue({
     pages: [
       { lines: ["A wild ISSUE", "appeared!"], hold: 0.8 },
       ...paginate(preset.message, 66, 1.5),
-      { lines: ["TRAINER used", "FILE JIRA TICKET!"], hold: 0.45 },
+      { lines: ["TRAINER used", "FILE JIRA TICKET!"], hold: 0.9 },
     ],
     cps: 26,
     emphasis,
   });
 
-  // 4. The attack: the Jira mark is thrown in from the trainer's side, the screen flashes and shakes, sparks fly,
-  // the issue blinks, and its HP drains away.
+  // 4. The box drops away, and the attack: the Jira mark is thrown in from the trainer's side, the screen flashes and
+  // shakes, sparks fly, the issue blinks, and its HP drains away.
+  const lower = dialogueDrop(1);
   const THROW = MOTION.base;
   const DRAIN = MOTION.slow;
   const HIT = THROW + MOTION.quick;
@@ -134,22 +147,20 @@ export function encounter(preset: Nag): Clip {
       const p = span(t - lag, 0, THROW);
       if (p <= 0 || p >= 1) continue;
       const x = lerp(-MARK, ISSUE.x, p);
-      const y = lerp(5, ISSUE.y + 1, p) - Math.sin(p * Math.PI) * 5;
+      const y = lerp(5, ISSUE.y + 1, p) - Math.sin(p * Math.PI) * 4;
       drawJiraMark(r, x, y, MARK, { poses: [0, 1, 2].map(() => ({ alpha })) });
     }
     if (hit > 0) {
       const flashA = Math.max(0, Math.sin(span(hit, 0, 0.2) * Math.PI));
-      if (flashA > 0) r.fillRect(0, 0, r.width, r.height, { ...WHITE, a: flashA * 0.85 });
+      if (flashA > 0) r.fillRect(0, 0, r.width, r.height, { ...WHITE, a: flashA * 0.6 });
       sparks(r, span(hit, 0.05, 0.5));
     }
   });
 
-  // 5. "It's super effective!", and the box drops away.
+  // 5. The box rises again over the emptied HP bar for "It's super effective!", and drops away.
+  const raise = dialogueRaise(0);
   const finale = dialogue({ pages: [{ lines: ["It's super", "effective!"], hold: 0.9 }], cps: 26 });
-  const drop = clip(0.18, (r, t) => {
-    battle(r, { issueX: ISSUE.x, hud: 1, hp: 0, t });
-    drawDialogue(r, { lines: [], typed: 0, t, rise: 1 - inCubic(t / 0.18) });
-  });
+  const drop = dialogueDrop(0);
 
   // 6. The issue glows white and bursts into a Jira ticket, which opens from its middle and hops; the HP box fades
   // away and a shine runs across the ticket.
@@ -163,7 +174,7 @@ export function encounter(preset: Nag): Clip {
     }
     battle(r, { issueX: ISSUE.x, hud: 1 - span(after, 0, MOTION.quick), hp: 0, t, hidden: true });
     const half = (TICKET_SIZE.height / 2) * outCubic(span(after, 0, OPEN));
-    const hop = Math.round(-Math.sin(span(after, OPEN, OPEN + MOTION.quick) * Math.PI) * 2);
+    const hop = Math.round(-Math.sin(span(after, OPEN, OPEN + MOTION.quick) * Math.PI));
     const mid = TICKET.y + TICKET_SIZE.height / 2 + hop;
     r.clip = { x0: 0, y0: Math.floor(mid - half), x1: r.width, y1: Math.ceil(mid + half) };
     drawJiraTicket(r, TICKET.x, TICKET.y + hop, { sheen: span(after, 0.5, 0.5 + MOTION.slow) });
@@ -183,5 +194,5 @@ export function encounter(preset: Nag): Clip {
   });
   const reveal = fade({ duration: 0.35, from: 1, to: 0 });
 
-  return seq(intro, arrive, rise, talk, attack, finale, drop, turn, toBlack, reveal);
+  return seq(intro, arrive, rise, talk, lower, attack, raise, finale, drop, turn, toBlack, reveal);
 }

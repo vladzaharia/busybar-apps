@@ -5,15 +5,19 @@
 // Directions are as someone facing the front display sees them; every look mirrors for the other side.
 
 import {
+  ARROW_SIZE,
   DIALOGUE_LIGHT,
   MOTION,
+  NAME_EDGE,
   Raster,
+  WALKER_SIZE,
   arrowNudge,
   capCentre,
   chase,
   chevronChase,
   chevronWidth,
   clip,
+  dialogueRise,
   drawArrow,
   drawChevron,
   drawDialogue,
@@ -28,18 +32,23 @@ import {
   inBack,
   inCubic,
   inOutCubic,
+  inkWidth,
   layer,
   lerp,
+  mirrorX,
   mix,
   outBack,
+  outCubic,
+  readTime,
   scrollBand,
+  scrollBandCentreLead,
   seq,
   span,
   speechBubble,
   stripes,
-  textWidth,
   walkFrame,
   wipe,
+  wipeOut,
   type Clip,
   type WalkerPose,
 } from "@vladzaharia/bar-pixel";
@@ -53,51 +62,73 @@ const BIG = "extra_large" as const;
 const BIG_Y = capCentre(BIG);
 const HOLD = 4.4;
 
-/** x for something `w` wide at `x` in the rightward layout, mirrored for a leftward one. */
-const mx = (e: Redirect, x: number, w: number) => (e.dir > 0 ? x : W - x - w);
-const nameW = (e: Redirect) => textWidth(e.name, font(BIG));
+/** The name's ink width in the big font: what a layout is built from (never its advance width, a pixel wider). */
+const nameInk = (e: Redirect) => inkWidth(e.name, font(BIG));
 const black = (duration: number): Clip => clip(duration, (r) => r.fillRect(0, 0, W, H, BLACK));
 
-/** Runway: an amber wipe towards them, then chevrons chasing their way with the name opposite. */
+/**
+ * Runway: an amber wipe towards them, then chevrons chasing their way with the name opposite. The row is laid out from
+ * the name: as many chevrons (2 to 4) as fit between 2 px past the name's ink and NAME_EDGE from the far edge, so a wide
+ * name never has a chevron through its last letter. At the end the same wipe takes the whole picture away.
+ */
 export function runway(e: Redirect): Clip {
   const AMBER = hex("#FFB020");
+  const inkW = nameInk(e);
   const cw = chevronWidth(11);
-  const count = 4;
   const gap = 7;
-  const rowW = (count - 1) * gap + cw;
+  const rowW = (n: number) => (n - 1) * gap + cw;
+  const start = (n: number) => W - NAME_EDGE - rowW(n);
+  let count = 4;
+  while (count > 2 && start(count) < NAME_EDGE + inkW + 2) count--;
   const main = layer(
     black(HOLD),
-    chevronChase({ duration: HOLD, x: mx(e, W - 3 - rowW, rowW), y: 2, dir: e.dir, count, gap, lit: AMBER }),
+    chevronChase({ duration: HOLD, x: mirrorX(start(count), rowW(count), e.dir), y: 2, dir: e.dir, count, gap, lit: AMBER }),
     clip(HOLD, (r, t) => r.glow(e.dir > 0 ? W - 0.5 : -0.5, 7.5, 3, 9, { ...AMBER, a: 0.25 * (0.6 + 0.4 * Math.sin(t * 8)) }, 1.6)),
-    { clip: dropIn({ text: e.name, font: BIG, x: mx(e, 3, nameW(e)), y: BIG_Y, duration: HOLD - 0.15 }), at: 0.15 },
+    { clip: dropIn({ text: e.name, font: BIG, x: mirrorX(NAME_EDGE, inkW, e.dir), y: BIG_Y, duration: HOLD - 0.15 }), at: 0.15 },
   );
   return seq(
     holdEnd(wipe({ mode: "cover", direction: e.dir, color: BLACK, edge: AMBER, duration: MOTION.base }), 0.02),
     main,
-    wipe({ mode: "reveal", direction: e.dir, color: BLACK, edge: AMBER, duration: MOTION.base }),
+    wipeOut(main, { direction: e.dir, edge: AMBER, duration: MOTION.base }),
   );
 }
 
-/** Nudge: a big arrow sweeps across, blacking out the clock behind it, settles pointing at them and keeps nudging. */
+/**
+ * Nudge: a big arrow sweeps across, blacking out the clock behind it, settles pointing at them and keeps nudging. The
+ * nudge's streak shortens, a dash at a time, before it would come within 2 px of the name's ink.
+ */
 export function nudge(e: Redirect): Clip {
   const BLUE = hex("#2F86FF");
   const LIGHT = hex("#9CC6FF");
   const IN = 0.55;
   const OUT = MOTION.base;
-  const restX = mx(e, W - 16, 13);
-  const startX = e.dir > 0 ? -14 : W + 1;
-  const name = dropIn({ text: e.name, font: BIG, x: mx(e, 4, nameW(e)), y: BIG_Y, duration: HOLD + IN });
+  const inkW = nameInk(e);
+  const restR = W - NAME_EDGE - ARROW_SIZE;
+  const restX = mirrorX(restR, ARROW_SIZE, e.dir);
+  /** Screen left past the arrow when it rests. */
+  const BEYOND = W - restR - ARROW_SIZE;
+  const startX = e.dir > 0 ? -ARROW_SIZE - 1 : W + 1;
+  // While it nudges the arrow is at least 2 px out (restR + 2), and dash k trails it by 3 k px.
+  let streak = 3;
+  while (streak > 0 && restR + 2 - 3 * streak < NAME_EDGE + inkW + 2) streak--;
+  const name = dropIn({ text: e.name, font: BIG, x: mirrorX(NAME_EDGE, inkW, e.dir), y: BIG_Y, duration: HOLD + IN });
+  const sweepX = (t: number) => lerp(startX, restX, outBack(t / IN, 1.4));
   const sweep = clip(IN, (r, t) => {
-    const x = lerp(startX, restX, outBack(t / IN, 1.4));
-    const head = e.dir > 0 ? x + 13 : x;
-    // Everything the arrow has passed is black.
-    if (e.dir > 0) r.fillRect(0, 0, Math.max(0, Math.ceil(head)), H, BLACK);
-    else r.fillRect(Math.floor(head), 0, W - Math.floor(head), H, BLACK);
-    for (let k = 1; k <= 3; k++) r.fillRect(Math.round(x) - e.dir * k * 3 + (e.dir > 0 ? 0 : 12), 6, 2, 1, { ...BLUE, a: 0.5 - k * 0.14 });
+    const x = sweepX(t);
+    // Everything the arrow has passed is black, and the screen beyond its rest too (its last 3 px): the overshoot must
+    // not leave the clock showing there when the arrow settles back.
+    const passed = e.dir > 0 ? x + ARROW_SIZE : W - x;
+    const covered = Math.min(W, Math.max(0, Math.ceil(passed + BEYOND * Math.min(1, Math.max(0, passed) / ARROW_SIZE))));
+    r.fillRect(e.dir > 0 ? 0 : W - covered, 0, covered, H, BLACK);
+    // The streak trails it while it is moving (not as it settles), mirrored exactly about the arrow, and no dimmer than
+    // 0.3 (below that an LED does not show it).
+    if (Math.abs(x - sweepX(Math.max(0, t - 1 / 60))) > 1) {
+      for (let k = 1; k <= 3; k++) r.fillRect(Math.round(x) - e.dir * k * 3 + (e.dir > 0 ? 0 : ARROW_SIZE - 2), 6, 2, 1, { ...BLUE, a: Math.max(0.3, 0.5 - k * 0.14) });
+    }
     drawArrow(r, Math.round(x), 1, e.dir, BLUE, LIGHT);
     if (t > 0.3) name.draw(r, t - 0.3);
   });
-  const hold = layer(black(HOLD), arrowNudge({ duration: HOLD, x: restX, y: 1, dir: e.dir, body: BLUE, light: LIGHT }), {
+  const hold = layer(black(HOLD), arrowNudge({ duration: HOLD, x: restX, y: 1, dir: e.dir, streak, body: BLUE, light: LIGHT }), {
     clip: clip(HOLD, (r, t) => name.draw(r, t + IN - 0.3)),
     at: 0,
   });
@@ -112,15 +143,22 @@ export function nudge(e: Redirect): Clip {
   return seq(sweep, hold, away, wipe({ mode: "reveal", direction: e.dir, color: BLACK, edge: BLUE, duration: MOTION.quick }));
 }
 
-/** Wayfinding sign: an airport-style yellow sign slides in from their side over the clock, then back out. */
+/**
+ * Wayfinding sign: an airport-style yellow sign slides in from their side over the clock, then back out. The yellow is
+ * kept dark enough that a whole screen of it is not glaring.
+ */
 export function sign(e: Redirect): Clip {
-  const Y1 = hex("#FFD21F");
-  const Y2 = hex("#F2B600");
+  const Y1 = hex("#E6BA10");
+  const Y2 = hex("#C99A00");
   const EDGE = hex("#7A5A00");
   const INK = hex("#111111");
   const IN = MOTION.slow;
   const OUT = MOTION.base;
   const BOX = 14;
+  const inkW = nameInk(e);
+  // The name's ink is centred in the room beside the arrow's box, set out for the rightward sign and mirrored from it.
+  const space = W - BOX - 2;
+  const nameX = mirrorX(1 + Math.round((space - inkW) / 2), inkW, e.dir);
   const drawSign = (r: Raster, off: number, t: number) => {
     const s = new Raster(W, H);
     const period = 2.2;
@@ -128,20 +166,21 @@ export function sign(e: Redirect): Clip {
     s.roundRect(0, 0, W, H, 2, (x, y, _u, v) => {
       const border = x === 0 || x === W - 1 || y === 0 || y === H - 1;
       let c = border ? EDGE : mix(Y1, Y2, v);
-      const d = Math.abs(x + y * 0.9 - sheen);
+      // The sheen runs towards them, whichever side that is.
+      const d = Math.abs((e.dir > 0 ? x : W - 1 - x) + y * 0.9 - sheen);
       if (!border && d < 5) c = mix(c, WHITE, 0.45 * (1 - d / 5));
       return c;
     });
-    const bx = mx(e, W - 1 - BOX, BOX);
+    const bx = mirrorX(W - 1 - BOX, BOX, e.dir);
     s.fillRect(bx, 1, BOX, BOX, INK);
     const nudge = t > 0 && t % 1.1 < 0.35 ? Math.round(Math.sin(((t % 1.1) / 0.35) * Math.PI)) : 0;
     drawSmallArrow(s, bx + 2 + e.dir * nudge, 4, e.dir, Y1);
-    const space = W - BOX - 2;
-    s.text(e.name, font(BIG), (e.dir > 0 ? 1 : BOX + 1) + Math.round((space - nameW(e)) / 2), BIG_Y, INK);
+    s.text(e.name, font(BIG), nameX, BIG_Y, INK);
     r.draw(s, Math.round(off), 0);
   };
+  // It slides in without overshooting: past its resting place the clock would show behind it.
   return seq(
-    clip(IN, (r, t) => drawSign(r, e.dir * W * (1 - outBack(t / IN, 1.1)), -1)),
+    clip(IN, (r, t) => drawSign(r, e.dir * W * (1 - outCubic(t / IN)), -1)),
     clip(HOLD, (r, t) => drawSign(r, 0, t)),
     clip(OUT, (r, t) => drawSign(r, e.dir * W * inCubic(t / OUT), HOLD + t)),
   );
@@ -150,7 +189,8 @@ export function sign(e: Redirect): Clip {
 /**
  * Walker: the clock fades, a little person walks in from the far side leaving the name behind them letter by letter,
  * waves, points the way with arrows blinking from their hand, walks over to that side and says "HI!" to them in a
- * speech bubble, then steps off the edge.
+ * speech bubble, then steps off the edge. They stand where the name ends (40 at the least), so a wide name is never
+ * stood on, and the arrows and the bubble take what room is left; a wide name's bubble says "HI", a pixel narrower.
  */
 export function walker(e: Redirect): Clip {
   const CH = hex("#62C7FF");
@@ -159,12 +199,19 @@ export function walker(e: Redirect): Clip {
   const WAVE = 0.7;
   const POINT = 1.6;
   const SPEED = 24;
-  const standX = mx(e, 40, 7);
+  const f = font(BIG);
+  const inkW = nameInk(e);
+  const figW = WALKER_SIZE.width;
+  // Laid out for the rightward walker (the name on the left, the figure and the arrows on the right), then mirrored.
+  const standR = Math.max(40, NAME_EDGE + inkW + 1);
+  const standX = mirrorX(standR, figW, e.dir);
   // Where they stop to say hi: at the edge on that side. There is no room for the bubble beyond them, so it sits on
   // the inner side, between the name and them, its tail slanting back to them.
-  const stopX = mx(e, 64, 7);
+  const stopR = 64;
+  const stopX = mirrorX(stopR, figW, e.dir);
   const exitX = e.dir > 0 ? W + 1 : -8;
-  const hello = speechBubble({ x: e.dir > 0 ? stopX - 3 : stopX + 9, top: 0, dir: e.dir > 0 ? -1 : 1, text: "HI!" });
+  const greeting = inkW > 40 ? "HI" : "HI!";
+  const hello = speechBubble({ x: e.dir > 0 ? stopX - 3 : stopX + 9, top: 0, dir: e.dir > 0 ? -1 : 1, text: greeting });
   const tWave = WALK_IN;
   const tPoint = tWave + WAVE;
   const tOver = tPoint + POINT;
@@ -173,8 +220,7 @@ export function walker(e: Redirect): Clip {
   const total = tExit + Math.abs(exitX - stopX) / SPEED;
   const enterX = e.dir > 0 ? -8 : W + 1;
   const walkX = (t: number) => lerp(enterX, standX, inOutCubic(span(t, 0, tWave)) * 0.3 + span(t, 0, tWave) * 0.7);
-  const f = font(BIG);
-  const nx = mx(e, 3, nameW(e));
+  const nx = mirrorX(NAME_EDGE, inkW, e.dir);
   const letterX: number[] = [];
   let pen = nx;
   for (const ch of e.name) {
@@ -186,10 +232,14 @@ export function walker(e: Redirect): Clip {
     const adv = (letterX[i + 1] ?? pen) - lx;
     for (let t = 0; t < tWave; t += 1 / 240) {
       const wx = walkX(t);
-      if (e.dir > 0 ? wx > lx + adv : wx + 7 < lx) return t;
+      if (e.dir > 0 ? wx > lx + adv : wx + figW < lx) return t;
     }
     return tWave;
   });
+  // The pointing arrows, 6 px apart from 10 px past where they stand, as many as fit short of the far edge.
+  const chevW = chevronWidth(7);
+  let arrows = 0;
+  while (standR + 10 + arrows * 6 + chevW <= W - 2) arrows++;
   const scene = clip(total, (r, t) => {
     r.fillRect(0, 0, W, H, BLACK);
     let x: number;
@@ -202,7 +252,7 @@ export function walker(e: Redirect): Clip {
     else [x, pose] = [stopX + Math.min(Math.abs(exitX - stopX), (t - tExit) * SPEED) * e.dir, walkFrame(t - tExit)];
     // The arrows point the way until they get there; the bubble takes that space.
     if (t >= tPoint && t < tHello) {
-      for (let k = 0; k < 3; k++) drawChevron(r, mx(e, 50 + k * 6, chevronWidth(7)), 4, 7, e.dir, mix(hex("#0B2A40"), CH, chase(t - tPoint, k, { period: 0.9, step: 0.15, decay: 0.22 })));
+      for (let k = 0; k < arrows; k++) drawChevron(r, mirrorX(standR + 10 + k * 6, chevW, e.dir), 4, 7, e.dir, mix(hex("#0B2A40"), CH, chase(t - tPoint, k, { period: 0.9, step: 0.15, decay: 0.22 })));
     }
     if (t >= tHello && t < tExit) hello.draw(r, t - tHello);
     drawWalker(r, x, 1, e.dir, pose, WHITE, t);
@@ -220,7 +270,8 @@ export function walker(e: Redirect): Clip {
 }
 
 /**
- * Trainer: Pkmn Life's battle stripes, "TRAINER ALEX can help you!", then "Go see ALEX!" with ▶ marching their way.
+ * Trainer: Pkmn Life's battle stripes, the dialogue box rising, "TRAINER ALEX can help you!", then "Go see ALEX!" with
+ * ▶ marching their way.
  */
 export function trainer(e: Redirect): Clip {
   const CPS = MOTION.typeSpeed;
@@ -228,31 +279,51 @@ export function trainer(e: Redirect): Clip {
   const page2 = [`Go see ${e.name}!`];
   const len1 = page1.join("").length / CPS;
   const len2 = page2.join("").length / CPS;
-  const P1 = len1 + 1.2;
+  // Each page stays up long enough to be read once it is typed.
+  const P1 = len1 + readTime(page1.join(" "));
   const P2 = len2 + 2.6;
   const talk = clip(P1 + P2, (r, t) => {
     if (t < P1) return drawDialogue(r, { lines: page1, typed: Math.floor(t * CPS), t });
     drawDialogue(r, { lines: page2, typed: Math.floor((t - P1) * CPS), t: 0.5 });
     const tt = t - P1 - len2;
-    if (tt > 0) for (let k = 0; k < 6; k++) drawTriangle(r, mx(e, 6 + k * 10, 4), 8, e.dir, DIALOGUE_LIGHT.arrow, chase(tt, k, { period: 0.8, step: 0.1, decay: 0.18, floor: 0.18 }));
+    // Six ▶ from 9 px in, so they are as far from the box's sides as from each other, clear of its bottom border.
+    if (tt > 0) for (let k = 0; k < 6; k++) drawTriangle(r, mirrorX(9 + k * 10, 4, e.dir), 7, e.dir, DIALOGUE_LIGHT.arrow, chase(tt, k, { period: 0.8, step: 0.1, decay: 0.18, floor: 0.35 }));
   });
   const toBlack = clip(0.3, (r, t) => {
     talk.draw(r, talk.duration);
     fade({ duration: 0.3, from: 0, to: 1 }).draw(r, t);
   });
-  return seq(holdEnd(stripes({ mode: "cover" }), 0.02), talk, toBlack, fade({ duration: 0.35, from: 1, to: 0 }));
+  // The box rises out of the black the stripes leave, instead of appearing in one frame.
+  const rise = layer(black(0.18), dialogueRise());
+  return seq(holdEnd(stripes({ mode: "cover" }), 0.02), rise, talk, toBlack, fade({ duration: 0.35, from: 1, to: 0 }));
 }
 
 /**
  * Scroller: chevron groups and the name stream towards them like a moving-walkway sign. The band's front wipes the
- * clock away as it arrives; at the end it speeds off and the clock is uncovered in the same direction.
+ * clock away as it arrives, slows to a stop with the first name centred for as long as it takes to read, and moves on;
+ * at the end it speeds off and the clock is uncovered in the same direction.
  */
 export function scroller(e: Redirect): Clip {
   const V = 30;
   const OUT = 0.6;
-  const total = HOLD + 0.6 + OUT;
-  const outAt = HOLD + 0.6;
-  const lead = (t: number) => t * V + (t > outAt ? Math.pow((t - outAt) / OUT, 2) * 160 : 0);
+  const RAMP = 0.3;
+  const PAUSE = readTime(e.name);
+  // The band, `V` px/s, brakes to a halt with the first name centred (the speed falling linearly over RAMP), stays
+  // for PAUSE, and accelerates back to speed; it ends up PAUSE + RAMP s behind where it would have been.
+  const stopAt = scrollBandCentreLead(e.name);
+  const brakeAt = (stopAt - (V * RAMP) / 2) / V;
+  const travel = (t: number) => {
+    if (t <= brakeAt) return V * t;
+    const s = t - brakeAt;
+    if (s <= RAMP) return V * brakeAt + V * (s - (s * s) / (2 * RAMP));
+    if (s <= RAMP + PAUSE) return stopAt;
+    const u = s - RAMP - PAUSE;
+    if (u <= RAMP) return stopAt + (V * u * u) / (2 * RAMP);
+    return stopAt + (V * RAMP) / 2 + V * (u - RAMP);
+  };
+  const outAt = HOLD + 0.6 + PAUSE + RAMP;
+  const total = outAt + OUT;
+  const lead = (t: number) => travel(t) + (t > outAt ? Math.pow((t - outAt) / OUT, 2) * 160 : 0);
   const band = scrollBand({ duration: total, text: e.name, dir: e.dir, lead, alpha: (t) => 1 - span(t, outAt + OUT * 0.6, total) });
   const scene = clip(total, (r, t) => {
     const d = Math.ceil(lead(t));

@@ -1,7 +1,7 @@
 // Arrows and wayfinding: chevrons, solid arrows and triangles drawn on the pixel grid, and clips that point the way
 // (a chase of chevrons, a nudging arrow, a band of chevrons and a word streaming past).
 
-import { font, textWidth, type FontName } from "../font.ts";
+import { font, inkWidth, type FontName } from "../font.ts";
 import { hex, mix, type Color, type Raster } from "../raster.ts";
 import { clip, type Clip } from "../timeline.ts";
 import { capCentre } from "./text.ts";
@@ -89,8 +89,22 @@ export function chevronChase(o: {
   });
 }
 
-/** A solid arrow at (x, y) that nudges `distance` px towards `dir` every `every` seconds, like pointing "over there". */
-export function arrowNudge(o: { duration: number; x: number; y: number; dir: Direction; every?: number; distance?: number; body?: Color; light?: Color }): Clip {
+/**
+ * A solid arrow at (x, y) that nudges `distance` px towards `dir` every `every` seconds, like pointing "over there".
+ * `streak` is how many dashes trail it while it moves (3 by default, 0 for none): fewer when a name stands close
+ * behind it, so the dashes never touch the lettering.
+ */
+export function arrowNudge(o: {
+  duration: number;
+  x: number;
+  y: number;
+  dir: Direction;
+  every?: number;
+  distance?: number;
+  streak?: number;
+  body?: Color;
+  light?: Color;
+}): Clip {
   const body = o.body ?? hex("#2F86FF");
   const light = o.light ?? hex("#9CC6FF");
   return clip(o.duration, (r, t) => {
@@ -99,9 +113,29 @@ export function arrowNudge(o: { duration: number; x: number; y: number; dir: Dir
     const ax = Math.round(o.x + dx);
     // A short streak behind it while it moves: dashes 3 px apart, mirrored exactly about the 13 px arrow, and no dimmer
     // than 0.3 (below that an LED does not show them).
-    if (Math.abs(dx) > 1.5) for (let k = 1; k <= 3; k++) r.fillRect(ax - o.dir * k * 3 + (o.dir > 0 ? 0 : 11), o.y + 5, 2, 1, { ...body, a: Math.max(0.3, 0.5 - k * 0.14) });
+    if (Math.abs(dx) > 1.5) for (let k = 1; k <= (o.streak ?? 3); k++) r.fillRect(ax - o.dir * k * 3 + (o.dir > 0 ? 0 : 11), o.y + 5, 2, 1, { ...body, a: Math.max(0.3, 0.5 - k * 0.14) });
     drawArrow(r, ax, o.y, o.dir, body, light);
   });
+}
+
+/** The band's measurements: chevrons 11 rows tall in groups of three 6 px apart, and 7 px of ground around each name. */
+function bandLayout(text: string, fontName: FontName | undefined) {
+  const cw = chevronWidth(11);
+  const groupW = cw + 6 * 2;
+  const GAP = 7;
+  // The name's ink: it is what is centred and mirrored, not the advance (which carries a pixel of trailing space).
+  const nw = inkWidth(text, font(fontName ?? "extra_large"));
+  return { cw, groupW, GAP, nw, unit: nw + GAP + groupW + GAP };
+}
+
+/**
+ * How far the band's front has travelled (`scrollBand`'s `lead`) when the first `text` is centred on a screen
+ * `screen` px wide: the same on either side, since the band mirrors exactly. A scene pauses the band here to let the
+ * name be read.
+ */
+export function scrollBandCentreLead(text: string, o: { font?: FontName; screen?: number } = {}): number {
+  const { groupW, GAP, nw } = bandLayout(text, o.font);
+  return ((o.screen ?? 72) + nw) / 2 + GAP + groupW + GAP;
 }
 
 /**
@@ -126,31 +160,31 @@ export function scrollBand(o: {
   const f = font(o.font ?? "extra_large");
   const ramp = o.ramp ?? [hex("#123A78"), hex("#2F86FF"), hex("#A9D0FF")];
   const H_CH = 11;
-  const cw = chevronWidth(H_CH);
   const STEP = 6;
-  const groupW = cw + STEP * 2;
-  const nw = textWidth(o.text, f);
-  const GAP = 7;
-  const unit = nw + GAP + groupW + GAP;
+  const { cw, groupW, GAP, nw, unit } = bandLayout(o.text, o.font);
   const lead = o.lead ?? ((t: number) => t * (o.speed ?? 30));
   return clip(o.duration, (r, t) => {
     const W = r.width;
     const d = lead(t);
     const a = o.alpha?.(t) ?? 1;
-    // Band coordinate u (px behind the front) to screen x.
-    const at = (u: number) => (o.dir > 0 ? d - u : W - d + u);
+    // Band coordinate u (px behind the front) of something `w` wide, to the screen x of its left edge. Rounded in the
+    // rightward layout and mirrored from it, so the two sides are exact mirror images, half pixels included.
+    const left = (u: number, w: number) => {
+      const x = Math.round(d - u - w);
+      return o.dir > 0 ? x : W - w - x;
+    };
     const y = o.y ?? 2;
     for (let k = Math.max(0, Math.floor((d - W) / unit) - 1); k * unit <= d + unit; k++) {
       const groupLead = k * unit + GAP;
       for (let i = 0; i < 3; i++) {
         const tip = groupLead + i * STEP; // i = 0: the frontmost chevron
-        const x = o.dir > 0 ? at(tip) - cw : at(tip);
+        const x = left(tip, cw);
         const shimmer = Math.exp(-(((((t * 2.2 - i * 0.18 - k * 0.3) % 1) + 1) % 1) / 0.12));
-        drawChevron(r, Math.round(x), y, H_CH, o.dir, mix(ramp[2 - i]!, WHITE, 0.6 * shimmer), a);
+        drawChevron(r, x, y, H_CH, o.dir, mix(ramp[2 - i]!, WHITE, 0.6 * shimmer), a);
       }
       const nameLead = groupLead + groupW + GAP;
-      const nx = o.dir > 0 ? at(nameLead) - nw : at(nameLead);
-      if (nx > -nw && nx < W) r.text(o.text, f, Math.round(nx), capCentre(o.font ?? "extra_large", r.height), o.color ?? WHITE, () => ({ alpha: a }));
+      const nx = left(nameLead, nw);
+      if (nx > -nw && nx < W) r.text(o.text, f, nx, capCentre(o.font ?? "extra_large", r.height), o.color ?? WHITE, () => ({ alpha: a }));
     }
     // Speed lines on the edge rows, twice as fast, only where the band has arrived.
     const lines = o.lines ?? ramp[1];
@@ -158,8 +192,8 @@ export function scrollBand(o: {
       for (const row of [0, r.height - 1]) {
         const len = 3 + ((k * 7 + row) % 4);
         const u = ((d * 2 + k * 23 + row * 11) % (W + 20)) - 10;
-        const x = o.dir > 0 ? u : W - u - len;
-        if (o.dir > 0 ? x < d : x + len > W - d) r.fillRect(Math.round(x), row, len, 1, { ...lines, a: 0.45 * a });
+        const x = o.dir > 0 ? Math.round(u) : W - Math.round(u) - len;
+        if (u < d) r.fillRect(x, row, len, 1, { ...lines, a: 0.45 * a });
       }
     }
   });

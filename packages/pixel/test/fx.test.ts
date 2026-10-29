@@ -26,6 +26,8 @@ import {
   renderFrames,
   rng,
   roll,
+  scrollBand,
+  scrollBandCentreLead,
   seq,
   speechBubbleSize,
   spinner,
@@ -361,6 +363,60 @@ test("the title card and the words roll centre on the ink", () => {
       roll({ words: [{ text, font: name, hold: 1 }], box: { x: 0, width: 72 } }).draw(rolled, 0.5);
       const w = inkMargins(rolled);
       assert.ok(Math.abs(w.left - w.right) <= 1, `roll ${name} ${text}: margins ${w.left} / ${w.right}`);
+    }
+  }
+});
+
+test("arrowNudge draws as many streak dashes as asked", () => {
+  const dashes = (streak?: number) => {
+    const r = new Raster(72, 16);
+    arrowNudge({ duration: 1, x: 30, y: 1, dir: 1, streak }).draw(r, 0.21);
+    return lit(r).filter(([x, y]) => y === 6 && x < 33).length;
+  };
+  assert.equal(dashes(), 6, "three 2 px dashes by default");
+  assert.equal(dashes(2), 4);
+  assert.equal(dashes(0), 0);
+});
+
+test("scrollBand mirrors exactly, and its first name is centred at scrollBandCentreLead", () => {
+  const RED = hex("#FF0000");
+  const isName = (r: Raster, x: number, y: number) => r.data[(y * 72 + x) * 4]! > 0.99 && r.data[(y * 72 + x) * 4 + 1]! < 0.01;
+  /** The columns the name's ink covers (pure red: no chevron or line is). */
+  const nameCols = (r: Raster) => {
+    const cols = new Set<number>();
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 72; x++) if (isName(r, x, y)) cols.add(x);
+    return cols.size ? { x0: Math.min(...cols), x1: Math.max(...cols) } : null;
+  };
+  for (const text of ["SAM", "ALEX", "DAMIAN"]) {
+    const draw = (dir: 1 | -1, lead: number) => {
+      const r = new Raster(72, 16);
+      scrollBand({ duration: 5, text, dir, lead: () => lead, color: RED }).draw(r, 0.4);
+      return r;
+    };
+    const centre = scrollBandCentreLead(text);
+    // Whole and half pixels alike: apart from the lettering (which is never flipped), the left band is the right band
+    // flipped, and the name's ink sits mirrored.
+    for (const lead of [40, 77, 91, 91.5, 100.5, 133, centre - 2.5, centre, centre + 3.5]) {
+      const right = draw(1, lead);
+      const left = draw(-1, lead);
+      for (let y = 0; y < 16; y++) {
+        for (let x = 0; x < 72; x++) {
+          if (isName(left, x, y) || isName(right, 71 - x, y)) continue;
+          for (let k = 0; k < 4; k++) {
+            assert.ok(Math.abs(left.data[(y * 72 + x) * 4 + k]! - right.data[(y * 72 + (71 - x)) * 4 + k]!) < 1e-6, `${text} lead ${lead}: (${x},${y}) channel ${k}`);
+          }
+        }
+      }
+      const a = nameCols(right);
+      const b = nameCols(left);
+      if (a && b && a.x0 > 0 && a.x1 < 71) assert.deepEqual({ x0: 71 - b.x1, x1: 71 - b.x0 }, a, `${text} lead ${lead}: the name's ink is mirrored`);
+    }
+    // At the centre lead the first name's ink is centred, to the half pixel, and whole.
+    for (const dir of [1, -1] as const) {
+      const cols = nameCols(draw(dir, centre))!;
+      assert.ok(cols, `${text}: the name is on screen`);
+      assert.equal(cols.x1 - cols.x0 + 1, inkWidth(text, font("extra_large")), `${text}: the ink is whole`);
+      assert.ok(Math.abs(cols.x0 - (71 - cols.x1)) <= 1, `${text} dir ${dir}: margins ${cols.x0} / ${71 - cols.x1}`);
     }
   }
 });
