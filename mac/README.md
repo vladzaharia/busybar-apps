@@ -31,10 +31,10 @@ amber, Title Card in the bar's orange.
 While the pointer is on the panel, a second card comes out under the buttons (and goes away a moment after the
 pointer leaves, not while a menu is open or a request is on its way):
 
-- The status: whether the bar answers, and how the last request went.
 - **Title Card**: today's Majora's Mask "Dawn of the Nth Day".
 - **Stop**: stops whatever is playing.
-- The gear: Settings.
+- The gear: Settings. Its dot is the connection: green while the bar answers, orange for the simulator, red when the
+  last request failed or the bar needs something (Mac remote off). Point at the gear for the status in full.
 - **…**: start Pkmn Life on the bar, check the connection, the panel's placement, Quit.
 
 The menu bar icon has all of the same, plus **Show Panel**.
@@ -64,8 +64,17 @@ swift test                           # the PkmnLifeRemoteKit tests (these also r
 open "dist/Pkmn Life Remote.app"     # or drag it to /Applications
 ```
 
-To try it without a bar, run the mock bar and point the app at it (any saved preference can be overridden for one
-run this way):
+To try it without a bar, drive the simulator: it runs Pkmn Life's real build in a browser and answers the bar's
+HTTP API, so a click on the panel plays on the simulated bar and Settings edits its settings
+([packages/sim](../packages/sim)).
+
+```sh
+cd apps/pkmn-life && pnpm sim:serve                                   # then open http://127.0.0.1:2879/
+"dist/Pkmn Life Remote.app/Contents/MacOS/PkmnLifeRemote" -host 127.0.0.1:2879   # or type it in Settings
+```
+
+The status then reads "Connected to the simulator", with an orange dot. For checks that need no browser, the mock bar
+answers the same API from memory (any saved preference can be overridden for one run this way):
 
 ```sh
 Tools/mock-bar.py &                                                   # prints each request the app makes
@@ -77,8 +86,8 @@ same port. The app says so if the address answers but isn't a bar.
 
 `Tools/screenshots.sh` builds the app and captures it in every state (shown, hovered, tucked, peeking, pinned, both
 Settings tabs; light and dark) into `screens/`, with the mock on a free port. The **Mac visual check** workflow runs
-it on a macOS 26 runner (Actions → Mac visual check → Run workflow) and uploads the `mac-screens` artifact. The app's
-launch options for this (`--appearance`, `--pin`, `--peek`, `--settings`, `--snapshot`) are listed in
+it on GitHub's `xcode-27` runner (Actions → Mac visual check → Run workflow) and uploads the `mac-screens` artifact.
+The app's launch options for this (`--appearance`, `--pin`, `--peek`, `--settings`, `--snapshot`) are listed in
 `LaunchOptions.swift`. Screen captures need Screen Recording permission and an unlocked screen; `--snapshot` works
 without either, and its `panel-render.png` (drawn by SwiftUI, with stand-in glass) is the one to look at then.
 
@@ -108,7 +117,7 @@ Pkmn Life has to be running on the bar. The remote doesn't start it on every cli
 | `Sources/PkmnLifeRemote/Panel` | The floating panel and its placement (`PanelController`) |
 | `Sources/PkmnLifeRemote/Views` | The SwiftUI views: the panel's cards and buttons, the tab, the two Settings tabs |
 | `Sources/PkmnLifeRemote` | The app, its state (`RemoteModel`, `BarSettingsModel`), the Settings window, the keychain, launch options |
-| `Tools` | `mock-bar.py` (the bar's HTTP API, in memory) and `screenshots.sh` |
+| `Tools` | `mock-bar.py` (the bar's HTTP API, in memory), `screenshots.sh`, and `ci/`: the release scripts ([RELEASE.md](RELEASE.md)) |
 
 `Catalog` and `PkmnSettings` mirror `apps/pkmn-life/src/presets.ts` and `appmeta/settings.json`. When you add an
 entry or a setting there, add it here too; `swift test` fails until the two match.

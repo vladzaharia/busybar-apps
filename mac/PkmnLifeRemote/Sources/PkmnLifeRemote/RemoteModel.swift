@@ -10,6 +10,8 @@ final class RemoteModel {
     private(set) var connected = false
     /// The address answered as the simulator (packages/sim's server) rather than a bar.
     private(set) var simulator = false
+    /// The last request failed, or the bar needs something done (Mac remote is off): the panel's dot turns red.
+    private(set) var problem = false
     /// The button whose request is on its way, if any.
     private(set) var sending: String?
 
@@ -66,12 +68,15 @@ final class RemoteModel {
                 switch try await client.send(words) {
                 case .sent:
                     status = done
+                    problem = false
                 case .remoteOff:
                     status = "Turn on \"Mac remote\" in Pkmn Life's settings on the bar."
+                    problem = true
                 }
                 connected = true
             } catch {
                 connected = false
+                problem = true
                 status = error.localizedDescription
             }
         }
@@ -86,10 +91,12 @@ final class RemoteModel {
                 let version = try await client.ping()
                 _ = try await client.settings()
                 connected = true
+                problem = false
                 simulator = BarClient.isSimulator(version: version)
                 status = "Connected to the \(simulator ? "simulator" : "bar") at \(client.host)"
             } catch {
                 connected = false
+                problem = true
                 simulator = false
                 status = error.localizedDescription
             }
@@ -103,8 +110,10 @@ final class RemoteModel {
             do {
                 try await client.launch()
                 connected = true
+                problem = false
                 status = "Started Pkmn Life on the bar"
             } catch {
+                problem = true
                 status = error.localizedDescription
             }
         }

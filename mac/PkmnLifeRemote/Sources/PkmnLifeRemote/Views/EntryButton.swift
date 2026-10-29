@@ -73,6 +73,7 @@ struct PillButton: View {
             .font(.callout.weight(.medium))
             .symbolEffect(.pulse, isActive: busy)
             .lineLimit(1)
+            .padding(.horizontal, 10)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 7)
             .panelFill(Capsule(), hovering: hovering, busy: busy)
@@ -83,10 +84,11 @@ struct PillButton: View {
     }
 }
 
-/// A small round button holding only a symbol.
+/// A small round button holding only a symbol. Its tooltip is `help`, or else its label.
 struct IconButton: View {
     let symbol: String
     let label: String
+    var help: String?
     let action: () -> Void
 
     @State private var hovering = false
@@ -98,7 +100,7 @@ struct IconButton: View {
         }
         .buttonStyle(PressStyle())
         .onHover { hovering = $0 }
-        .help(label)
+        .help(help ?? label)
         .accessibilityLabel(label)
     }
 }

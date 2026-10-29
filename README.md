@@ -22,8 +22,7 @@ pnpm typecheck && pnpm test
 ```
 
 Claude Code cloud sessions run it on start (`.claude/hooks/session-start.sh`), so a new session can typecheck, test,
-run the simulator and run the Mac app's Swift tests straight away. Where things stand and what's next:
-[`HANDOFF.md`](HANDOFF.md).
+run the simulator and run the Mac app's Swift tests straight away.
 
 ## Run an app
 

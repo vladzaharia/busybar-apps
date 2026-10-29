@@ -10,7 +10,7 @@ struct RemotePanelView: View {
     let controller: PanelController
 
     /// Both cards' width: room for three buttons, and more as people are added.
-    static func width(buttons: Int) -> CGFloat { max(272, 20 + CGFloat(buttons) * 81 + CGFloat(buttons - 1) * 4) }
+    static func width(buttons: Int) -> CGFloat { max(280, 20 + CGFloat(buttons) * 81 + CGFloat(buttons - 1) * 4) }
 
     var body: some View {
         let state = controller.state
@@ -63,41 +63,34 @@ struct RemotePanelView: View {
     }
 }
 
-/// The card that shows while the pointer is on the panel: whether the bar answers and the last result, Title Card,
-/// Stop, Settings, and the … menu.
+/// The card that shows while the pointer is on the panel, one row: Title Card, Stop, Settings and the … menu. The
+/// connection's dot sits on the gear; the status in full is its tooltip, and in Settings.
 struct DetailsCard: View {
     let model: RemoteModel
     let controller: PanelController
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top, spacing: 6) {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
+        HStack(spacing: 6) {
+            PillButton(title: "Title Card", symbol: "calendar.badge.clock", color: Palette.busy, busy: model.sending == "card") {
+                model.titleCard()
+            }
+            .fixedSize(horizontal: true, vertical: false)
+            .help("Plays today's Majora's Mask title card")
+            .accessibilityHint("Plays today's Majora's Mask title card on the bar.")
+            PillButton(title: "Stop", symbol: "stop.fill", color: Palette.stop, busy: model.sending == "stop") {
+                model.stop()
+            }
+            .accessibilityHint("Stops whatever is playing on the bar.")
+            IconButton(symbol: "gearshape", label: "Settings", help: "Settings. \(model.status)") { controller.openSettings() }
+                .overlay(alignment: .topTrailing) {
                     StatusDot(model: model)
-                    // Two lines' room either way, so the card keeps its size as the status changes.
-                    Text(model.status)
-                        .font(.callout)
-                        .lineLimit(2, reservesSpace: true)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .help(model.status)
+                        .offset(x: 1, y: -1)
+                        .allowsHitTesting(false)
                 }
-                .padding(.top, 5)
-                IconButton(symbol: "gearshape", label: "Settings") { controller.openSettings() }
-                PanelMenuButton(model: model, controller: controller)
-            }
-            HStack(spacing: 8) {
-                PillButton(title: "Title Card", symbol: "calendar.badge.clock", color: Palette.busy, busy: model.sending == "card") {
-                    model.titleCard()
-                }
-                .help("Plays today's Majora's Mask title card")
-                .accessibilityHint("Plays today's Majora's Mask title card on the bar.")
-                PillButton(title: "Stop", symbol: "stop.fill", color: Palette.stop, busy: model.sending == "stop") {
-                    model.stop()
-                }
-                .accessibilityHint("Stops whatever is playing on the bar.")
-            }
+                .accessibilityValue(model.status)
+            PanelMenuButton(model: model, controller: controller)
         }
-        .padding(14)
+        .padding(10)
     }
 }
 
@@ -132,14 +125,15 @@ private struct PanelMenuButton: View {
     }
 }
 
-/// Green while the bar answers, the BUSY orange while the simulator does, grey otherwise.
+/// Green while the bar answers, the BUSY orange while the simulator does, red when the last request failed or needs
+/// something done on the bar, grey before the first answer.
 struct StatusDot: View {
     let model: RemoteModel
 
     var body: some View {
         Image(systemName: "circle.fill")
             .font(.system(size: 8))
-            .foregroundStyle(!model.connected ? Color.secondary : model.simulator ? Palette.busy : Color.green)
+            .foregroundStyle(model.problem ? Color.red : !model.connected ? Color.secondary : model.simulator ? Palette.busy : Color.green)
             .accessibilityHidden(true)
     }
 }

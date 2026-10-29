@@ -25,7 +25,9 @@ built on shared libraries that grow with every app.
   it with `remoteInbox` (apps can't be sent messages directly).
 - Go through `@vladzaharia/bar-core` for anything that talks to the bar. If an app needs a new kind of call, add it to
   core, not to the app.
-- No passwords or tokens in the repository.
+- No passwords or tokens in the repository, and no names of real people: the repository is public. The people
+  Pkmn Life's redirects send to live in a git-ignored `apps/pkmn-life/redirects.json` (see its README); examples and
+  tests use Sam and Alex.
 
 ## Build screens from components
 
@@ -64,8 +66,7 @@ built on shared libraries that grow with every app.
 
 ## Checking your work
 
-Start from [`HANDOFF.md`](HANDOFF.md) (where things stand, what's unverified, what's next) and keep it current when you
-finish a piece of work. A fresh machine needs `scripts/setup.sh` first (cloud sessions run it automatically).
+A fresh machine needs `scripts/setup.sh` first (cloud sessions run it automatically).
 
 ```sh
 pnpm typecheck            # every package and app (apps render their assets first)

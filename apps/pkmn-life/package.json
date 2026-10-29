@@ -13,7 +13,8 @@
     "app:uninstall": "busy-cli app uninstall",
     "app:run": "busy-cli app run",
     "app:stop": "busy-cli app stop",
-    "sim": "node ../../packages/sim/scripts/build.ts . --out dist/sim"
+    "sim": "node ../../packages/sim/scripts/build.ts . --out dist/sim",
+    "sim:serve": "node ../../packages/sim/scripts/build.ts . --out dist/sim --serve"
   },
   "dependencies": {
     "@vladzaharia/bar-core": "workspace:*"
