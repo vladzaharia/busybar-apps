@@ -44,15 +44,22 @@ public struct BarClient: Sendable {
         case remoteOff
     }
 
-    /// Whether the bar answers at all.
-    public func ping() async throws {
+    /// Whether the bar answers at all, and the version it gives, if any.
+    @discardableResult
+    public func ping() async throws -> String? {
+        let data: Data
         do {
-            _ = try await request("GET", "version")
+            data = try await request("GET", "version")
         } catch let error as BarError where error == BarError.status(404) {
             // Every BUSY Bar has /api/version: this is some other web server.
             throw BarError("Something at \(host) answered, but it isn't a BUSY Bar.")
         }
+        guard case .string(let version)? = (try? JSONDecoder().decode([String: JSONValue].self, from: data))?["version"] else { return nil }
+        return version
     }
+
+    /// Whether a version from `ping` is the simulator's (packages/sim serves the bar's API as "bar-sim").
+    public static func isSimulator(version: String?) -> Bool { version?.lowercased().contains("sim") == true }
 
     /// Pkmn Life's settings document: {"version": n, "values": {...}}.
     public func settings() async throws -> [String: JSONValue] {

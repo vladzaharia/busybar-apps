@@ -20,9 +20,13 @@ without sliding.
 
 On the panel:
 
-- **Sam**, **Ticket** (File a Ticket), **Alex**, left to right as the redirects point: click a button to play it.
-  Its tooltip says what a click plays. Right-click (or Control-click) to play a particular version now, or to change
-  what a click plays: the bar's own setting, random, or one version.
+- A round button per entry, left to right as the redirects point: the people to the left of the bar, **Ticket**
+  (File a Ticket), the people to the right. Who they are is set in Settings (below). Click a button to play it. Its
+  tooltip says what a click plays. Right-click (or Control-click) to play a particular version now, or to change what
+  a click plays: the bar's own setting, random, or one version.
+
+The colours come from what each entry looks like on the bar: the ticket in Jira blue, the redirects in Runway's
+amber, Title Card in the bar's orange.
 
 While the pointer is on the panel, a second card comes out under the buttons (and goes away a moment after the
 pointer leaves, not while a menu is open or a request is on its way):
@@ -39,7 +43,9 @@ The menu bar icon has all of the same, plus **Show Panel**.
 
 - **General**: the bar's address (`10.0.4.20` over USB, otherwise its Wi-Fi address from the bar's web UI), its HTTP
   API password if password protection is on (web UI: Network, HTTP API; not needed over USB; kept in your keychain),
-  and where the panel stays.
+  who the redirects send to, and where the panel stays. **Redirects** takes the same list as Pkmn Life's
+  `redirects.json` ([apps/pkmn-life](../apps/pkmn-life#who-the-redirects-send-to)): `< Sam, Alex >`, where `< Sam`
+  sits to the left of the bar and `Alex >` to the right. The names stay in this Mac's preferences.
 - **Pkmn Life**: the app's own settings on the bar, the same as on the bar and in its web UI: the ticket and redirect
   styles, the clock, the title cards, sprint changes, Mac remote. Changes go to the bar as you make them, and Pkmn
   Life picks them up within a second while **Mac remote** is on (otherwise when it next starts).

@@ -44,7 +44,7 @@ public enum PkmnSettings {
                      .string("alternate"), group: "Entries", help: "How FILE A TICKET plays when started on the bar. OK on the back changes it until the next change here."),
         SettingField("redirect_style", "Redirect style",
                      options([("random", "Random"), ("runway", "Runway"), ("nudge", "Nudge"), ("sign", "Wayfinding sign"), ("walker", "Walker"), ("trainer", "Trainer"), ("scroller", "Scroller")]),
-                     .string("random"), group: "Entries", help: "How ALEX and SAM play when started on the bar."),
+                     .string("random"), group: "Entries", help: "How the redirects play when started on the bar."),
         SettingField("clock_style", "Clock", options([("plain", "Plain clock"), ("bar", "Sprint bar"), ("dots", "Sprint dots"), ("majora", "Majora's Mask")]),
                      .string("majora"), group: "Clock"),
         SettingField("time_format", "Time format", options([("24h", "24-hour"), ("12h", "12-hour")]), .string("24h"), group: "Clock"),

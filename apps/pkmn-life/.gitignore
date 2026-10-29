@@ -3,3 +3,6 @@ src/animations/
 src/images/
 src/generated/
 src/appmeta/icon_*.png
+
+# Your redirects (names and sides): see the README. redirects.example.json is used without one.
+redirects.json

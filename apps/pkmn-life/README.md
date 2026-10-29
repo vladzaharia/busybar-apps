@@ -6,10 +6,24 @@ current sprint. The back is a handheld-RPG move menu: pick an entry and press ST
 | Entry | What the front shows | Styles |
 | --- | --- | --- |
 | FILE A TICKET | "Did you file a JIRA ticket yet???" | **Wild encounter**: the screen flashes and stripes away, a wild ISSUE slides in with its HP bar, and the message plays out in typed dialogue boxes. **Burst ticker**: the clock switches off into a burst, the Jira chevrons fly in, the message glides in letter by letter, then rolls up in full. |
-| ALEX | Sends people to Alex, on the right | **Runway** (amber chevrons chasing his way), **Nudge** (a big arrow pointing and nudging), **Wayfinding sign** (a yellow airport sign sliding in from his side), **Walker** (a little person walks in, points, and heads off his way), **Trainer** ("TRAINER ALEX can help you!"), **Scroller** (chevrons and his name streaming his way). |
-| SAM | The same, to Sam on the left | As ALEX, mirrored. |
+| A person, e.g. ALEX | Sends people to Alex, on the right | **Runway** (amber chevrons chasing their way), **Nudge** (a big arrow pointing and nudging), **Wayfinding sign** (a yellow airport sign sliding in from their side), **Walker** (a little person walks in, points, and heads off their way), **Trainer** ("TRAINER ALEX can help you!"), **Scroller** (chevrons and the name streaming their way). Mirrored for someone on the left. |
 
 "Right" and "left" are as someone facing the front display sees them.
+
+## Who the redirects send to
+
+The names aren't in the repository. Put them in `redirects.json` in this folder (git ignores it), one entry per
+person with the side they sit on: `"< Name"` on the left, `"Name >"` on the right.
+
+```json
+["< Sam", "Alex >"]
+```
+
+Without the file, the build uses `redirects.example.json` (the two above). `pnpm assets` (part of `pnpm build`,
+`pnpm sim` and `pnpm typecheck`) renders each person's animations and the back menu from it, so change the file and
+build again. A name can be about five letters (it must fit the front in the large font beside Runway's chevrons;
+the build says so if it doesn't), and up to six people fit the back menu. Each entry's id, which the Mac remote uses,
+is its name in lower case without spaces or punctuation: `alex`. Give the [Mac app](../../mac) the same list.
 
 ## Controls
 
@@ -22,7 +36,7 @@ current sprint. The back is a handheld-RPG move menu: pick an entry and press ST
 | BACK | Leave the app | Stop it |
 
 The back header shows how the next START will play. FILE A TICKET cycles alternate → random → encounter → ticker
-("alternate" switches style after each play). ALEX and SAM cycle random → each of the six looks. In random, each
+("alternate" switches style after each play). The redirects cycle random → each of the six looks. In random, each
 START picks a style, every style coming up once per round in a fresh order.
 
 ## Clock
@@ -58,7 +72,7 @@ app reads them when it starts, and while **Mac remote** is on it also picks up c
 | Setting | |
 | --- | --- |
 | Ticket style | FILE A TICKET's starting style: alternate, random, wild encounter or burst ticker |
-| Redirect style | ALEX and SAM's starting style: random or one of the six |
+| Redirect style | The redirects' starting style: random or one of the six |
 | Clock | Plain, sprint bar, sprint dots or Majora's Mask |
 | Title cards, Title card time | The Majora's Mask cards each work day, and when |
 | Sprint changes | Moved or longer sprints, a new cadence, days off (above) |

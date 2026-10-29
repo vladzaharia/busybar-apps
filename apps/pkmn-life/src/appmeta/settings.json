@@ -28,7 +28,7 @@
     },
     "redirect_style": {
       "label": "Redirect style",
-      "description": "How ALEX and SAM play on the front. OK on the back changes it while the app runs.",
+      "description": "How the redirects play on the front. OK on the back changes it while the app runs.",
       "type": "enum",
       "default": "random",
       "options": [

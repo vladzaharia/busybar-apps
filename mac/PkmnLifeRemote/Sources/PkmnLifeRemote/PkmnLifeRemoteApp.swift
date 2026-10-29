@@ -53,7 +53,7 @@ struct MenuBarMenu: View {
     let panel: PanelController
 
     var body: some View {
-        ForEach(Catalog.entries) { entry in
+        ForEach(model.entries) { entry in
             Menu(entry.title) {
                 Button("Play (\(Catalog.choiceName(model.clickChoice(for: entry), in: entry)))") { model.play(entry) }
                 Divider()

@@ -1,8 +1,8 @@
 // Pkmn Life: a clock on the front (plain, or with the sprint), a move menu on the back. Turn the wheel to pick an
-// entry (FILE A TICKET, ALEX, SAM), press START to play it on the front, OK to change how it plays (a fixed style,
-// or random), hold START for today's Majora's Mask title card, BACK to stop what is playing or leave the app. The
-// Pkmn Life Remote Mac app can do the same from a desk, and change the settings while the app runs (see remoteInbox
-// below).
+// entry (FILE A TICKET, then a redirect per person), press START to play it on the front, OK to change how it plays
+// (a fixed style, or random), hold START for today's Majora's Mask title card, BACK to stop what is playing or leave
+// the app. The Pkmn Life Remote Mac app can do the same from a desk, and change the settings while the app runs (see
+// remoteInbox below).
 //
 // All motion is pre-rendered (see assets/): this file only names animation sections and draws the clock, so the
 // bar's web server sees a request per second for the clock and a few per button press.

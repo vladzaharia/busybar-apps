@@ -1,6 +1,6 @@
-// Front redirects: "go see ALEX" (to the right) or "go see SAM" (to the left), in six looks. Each plays over the
-// live clock: its opening covers the clock (a wipe, an arrow's sweep, a sign sliding over, a fade, stripes, the band's
-// front) and its ending uncovers it again, so the clip is transparent at both ends.
+// Front redirects: "go see ALEX" (someone to the right) or "go see SAM" (to the left), in six looks. Each plays over
+// the live clock: its opening covers the clock (a wipe, an arrow's sweep, a sign sliding over, a fade, stripes, the
+// band's front) and its ending uncovers it again, so the clip is transparent at both ends.
 //
 // Directions are as someone facing the front display sees them; every look mirrors for the other side.
 
@@ -208,7 +208,9 @@ function walker(e: Redirect): Clip {
   return seq(fade({ from: 0, to: 1, duration: FADE }), scene, fadeOut, fade({ from: 1, to: 0, duration: 0.35 }));
 }
 
-/** Trainer: Pkmn Life's battle stripes, "TRAINER ALEX can help you!", then "Go see ALEX!" with ▶ marching their way. */
+/**
+ * Trainer: Pkmn Life's battle stripes, "TRAINER ALEX can help you!", then "Go see ALEX!" with ▶ marching their way.
+ */
 function trainer(e: Redirect): Clip {
   const CPS = MOTION.typeSpeed;
   const page1 = [`TRAINER ${e.name}`, "can help you!"];

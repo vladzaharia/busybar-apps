@@ -15,7 +15,7 @@ final class PanelState {
     /// The card under the buttons (status, Title Card, Stop, Settings): out while the pointer is on the panel.
     var details = false
     var dockMode: DockMode {
-        didSet { UserDefaults.standard.set(dockMode.rawValue, forKey: "dockMode") }
+        didSet { if dockMode != oldValue { UserDefaults.standard.set(dockMode.rawValue, forKey: "dockMode") } }
     }
 
     init() {

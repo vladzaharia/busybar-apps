@@ -1,6 +1,9 @@
 // What Pkmn Life can show, shared by the asset build (which renders every entry's animations) and the app (which
-// lists them on the back). Add an entry here and run `pnpm build`. Text is printable ASCII: the device fonts have
-// nothing else.
+// lists them on the back). The people the redirects send to come from redirects.json (see the README), so no names
+// live in the repository. Add a nag here, or a person there, and run `pnpm build`. Text is printable ASCII: the
+// device fonts have nothing else.
+
+import { PEOPLE } from "./generated/redirects.ts";
 
 /** The styles a nag can be shown in. */
 export const NAG_STYLES = ["encounter", "ticker"] as const;
@@ -41,8 +44,14 @@ export type Entry = Nag | Redirect;
 
 export const ENTRIES: Entry[] = [
   { kind: "nag", id: "ticket", move: "FILE A TICKET", message: "Did you file a JIRA ticket yet???", accent: ["JIRA"] },
-  { kind: "redirect", id: "alex", move: "ALEX", name: "ALEX", dir: 1, message: "Send them right, to ALEX." },
-  { kind: "redirect", id: "sam", move: "SAM", name: "SAM", dir: -1, message: "Send them left, to SAM." },
+  ...PEOPLE.map(({ id, name, dir }): Redirect => ({
+    kind: "redirect",
+    id,
+    move: name,
+    name,
+    dir,
+    message: `Send them ${dir > 0 ? "right" : "left"}, to ${name}.`,
+  })),
 ];
 
 /** The styles an entry can be shown in. */

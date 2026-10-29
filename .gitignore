@@ -19,3 +19,6 @@ design-out/
 
 # Pkmn Life Remote screenshots (mac/PkmnLifeRemote/Tools/screenshots.sh)
 screens/
+
+# Claude Code agent worktrees (each is its own checkout)
+.claude/worktrees/

@@ -8,12 +8,25 @@ import PkmnLifeRemoteKit
 final class RemoteModel {
     private(set) var status = "Not connected yet"
     private(set) var connected = false
-    /// The tile whose request is on its way, if any.
+    /// The address answered as the simulator (packages/sim's server) rather than a bar.
+    private(set) var simulator = false
+    /// The button whose request is on its way, if any.
     private(set) var sending: String?
 
+    /// Saved only when it changes, so `-host` on the command line (Tools/screenshots.sh) stays a one-run override even
+    /// when a text field writes back the same value.
     var host: String {
-        didSet { UserDefaults.standard.set(host, forKey: "host") }
+        didSet { if host != oldValue { UserDefaults.standard.set(host, forKey: "host") } }
     }
+
+    /// Who Pkmn Life's redirects send people to, the same list as its redirects.json. The names stay in this Mac's
+    /// preferences.
+    var people: [Person] {
+        didSet { if people != oldValue { UserDefaults.standard.set(Person.text(people), forKey: "people") } }
+    }
+
+    /// Every entry the bar plays, in its order.
+    var entries: [Entry] { Catalog.entries(people) }
 
     /// What a click on each entry plays (entry id to choice), as picked from the tile's context menu.
     private var clickChoices: [String: String] {
@@ -22,6 +35,7 @@ final class RemoteModel {
 
     init() {
         host = UserDefaults.standard.string(forKey: "host") ?? "10.0.4.20"
+        people = Person.list(UserDefaults.standard.string(forKey: "people") ?? "") ?? []
         clickChoices = UserDefaults.standard.dictionary(forKey: "clickChoices") as? [String: String] ?? [:]
     }
 
@@ -69,12 +83,14 @@ final class RemoteModel {
         let client = self.client
         Task {
             do {
-                try await client.ping()
+                let version = try await client.ping()
                 _ = try await client.settings()
                 connected = true
-                status = "Connected to the bar at \(client.host)"
+                simulator = BarClient.isSimulator(version: version)
+                status = "Connected to the \(simulator ? "simulator" : "bar") at \(client.host)"
             } catch {
                 connected = false
+                simulator = false
                 status = error.localizedDescription
             }
         }

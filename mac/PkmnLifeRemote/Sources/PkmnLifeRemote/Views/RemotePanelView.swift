@@ -2,24 +2,20 @@ import AppKit
 import PkmnLifeRemoteKit
 import SwiftUI
 
-/// The floating remote: a glass card of round buttons (Sam, the ticket, Alex), and under it, while the pointer is on
-/// the panel, a second card with the status, Title Card, Stop, Settings and the … menu. The tab that pins or tucks
-/// the panel is on the left.
+/// The floating remote: a glass card of round buttons (the people to the left of the bar, the ticket, the people to
+/// the right), and under it, while the pointer is on the panel, a second card with the status, Title Card, Stop,
+/// Settings and the … menu. The tab that pins or tucks the panel is on the left.
 struct RemotePanelView: View {
     let model: RemoteModel
     let controller: PanelController
 
-    static let width: CGFloat = 272
-
-    /// Left to right as the redirects point: Sam to the left, the ticket, Alex to the right. Entries without a
-    /// place here go at the end.
-    static let row: [Entry] = {
-        let order = ["sam", "ticket", "alex"]
-        return Catalog.entries.sorted { (order.firstIndex(of: $0.id) ?? order.count) < (order.firstIndex(of: $1.id) ?? order.count) }
-    }()
+    /// Both cards' width: room for three buttons, and more as people are added.
+    static func width(buttons: Int) -> CGFloat { max(272, 20 + CGFloat(buttons) * 81 + CGFloat(buttons - 1) * 4) }
 
     var body: some View {
         let state = controller.state
+        let row = Catalog.row(model.people)
+        let width = Self.width(buttons: row.count)
         VStack(alignment: .trailing, spacing: 10) {
             HStack(spacing: 6) {
                 // The tab's place is kept when the panel doesn't tuck, so the panel stays the same size; that strip
@@ -32,13 +28,13 @@ struct RemotePanelView: View {
                     .onHover { controller.hover(.tab, $0) }
 
                 HStack(spacing: 4) {
-                    ForEach(Self.row) { entry in
+                    ForEach(row) { entry in
                         EntryButton(entry: entry, model: model)
                     }
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 14)
-                .frame(width: Self.width)
+                .frame(width: width)
                 .glassEffect(.regular, in: .rect(cornerRadius: 28))
                 .onHover { controller.hover(.buttons, $0) }
             }
@@ -58,10 +54,12 @@ struct RemotePanelView: View {
                         .onHover { controller.hover(.details, $0) }
                 }
             }
-            .frame(width: Self.width)
+            .frame(width: width)
         }
         .padding(12)
         .fixedSize()
+        // A person added or removed changes the panel's size: place the window again once the view has it.
+        .onChange(of: model.people) { controller.layout(animated: false) }
     }
 }
 
@@ -75,10 +73,7 @@ struct DetailsCard: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 6) {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Image(systemName: "circle.fill")
-                        .font(.system(size: 8))
-                        .foregroundStyle(model.connected ? Color.green : Color.secondary)
-                        .accessibilityHidden(true)
+                    StatusDot(model: model)
                     // Two lines' room either way, so the card keeps its size as the status changes.
                     Text(model.status)
                         .font(.callout)
@@ -91,12 +86,12 @@ struct DetailsCard: View {
                 PanelMenuButton(model: model, controller: controller)
             }
             HStack(spacing: 8) {
-                PillButton(title: "Title Card", symbol: "calendar.badge.clock", busy: model.sending == "card") {
+                PillButton(title: "Title Card", symbol: "calendar.badge.clock", color: Palette.busy, busy: model.sending == "card") {
                     model.titleCard()
                 }
                 .help("Plays today's Majora's Mask title card")
                 .accessibilityHint("Plays today's Majora's Mask title card on the bar.")
-                PillButton(title: "Stop", symbol: "stop.fill", busy: model.sending == "stop") {
+                PillButton(title: "Stop", symbol: "stop.fill", color: Palette.stop, busy: model.sending == "stop") {
                     model.stop()
                 }
                 .accessibilityHint("Stops whatever is playing on the bar.")
@@ -134,5 +129,17 @@ private struct PanelMenuButton: View {
         .onHover { hovering = $0 }
         .help("More")
         .accessibilityLabel("More")
+    }
+}
+
+/// Green while the bar answers, the BUSY orange while the simulator does, grey otherwise.
+struct StatusDot: View {
+    let model: RemoteModel
+
+    var body: some View {
+        Image(systemName: "circle.fill")
+            .font(.system(size: 8))
+            .foregroundStyle(!model.connected ? Color.secondary : model.simulator ? Palette.busy : Color.green)
+            .accessibilityHidden(true)
     }
 }

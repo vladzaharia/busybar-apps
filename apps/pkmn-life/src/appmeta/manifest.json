@@ -4,6 +4,6 @@
   "name": "Pkmn Life",
   "version": "0.1.0",
   "api_version": "27.9.0",
-  "description": "Team screens: a clock that, at the press of START, asks whether you filed a Jira ticket.",
+  "description": "Team screens: a sprint clock that, at the press of START, asks whether you filed a Jira ticket or sends people to someone.",
   "author": "Vlad Zaharia"
 }

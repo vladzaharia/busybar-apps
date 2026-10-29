@@ -19,7 +19,7 @@ struct EntryButton: View {
                     .font(.title2.weight(.semibold))
                     .symbolEffect(.pulse, isActive: busy)
                     .frame(width: Self.diameter, height: Self.diameter)
-                    .panelFill(Circle(), hovering: hovering, busy: busy)
+                    .panelFill(Circle(), hovering: hovering, busy: busy, tint: entry.tint)
                 Text(entry.shortTitle)
                     .font(.callout.weight(.medium))
                     .lineLimit(1)
@@ -52,10 +52,11 @@ struct EntryButton: View {
     }
 }
 
-/// A capsule button with a symbol and a title, for the card under the entries.
+/// A capsule button with a symbol and a title, for the card under the entries. The symbol takes `color`.
 struct PillButton: View {
     let title: String
     let symbol: String
+    let color: Color
     let busy: Bool
     let action: () -> Void
 
@@ -63,14 +64,19 @@ struct PillButton: View {
 
     var body: some View {
         Button(action: action) {
-            Label(title, systemImage: symbol)
-                .font(.callout.weight(.medium))
-                .symbolEffect(.pulse, isActive: busy)
-                .lineLimit(1)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 7)
-                .panelFill(Capsule(), hovering: hovering, busy: busy)
-                .contentShape(.capsule)
+            Label {
+                Text(title)
+            } icon: {
+                // On the busy fill the symbol takes the fill's ink, as the title does.
+                Image(systemName: symbol).foregroundStyle(busy ? AnyShapeStyle(.white) : AnyShapeStyle(color))
+            }
+            .font(.callout.weight(.medium))
+            .symbolEffect(.pulse, isActive: busy)
+            .lineLimit(1)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 7)
+            .panelFill(Capsule(), hovering: hovering, busy: busy)
+            .contentShape(.capsule)
         }
         .buttonStyle(PressStyle())
         .onHover { hovering = $0 }
@@ -108,11 +114,18 @@ struct PressStyle: ButtonStyle {
 }
 
 extension View {
-    /// The panel buttons' face: a light wash on the glass, stronger under the pointer, and the accent colour while
-    /// its request is on its way.
-    func panelFill(_ shape: some Shape, hovering: Bool, busy: Bool = false) -> some View {
-        foregroundStyle(busy ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
-            .background(busy ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.primary.opacity(hovering ? 0.16 : 0.09)), in: shape)
+    /// The panel buttons' face: a light wash on the glass, stronger under the pointer, and solid while its request is
+    /// on its way. With a tint, the symbol and the wash take its colour; without, the label's.
+    func panelFill(_ shape: some Shape, hovering: Bool, busy: Bool = false, tint: PanelTint? = nil) -> some View {
+        let wash = tint?.color ?? .primary
+        let ink: AnyShapeStyle = if busy { AnyShapeStyle(tint?.ink ?? .white) } else { AnyShapeStyle(wash) }
+        let fill: AnyShapeStyle = if busy {
+            AnyShapeStyle(tint?.color ?? .accentColor)
+        } else {
+            AnyShapeStyle(wash.opacity(tint == nil ? (hovering ? 0.16 : 0.09) : (hovering ? 0.3 : 0.18)))
+        }
+        return foregroundStyle(ink)
+            .background(fill, in: shape)
             .animation(.easeOut(duration: 0.12), value: hovering)
     }
 

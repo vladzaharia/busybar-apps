@@ -21,8 +21,8 @@ cd mac/PkmnLifeRemote && Tools/screenshots.sh   # the Mac app in every state (ma
 | Part | State |
 | --- | --- |
 | `packages/core`, `packages/pixel`, `packages/sim` | Done and tested: device client, lifecycle, settings, clocks and sprint clocks, `LiveFace`, `shuffleBag`, `remoteInbox` (with `onValues` for live settings); the `.anim` encoder/decoder (matches the firmware's decoder on every app animation), effects catalog, motion tokens; the browser simulator with `window.barSim`. |
-| `apps/pkmn-life` | Done. Back: FILE A TICKET, ALEX, SAM on a handheld-RPG move menu; styles per entry, random by shuffle bag. Front: plain, sprint bar, sprint dots or Majora's Mask clock, with the title cards. Sprints are computed from `SPRINTS` in `presets.ts` plus the "Sprint changes" setting. Plays requests from the Mac app, and applies setting changes while running. |
-| `mac/PkmnLifeRemote` | Builds and runs (first built 2026-10-28 on macOS 27 with Xcode 27.1, Swift 6.4; no warnings). A Liquid Glass panel in the top-right corner: one card of round buttons, `[< Sam] [Ticket] [Alex >]`, and under it, while the pointer is on the panel, a card with the status, Title Card, Stop, Settings and the … menu. Out all the time on an ultrawide display, otherwise tucked into the right edge and sliding out on hover; a tab pins it. Menu bar item. Settings window with General and Pkmn Life tabs; the latter edits the app's settings on the bar. |
+| `apps/pkmn-life` | Done. Back: FILE A TICKET and a redirect per person (from a local `redirects.json`, see its README) on a handheld-RPG move menu; styles per entry, random by shuffle bag. Front: plain, sprint bar, sprint dots or Majora's Mask clock, with the title cards. Sprints are computed from `SPRINTS` in `presets.ts` plus the "Sprint changes" setting. Plays requests from the Mac app, and applies setting changes while running. |
+| `mac/PkmnLifeRemote` | Builds and runs (first built 2026-10-28 on macOS 27 with Xcode 27.1, Swift 6.4; no warnings). A Liquid Glass panel in the top-right corner: one card of round buttons (people on the left, Ticket, people on the right; coloured like their animations on the bar), and under it, while the pointer is on the panel, a card with the status, Title Card, Stop, Settings and the … menu. Out all the time on an ultrawide display, otherwise tucked into the right edge and sliding out on hover; a tab pins it. Menu bar item. Settings window with General and Pkmn Life tabs; the latter edits the app's settings on the bar. |
 | `scripts/setup.sh`, `.claude/hooks/session-start.sh` | Done and run from a cold start in a cloud session. |
 | CI (`ci.yml`, `mac-visual.yml`) | Written. `ci.yml` runs on pushes to `main`, pull requests and by hand; `mac-visual.yml` by hand and on pull requests touching the Mac app. The only run so far (by hand) failed before any job started, with no runner assigned: an account-level GitHub Actions problem to look at in the repository's settings, not something in the workflow. |
 
@@ -35,7 +35,7 @@ Checked:
   include checks that the Mac's entries and settings match `presets.ts` and `settings.json`.
 - Pkmn Life in the simulator: every clock face, every entry and style, remote requests (play, random, default, stop,
   card, unknown entry, stale request), sprint changes, and settings changed while running (the clock switched to
-  sprint dots and ALEX's header to WALKER within a second).
+  sprint dots and a redirect's header to WALKER within a second).
 - The mock bar (`Tools/mock-bar.py`) answers as the app expects (checked with curl).
 - The Mac app on macOS 27 (2026-10-28): builds with no warnings, `swift test` passes, and against the mock it
   connects, reads settings, and draws every state. Seen as real screen captures (old tile layout, before the
@@ -43,7 +43,7 @@ Checked:
   Seen through `--snapshot` (the new layout, screen locked): the row of round buttons, the hover card, the window
   at 328 x 244 pt (42 pt wide tucked), both Settings tabs in light and dark, the Pkmn Life tab loaded from the mock,
   and the window title following the tab.
-- Pkmn Life in the simulator again: a remote request (`play sam walker`) and START play, no console errors.
+- Pkmn Life in the simulator again: a remote request (`play <person> walker`) and START play, no console errors.
 
 Not checked:
 
@@ -99,8 +99,13 @@ whose initialisers refer to each other need explicit types.
   doesn't launch Pkmn Life on every click (that restarts it).
 - Mac app placement: shown on an ultrawide display (aspect at least 2.1, or 3000 pt wide), otherwise tucked; the user
   can force either.
-- Mac panel layout (asked for 2026-10-28): one card with three round buttons, Sam on the left and Alex on the right
-  as their arrows point, the ticket between; everything else (status, Title Card, Stop, Settings, …) on a card that
-  shows on hover. The buttons draw their own fills on the glass (no glass on glass, and no system control styles,
-  which dim in a panel that is never key). The window keeps the hover card's room so it never resizes under the
-  pointer.
+- Mac panel layout (asked for 2026-10-28): one card of round buttons, the people on the left of the bar first and
+  those on the right last, as their arrows point, the ticket between; everything else (status, Title Card, Stop,
+  Settings, …) on a card that shows on hover. The buttons draw their own fills on the glass (no glass on glass, and no
+  system control styles, which dim in a panel that is never key). The window keeps the hover card's room so it never
+  resizes under the pointer. Colours come from the bar's animations: Jira blue for the ticket, Runway's amber for the
+  redirects, the bar's orange for the title card, the tab, and a simulator answering.
+- No names of real people in the repository (asked for 2026-10-28, before making it public). The redirects' people
+  are a local, git-ignored `apps/pkmn-life/redirects.json` (`["< Name", "Name >"]`, any number, about five letters
+  each), rendered into the animations at build time; the bar can't draw them live without losing the animations.
+  The Mac app keeps the same list in its preferences. Examples and tests use Sam and Alex.

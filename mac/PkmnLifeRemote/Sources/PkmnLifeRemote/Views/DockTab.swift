@@ -14,6 +14,7 @@ struct DockTab: View {
         Button(action: action) {
             Image(systemName: symbol)
                 .font(.body.weight(.semibold))
+                .foregroundStyle(Palette.busy)
                 .contentTransition(.symbolEffect(.replace))
                 .frame(width: Self.width)
                 .frame(maxHeight: .infinity)

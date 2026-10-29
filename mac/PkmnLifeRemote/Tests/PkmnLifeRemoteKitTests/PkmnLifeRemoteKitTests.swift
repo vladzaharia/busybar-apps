@@ -170,10 +170,46 @@ private func screen(_ x: CGFloat, _ width: CGFloat, _ height: CGFloat, menuBar: 
         }
         #expect(list("NAG_STYLES") == Catalog.nagStyles.map(\.id))
         #expect(list("REDIRECT_STYLES") == Catalog.redirectStyles.map(\.id))
+        // The ticket is the only entry presets.ts names; the people come from redirects.json.
         let ids = presets.split(separator: "\n").filter { $0.contains("{ kind: ") }.compactMap { line -> String? in
             guard let r = line.range(of: "id: \"") else { return nil }
             return String(line[r.upperBound...].prefix { $0 != "\"" })
         }
-        #expect(ids == Catalog.entries.map(\.id))
+        #expect(ids == [Catalog.ticket.id])
+    }
+
+    @Test func exampleRedirectsParse() throws {
+        let data = try Data(contentsOf: Self.app.deletingLastPathComponent().appending(path: "redirects.example.json"))
+        let list = try JSONDecoder().decode([String].self, from: data)
+        let people = list.compactMap(Person.init)
+        #expect(people.count == list.count)
+        #expect(people.map(\.text) == list)
+    }
+}
+
+@Suite struct PeopleTests {
+    @Test func parse() {
+        #expect(Person("< Sam") == Person(name: "Sam", side: .left))
+        #expect(Person("  Alex >") == Person(name: "Alex", side: .right))
+        #expect(Person("Sam") == nil)
+        #expect(Person("< Sam >") == nil)
+        #expect(Person("<") == nil)
+        #expect(Person.list("< Sam, Alex >\n< Jo") == [Person(name: "Sam", side: .left), Person(name: "Alex", side: .right), Person(name: "Jo", side: .left)])
+        #expect(Person.list("< Sam, Alex") == nil)
+        #expect(Person.list(" ") == [])
+        #expect(Person.text([Person(name: "Sam", side: .left), Person(name: "Alex", side: .right)]) == "< Sam, Alex >")
+    }
+
+    /// The same rule as apps/pkmn-life/assets/redirects.ts: lower case, letters and digits only.
+    @Test func ids() {
+        #expect(Person(name: "Jo Ann", side: .left).id == "joann")
+        #expect(Person(name: "O'Neil-2", side: .right).id == "oneil2")
+    }
+
+    @Test func rowGoesLeftTicketRight() {
+        let people = Person.list("Alex >, < Sam, Mo >, < Jo")!
+        #expect(Catalog.row(people).map(\.id) == ["sam", "jo", "ticket", "alex", "mo"])
+        #expect(Catalog.entries(people).map(\.id) == ["ticket", "alex", "sam", "mo", "jo"])
+        #expect(Catalog.redirect(to: people[1]).kind == .redirect(.left))
     }
 }
