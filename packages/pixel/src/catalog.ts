@@ -30,7 +30,7 @@ const BLUE = hex("#579DFF");
 function screen(r: Raster, label = "14:27"): void {
   r.shade((x, y) => ((x >> 2) + (y >> 2)) % 2 ? hex("#1B2333") : hex("#101722"));
   const f = font("bold");
-  r.text(label, f, Math.round((r.width - textWidth(label, f)) / 2), capCentre("bold", r.height), W);
+  r.text(label, f, Math.round((r.width - inkWidth(label, f)) / 2), capCentre("bold", r.height), W);
 }
 
 const under = (c: Clip, label?: string): Clip => layer(clip(c.duration, (r) => screen(r, label)), c);
@@ -266,8 +266,8 @@ export const CATALOG: CatalogEntry[] = [
       text: "FILE A JIRA TICKET",
       font: "extra_large",
       y: capCentre("extra_large"),
-      // Ends with the last word centred: its offset in the line, subtracted from where it should sit.
-      endX: Math.round((72 - textWidth("TICKET", font("extra_large"))) / 2) - textWidth("FILE A JIRA ", font("extra_large")),
+      // Ends with the last word centred on its ink: its pen offset in the line (an advance width) is subtracted from where it should sit.
+      endX: Math.round((72 - inkWidth("TICKET", font("extra_large"))) / 2) - textWidth("FILE A JIRA ", font("extra_large")),
       duration: 3.6,
       travel: 2.6,
       color: fx.accentWords("FILE A JIRA TICKET", ["JIRA"], W, BLUE),

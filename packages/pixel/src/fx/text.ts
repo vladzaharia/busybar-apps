@@ -2,7 +2,7 @@
 // `color` function for per-letter colour (shimmers, accent words, blinking question marks).
 
 import { inCubic, inOutCubic, inQuad, lerp, outBack, outBounce, span } from "../ease.ts";
-import { font, textWidth, type FontName } from "../font.ts";
+import { font, inkWidth, textWidth, type FontName } from "../font.ts";
 import { hex, mix, type Color } from "../raster.ts";
 import { MOTION } from "../motion.ts";
 import { clip, type Clip } from "../timeline.ts";
@@ -198,7 +198,7 @@ export function roll(o: {
       if (pin <= 0 || pout >= 1 || t < start - ROLL) return;
       const settle = span(t, start, start + 0.2);
       const hop = i > 0 && settle > 0 && settle < 1 ? -Math.sin(settle * Math.PI) * 1.5 : 0;
-      const x = Math.round(o.box.x + (o.box.width - textWidth(w.text, f)) / 2);
+      const x = Math.round(o.box.x + (o.box.width - inkWidth(w.text, f)) / 2);
       const y = capCentre(w.font, height) + Math.round((1 - pin) * height - pout * height + hop);
       r.text(w.text, f, x, y, WHITE, (gi, ch) => ({ color: o.color?.(gi, ch, t) }));
     });
@@ -249,7 +249,7 @@ export function titleCard(o: {
       if (a <= 0) return;
       const f = font(l.font);
       const cap = f.glyph(0x48)?.height ?? f.ascent - 2;
-      r.text(l.text, f, Math.floor((r.width - textWidth(l.text, f)) / 2), l.cap - (f.ascent - cap), o.color ?? hex("#FFFFFF"), () => ({ alpha: a }));
+      r.text(l.text, f, Math.floor((r.width - inkWidth(l.text, f)) / 2), l.cap - (f.ascent - cap), o.color ?? hex("#FFFFFF"), () => ({ alpha: a }));
     });
   });
 }

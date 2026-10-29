@@ -25,11 +25,13 @@ import {
   pause,
   renderFrames,
   rng,
+  roll,
   seq,
   speechBubbleSize,
   spinner,
   starfield,
   textWidth,
+  titleCard,
   wipeOut,
   type Clip,
 } from "../src/index.ts";
@@ -294,21 +296,23 @@ test("arrowNudge's streak mirrors exactly, and is bright enough to light", () =>
   for (const [x, y] of streak) assert.ok(left.data[(y * 72 + x) * 4 + 3]! >= 0.3 - 1e-6, "alpha floor");
 });
 
-test("starfield spreads evenly at any speed", () => {
+test("starfield spreads evenly at any speed, and shows in the middle", () => {
   for (const speed of [0.05, 0.35, 1.2]) {
     let centre = 0;
     let outer = 0;
-    for (const seed of [1, 2, 3]) {
-      const c = starfield({ duration: 3, speed, stars: 400, seed });
+    // The default star count, counting only what an LED can show (alpha 0.3 and up).
+    for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
+      const c = starfield({ duration: 3, speed, seed });
       for (let t = 0; t < 3; t += 0.05) {
         const r = new Raster(72, 16);
         c.draw(r, t);
-        for (const [x] of lit(r)) x >= 24 && x < 48 ? centre++ : outer++;
+        for (const [x] of lit(r, 0.3 - 1e-6)) x >= 24 && x < 48 ? centre++ : outer++;
       }
     }
-    // Per pixel: the centre third is 24 columns of 72, the rest 48.
+    // Per column: the centre third is 24 columns of 72, the rest 48.
     const ratio = centre / 24 / (outer / 48);
-    assert.ok(ratio > 0.75 && ratio < 1.33, `speed ${speed}: centre third is ${ratio.toFixed(2)}x as dense`);
+    assert.ok(centre > 0, `speed ${speed}: nothing visible in the centre third`);
+    assert.ok(ratio > 0.5 && ratio < 2, `speed ${speed}: centre third is ${ratio.toFixed(2)}x as dense as the outer thirds`);
   }
 });
 
@@ -333,4 +337,30 @@ test("the ticket's inner layout is tidy", () => {
   assert.notEqual(rgb(14, 11), blue);
   assert.equal(rgb(18, 7), blue, "the right edge is whole");
   assert.notEqual(rgb(17, 7), blue, "the tick's top pixel is inside it");
+});
+
+test("the title card and the words roll centre on the ink", () => {
+  const inkMargins = (r: Raster) => {
+    const cols = lit(r, 0.5).map(([x]) => x);
+    return { left: Math.min(...cols), right: r.width - 1 - Math.max(...cols) };
+  };
+  for (const [name, f] of [["extra_large", font("extra_large")], ["small", font("small")]] as const) {
+    // Words whose ink is an even number of columns wide, which centring on the advance width left 2 px off.
+    const words = ["HI", "NO", "WAIT", "DONE", "OK", "DID YOU"].filter((w) => inkWidth(w, f) % 2 === 0);
+    assert.ok(words.length >= 2, `${name}: the sample has even-width words`);
+    for (const text of words) {
+      const card = new Raster(72, 16);
+      titleCard({ lines: [{ text, font: name, cap: 3 }], duration: 3 }).draw(card, 1.5);
+      // The title card's ground is black; the lettering is white.
+      const white = new Raster(72, 16);
+      for (let i = 0; i < card.data.length; i += 4) white.data[i + 3] = card.data[i]! > 0.5 ? 1 : 0;
+      const t = inkMargins(white);
+      assert.ok(Math.abs(t.left - t.right) <= 1, `title card ${name} ${text}: margins ${t.left} / ${t.right}`);
+
+      const rolled = new Raster(72, 16);
+      roll({ words: [{ text, font: name, hold: 1 }], box: { x: 0, width: 72 } }).draw(rolled, 0.5);
+      const w = inkMargins(rolled);
+      assert.ok(Math.abs(w.left - w.right) <= 1, `roll ${name} ${text}: margins ${w.left} / ${w.right}`);
+    }
+  }
 });

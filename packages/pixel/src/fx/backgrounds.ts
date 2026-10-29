@@ -89,7 +89,9 @@ export function starfield(o: { duration: number; seed?: number; stars?: number; 
       const d = Math.sqrt(u) * r.width * 0.75;
       const x = cx + Math.cos(s.a) * d;
       const y = cy + Math.sin(s.a) * d * (r.height / r.width) * 2.4;
-      r.blend(x, y, o.color ?? WHITE, Math.min(1, u * 1.6), "add");
+      // Brightness has a floor of its own: a star near the centre is as visible as an LED can show (0.3 and up), not
+      // faded to nothing by its radius, which would leave the middle of the screen empty.
+      r.blend(x, y, o.color ?? WHITE, Math.min(1, 0.35 + u * 1.2), "add");
     }
   });
 }
