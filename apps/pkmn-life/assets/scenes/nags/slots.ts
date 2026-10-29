@@ -69,13 +69,12 @@ export function slots(_e: Nag): Clip {
     { text: "FILE IT!", font: "extra_large" as const, hold: readTime("FILE IT!") + MOTION.rest },
   ];
   const END = TEXT_AT + words.reduce((d, w) => d + w.hold, 0);
-  // On the roll's own clock, "FILE IT!" starts rolling in here.
-  const FILE_AT = ROLL + words[1]!.hold - ROLL;
+  // JACKPOT! shimmers amber and white, all the way out; FILE IT! is white with IT! in Jira blue.
   const text = roll({
     words,
     box: { x: 0, width: W },
     rollTime: ROLL,
-    color: (i, _ch, t) => (t < FILE_AT ? mix(AMBER, WHITE, 0.5 + 0.5 * Math.sin(t * 10 - i * 0.8)) : i < 4 ? WHITE : JIRA_LIGHT),
+    color: (i, _ch, t, word) => (word === 1 ? mix(AMBER, WHITE, 0.5 + 0.5 * Math.sin(t * 10 - i * 0.8)) : i < 4 ? WHITE : JIRA_LIGHT),
   });
   // Each reel starts on its own symbol and turns whole symbols to land on a mark, the later ones further.
   const starts = [0, 1, 4];
@@ -113,7 +112,7 @@ export function slots(_e: Nag): Clip {
     r.draw(l, 0, -lift);
   });
 
-  const FADE = 0.3;
+  const FADE = MOTION.base;
   const body = layer(
     clip(END, (r) => r.fillRect(0, 0, W, H, BLACK)),
     machine,

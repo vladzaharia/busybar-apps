@@ -6,13 +6,15 @@
 // Laid out from their edge inwards, for someone on the right, and mirrored for the left: the chevrons, the desk (the
 // person looking across it at the visitor), where the visitor stops, then the name centred in what is left. A wide name
 // takes the second chevron, then the smaller chevron and the gaps beside it, and lastly brings the visitor in front of
-// the desk's near end. There is always a chevron. The visitor's first steps may cross where a long name will be: its
-// tube is not lit until the visitor has arrived.
+// the desk's near end. There is always a chevron, and the name is always NAME_EDGE from the screen's edge and two clear
+// columns from the visitor. The visitor's first steps may cross where a long name will be: its tube is not lit until
+// the visitor has arrived.
 
 import {
   DESK_SIZE,
   EXIT_SIGN,
   MOTION,
+  NAME_EDGE,
   PICTO_SIZE,
   PICTO_STAND_INK,
   Raster,
@@ -37,17 +39,21 @@ import {
   type PictoPose,
 } from "@vladzaharia/bar-pixel";
 import type { Redirect } from "../../../src/presets.ts";
+import { WHITE } from "../look.ts";
 import { BIG_Y, BLACK, H, W, big, nameInk } from "./kit.ts";
 
-/** The first column a name may ink: one clear of the sign's rim (column 0). */
-const NAME_MIN = 2;
+/** The first column a name may ink: NAME_EDGE from the screen's edge, as every name set against an edge. */
+const NAME_MIN = NAME_EDGE;
+/** Columns from the name's last ink to the visitor's first: two clear between them. */
+const CLEAR = 3;
 /** How far the visitor walks: a few steps. */
 const WALK_PX = 12;
 /** Walking pace, px/s, and a step every STEP s. */
 const SPEED = 10;
 const STEP = 0.22;
-/** At most this many columns of the desk's near end may stand behind the visitor (its monitor starts 5 in). */
-const MAX_OVERLAP = 5;
+/** At most this many columns of the desk's near end may stand behind the visitor: the widest names bring them a column
+ *  or two past where its monitor starts (5 in). */
+const MAX_OVERLAP = 7;
 
 /** The chevrons, roomiest first: how many, how tall, the clear column before the rim, and the gap before the desk. */
 const CHEVRONS = [
@@ -66,12 +72,12 @@ function layout(inkW: number) {
     const deskX = chevX - c.gap - DESK_SIZE.width;
     // The visitor stops beside the desk's near end, a column clear of it; a wide name brings them in front of it.
     const besideX = deskX - 2 - PICTO_STAND_INK.x1;
-    const stopX = Math.max(besideX, nameEnd + 2 - PICTO_STAND_INK.x0);
+    const stopX = Math.max(besideX, nameEnd + CLEAR - PICTO_STAND_INK.x0);
     return { ...c, chevW, chevX, deskX, stopX, overlap: stopX - besideX };
   });
   const l = fit.find((f) => f.overlap <= 0) ?? fit.find((f) => f.overlap <= MAX_OVERLAP) ?? fit[fit.length - 1]!;
-  // The name is centred on its ink in the room left of where the visitor stops, a column clear of it.
-  const roomEnd = l.stopX + PICTO_STAND_INK.x0 - 2;
+  // The name is centred on its ink in the room left of where the visitor stops, two columns clear of it.
+  const roomEnd = l.stopX + PICTO_STAND_INK.x0 - CLEAR;
   const nameX = NAME_MIN + Math.max(0, Math.round((roomEnd - NAME_MIN + 1 - inkW) / 2));
   return { ...l, nameX, startX: l.stopX - WALK_PX };
 }
@@ -104,7 +110,7 @@ export function exit(e: Redirect): Clip {
     drawExitPanel(r, light, t);
     // The name's tube glows faintly until it comes on.
     const own = t < tArrive ? 0.12 : exitFlickerOn(Math.min(t - tArrive, NAME_FLICK), NAME_FLICK);
-    r.text(e.name, f, nameX, BIG_Y, exitInk(light * own, EXIT_SIGN.ink, light));
+    r.text(e.name, f, nameX, BIG_Y, exitInk(light * own, WHITE, light));
     // The pictograms stay inside the rim, their knock-out rings included.
     r.clip = { x0: 0, y0: 1, x1: W, y1: H - 1 };
     drawPersonAtDesk(r, deskX, 3, e.dir > 0 ? -1 : 1, { ink: exitInk(light), dim: exitInk(0.55 * light, EXIT_SIGN.ink, light), screen: exitInk(light, EXIT_SIGN.screen) });

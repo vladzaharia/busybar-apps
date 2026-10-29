@@ -64,7 +64,7 @@ export function eightball(_e: Nag): Clip {
     at += FLOAT + p.hold + SINK - 0.1;
   }
   const CLOSE = at - SINK + 0.1;
-  const IRIS = 0.5;
+  const IRIS = MOTION.slow;
   const END = CLOSE + IRIS;
 
   const ball = clip(END, (r, t) => {

@@ -1,9 +1,11 @@
-// Front nag "404": the clock tears into black. "404 | TICKET NOT FOUND" flickers in through heavy glitching, slams
-// into place with a shake, glitches now and then while it holds, and tears apart on the way out; the black then fades
-// off the clock.
+// Front nag "404": the clock tears into black. "404 | TICKET NOT FOUND" flickers in through heavy glitching (it shows
+// faintly, drops out, comes back brighter, drops out, and comes up for good), slams into place with a shake, glitches
+// now and then while it holds, and tears apart on the way out (dropping out twice and coming back fainter each time);
+// the black then fades off the clock.
 
 import {
   MOTION,
+  Raster,
   capCentre,
   capTop,
   clip,
@@ -35,6 +37,27 @@ const TX = SEP + 3;
 /** A number in [0, 1) for an integer, the same every render. */
 const chance = (n: number) => rng(n)();
 
+/** How the picture flickers in, from black: when it shows (seconds into the flicker, from and to) and how brightly. */
+const FLICKER_IN: [number, number, number][] = [
+  [0.06, 0.16, 0.25],
+  [0.24, 0.34, 0.5],
+  [0.42, Infinity, 1],
+];
+/** And out: on, dropping out, back at half, out, back at a quarter, gone. */
+const FLICKER_OUT: [number, number, number][] = [
+  [0, 0.08, 1],
+  [0.15, 0.24, 0.5],
+  [0.31, 0.38, 0.25],
+];
+/** Each re-appearance fades up over this long, rather than strobing on: a glitch, not a flashing light. */
+const FADE_UP = 0.06;
+
+/** How much of the picture shows `t` s into a flicker: 0 between its beats. */
+function flickerLevel(t: number, beats: [number, number, number][]): number {
+  for (const [from, to, level] of beats) if (t >= from && t < to) return level * (from > 0 ? Math.min(1, (t - from) / FADE_UP) : 1);
+  return 0;
+}
+
 export function notfound(_e: Nag): Clip {
   const xl = font("extra_large");
   const small = font("small");
@@ -54,15 +77,13 @@ export function notfound(_e: Nag): Clip {
   // a light glitch now and then. Over all of it, the screen tears.
   const heavy = glitch(still, { intensity: 9, every: 0.1, burst: 0.09, seed: 5 });
   const light = glitch(still, { intensity: 3, every: 0.9, burst: 0.14, seed: 8 });
-  const flicker = (t: number, keep: number) => chance(31_000 + Math.floor(t * 30)) < keep;
   const flickering = clip(D, (r, t) => {
-    if (t < IN) {
-      if (flicker(t, 0.25 + (t / IN) * 0.75)) heavy.draw(r, t);
-    } else if (t < IN + HOLD) light.draw(r, t - IN);
-    else {
-      const p = span(t, IN + HOLD, D);
-      if (p < 0.85 && flicker(t, 1 - p * 0.8)) heavy.draw(r, t);
-    }
+    if (t >= IN && t < IN + HOLD) return light.draw(r, t - IN);
+    const level = t < IN ? flickerLevel(t, FLICKER_IN) : flickerLevel(t - IN - HOLD, FLICKER_OUT);
+    if (level <= 0) return;
+    const l = new Raster(W, H);
+    heavy.draw(l, t);
+    r.draw(l, 0, 0, level);
   });
   const torn = tear(flickering, { amount: (t) => (t < IN ? (1 - t / IN) * 10 : t > IN + HOLD ? span(t, IN + HOLD, D) * 18 : 0) });
 

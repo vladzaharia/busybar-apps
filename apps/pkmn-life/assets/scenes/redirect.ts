@@ -8,12 +8,12 @@
 import {
   ARROW_SIZE,
   DIALOGUE_LIGHT,
+  DIALOGUE_RISE,
   MOTION,
   NAME_EDGE,
   Raster,
   WALKER_SIZE,
   arrowNudge,
-  capCentre,
   chase,
   chevronChase,
   chevronWidth,
@@ -33,7 +33,6 @@ import {
   inBack,
   inCubic,
   inOutCubic,
-  inkWidth,
   layer,
   lerp,
   mirrorX,
@@ -46,6 +45,8 @@ import {
   seq,
   span,
   speechBubble,
+  speechBubbleSize,
+  streakAlpha,
   stripes,
   walkFrame,
   wipe,
@@ -54,18 +55,10 @@ import {
   type WalkerPose,
 } from "@vladzaharia/bar-pixel";
 import type { Redirect } from "../../src/presets.ts";
+import { BIG, BIG_Y, BLACK, H, W, black, letterSpans, nameInk } from "./redirects/kit.ts";
 
-const W = 72;
-const H = 16;
-const BLACK = hex("#000000");
 const WHITE = hex("#FFFFFF");
-const BIG = "extra_large" as const;
-const BIG_Y = capCentre(BIG);
 const HOLD = 4.4;
-
-/** The name's ink width in the big font: what a layout is built from (never its advance width, a pixel wider). */
-const nameInk = (e: Redirect) => inkWidth(e.name, font(BIG));
-const black = (duration: number): Clip => clip(duration, (r) => r.fillRect(0, 0, W, H, BLACK));
 
 /**
  * Runway: an amber wipe towards them, then chevrons chasing their way with the name opposite. The row is laid out from
@@ -121,10 +114,10 @@ export function nudge(e: Redirect): Clip {
     const passed = e.dir > 0 ? x + ARROW_SIZE : W - x;
     const covered = Math.min(W, Math.max(0, Math.ceil(passed + BEYOND * Math.min(1, Math.max(0, passed) / ARROW_SIZE))));
     r.fillRect(e.dir > 0 ? 0 : W - covered, 0, covered, H, BLACK);
-    // The streak trails it while it is moving (not as it settles), mirrored exactly about the arrow, and no dimmer than
-    // 0.3 (below that an LED does not show it).
+    // The streak trails it while it is moving (not as it settles), mirrored exactly about the arrow, as bright as the
+    // nudge's own.
     if (Math.abs(x - sweepX(Math.max(0, t - 1 / 60))) > 1) {
-      for (let k = 1; k <= 3; k++) r.fillRect(Math.round(x) - e.dir * k * 3 + (e.dir > 0 ? 0 : ARROW_SIZE - 2), 6, 2, 1, { ...BLUE, a: Math.max(0.3, 0.5 - k * 0.14) });
+      for (let k = 1; k <= 3; k++) r.fillRect(Math.round(x) - e.dir * k * 3 + (e.dir > 0 ? 0 : ARROW_SIZE - 2), 6, 2, 1, { ...BLUE, a: streakAlpha(k) });
     }
     drawArrow(r, Math.round(x), 1, e.dir, BLUE, LIGHT);
     if (t > 0.3) name.draw(r, t - 0.3);
@@ -190,8 +183,9 @@ export function sign(e: Redirect): Clip {
 /**
  * Walker: the clock fades, a little person walks in from the far side leaving the name behind them letter by letter,
  * waves, points the way with arrows blinking from their hand, walks over to that side and says "HI!" to them in a
- * speech bubble, then steps off the edge. They stand where the name ends (40 at the least), so a wide name is never
- * stood on, and the arrows and the bubble take what room is left; a wide name's bubble says "HI", a pixel narrower.
+ * speech bubble, then steps off the edge, leaving one arrow pointing after them. They stand where the name ends (40 at
+ * the least), so a wide name is never stood on, and the arrows and the bubble take what room is left; the bubble keeps
+ * two clear columns from the name, and says "HI" if "HI!" would not.
  */
 export function walker(e: Redirect): Clip {
   const CH = hex("#62C7FF");
@@ -211,8 +205,10 @@ export function walker(e: Redirect): Clip {
   const stopR = 64;
   const stopX = mirrorX(stopR, figW, e.dir);
   const exitX = e.dir > 0 ? W + 1 : -8;
-  const greeting = inkW > 40 ? "HI" : "HI!";
-  const hello = speechBubble({ x: e.dir > 0 ? stopX - 3 : stopX + 9, top: 0, dir: e.dir > 0 ? -1 : 1, text: greeting });
+  // The bubble's edge by them, in the rightward layout; the box reaches back from it towards the name.
+  const helloR = stopR - 3;
+  const greeting = ["HI!", "HI"].find((g) => helloR - speechBubbleSize(g, "small").width + 1 >= NAME_EDGE + inkW + 2) ?? "HI";
+  const hello = speechBubble({ x: mirrorX(helloR, 1, e.dir), top: 1, dir: e.dir > 0 ? -1 : 1, text: greeting, font: "small" });
   const tWave = WALK_IN;
   const tPoint = tWave + WAVE;
   const tOver = tPoint + POINT;
@@ -222,15 +218,8 @@ export function walker(e: Redirect): Clip {
   const enterX = e.dir > 0 ? -8 : W + 1;
   const walkX = (t: number) => lerp(enterX, standX, inOutCubic(span(t, 0, tWave)) * 0.3 + span(t, 0, tWave) * 0.7);
   const nx = mirrorX(NAME_EDGE, inkW, e.dir);
-  const letterX: number[] = [];
-  let pen = nx;
-  for (const ch of e.name) {
-    letterX.push(pen);
-    pen += f.glyph(ch.codePointAt(0)!)!.advance;
-  }
   // Each letter appears once the walker has passed it.
-  const letterAt = letterX.map((lx, i) => {
-    const adv = (letterX[i + 1] ?? pen) - lx;
+  const letterAt = letterSpans(e.name, f, nx).map(({ x: lx, advance: adv }) => {
     for (let t = 0; t < tWave; t += 1 / 240) {
       const wx = walkX(t);
       if (e.dir > 0 ? wx > lx + adv : wx + figW < lx) return t;
@@ -241,6 +230,8 @@ export function walker(e: Redirect): Clip {
   const chevW = chevronWidth(7);
   let arrows = 0;
   while (standR + 10 + arrows * 6 + chevW <= W - 2) arrows++;
+  const arrowX = (k: number) => mirrorX(standR + 10 + k * 6, chevW, e.dir);
+  const DIM = hex("#0B2A40");
   const scene = clip(total, (r, t) => {
     r.fillRect(0, 0, W, H, BLACK);
     let x: number;
@@ -251,11 +242,13 @@ export function walker(e: Redirect): Clip {
     else if (t < tHello) [x, pose] = [standX + (t - tOver) * SPEED * e.dir, walkFrame(t - tOver)];
     else if (t < tExit) [x, pose] = [stopX, "wave"];
     else [x, pose] = [stopX + Math.min(Math.abs(exitX - stopX), (t - tExit) * SPEED) * e.dir, walkFrame(t - tExit)];
-    // The arrows point the way until they get there; the bubble takes that space.
+    // The arrows point the way until they get there; the bubble takes that space. As they step off, the first arrow
+    // lights again, and points after them until the picture fades.
     if (t >= tPoint && t < tHello) {
-      for (let k = 0; k < arrows; k++) drawChevron(r, mirrorX(standR + 10 + k * 6, chevW, e.dir), 4, 7, e.dir, mix(hex("#0B2A40"), CH, chase(t - tPoint, k, { period: 0.9, step: 0.15, decay: 0.22 })));
+      for (let k = 0; k < arrows; k++) drawChevron(r, arrowX(k), 4, 7, e.dir, mix(DIM, CH, chase(t - tPoint, k, { period: 0.9, step: 0.15, decay: 0.22 })));
     }
     if (t >= tHello && t < tExit) hello.draw(r, t - tHello);
+    if (t >= tExit) drawChevron(r, arrowX(0), 4, 7, e.dir, mix(DIM, CH, span(t, tExit, tExit + MOTION.flick)));
     drawWalker(r, x, 1, e.dir, pose, WHITE, t);
     r.text(e.name, f, nx, BIG_Y, WHITE, (i) => {
       const q = span(t, letterAt[i]!, letterAt[i]! + 0.3);
@@ -267,7 +260,7 @@ export function walker(e: Redirect): Clip {
     scene.draw(s, total);
     r.fillRect(0, 0, W, H, BLACK).draw(s, 0, 0, 1 - t / FADE);
   });
-  return seq(fade({ from: 0, to: 1, duration: FADE }), scene, fadeOut, fade({ from: 1, to: 0, duration: 0.35 }));
+  return seq(fade({ from: 0, to: 1, duration: FADE }), scene, fadeOut, fade({ from: 1, to: 0, duration: MOTION.base }));
 }
 
 /**
@@ -288,15 +281,16 @@ export function trainer(e: Redirect): Clip {
     drawDialogue(r, { lines: page2, typed: Math.floor((t - P1) * CPS), t: 0.5 });
     const tt = t - P1 - len2;
     // Six ▶ from 9 px in, so they are as far from the box's sides as from each other, clear of its bottom border.
-    if (tt > 0) for (let k = 0; k < 6; k++) drawTriangle(r, mirrorX(9 + k * 10, 4, e.dir), 7, e.dir, DIALOGUE_LIGHT.arrow, chase(tt, k, { period: 0.8, step: 0.1, decay: 0.18, floor: 0.35 }));
+    // At rest a triangle is drawn more than half lit, so the ones not in the chase still stand out on the box.
+    if (tt > 0) for (let k = 0; k < 6; k++) drawTriangle(r, mirrorX(9 + k * 10, 4, e.dir), 7, e.dir, DIALOGUE_LIGHT.arrow, chase(tt, k, { period: 0.8, step: 0.1, decay: 0.18, floor: 0.6 }));
   });
-  const toBlack = clip(0.3, (r, t) => {
+  const toBlack = clip(MOTION.base, (r, t) => {
     talk.draw(r, talk.duration);
-    fade({ duration: 0.3, from: 0, to: 1 }).draw(r, t);
+    fade({ duration: MOTION.base, from: 0, to: 1 }).draw(r, t);
   });
   // The box rises out of the black the stripes leave, instead of appearing in one frame.
-  const rise = layer(black(0.18), dialogueRise());
-  return seq(holdEnd(stripes({ mode: "cover" }), 0.02), rise, talk, toBlack, fade({ duration: 0.35, from: 1, to: 0 }));
+  const rise = layer(black(DIALOGUE_RISE), dialogueRise());
+  return seq(holdEnd(stripes({ mode: "cover" }), 0.02), rise, talk, toBlack, fade({ duration: MOTION.base, from: 1, to: 0 }));
 }
 
 /**

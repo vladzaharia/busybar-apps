@@ -15,7 +15,7 @@ export function motorway(e: Redirect): Clip {
   const OUT = MOTION.base;
   const inkW = nameInk(e);
   // The name centred on its ink in the room the sign leaves it (3 px clear of the rim and the tab), laid out for the
-  // rightward sign and mirrored from it, so both sides are exact mirror images. DAMIAN, the widest, leaves 3 px over.
+  // rightward sign and mirrored from it, so both sides are exact mirror images. DAMIAN, the widest, leaves 2 px over.
   const { room } = roadSignLayout({ tab: TAB, dir: 1 });
   const nameX = mirrorX(room.x0 + Math.max(0, Math.round((room.x1 - room.x0 + 1 - inkW) / 2)), inkW, e.dir);
   const drawSign = (r: Raster, t: number) => {

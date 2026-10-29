@@ -77,7 +77,7 @@ export function forecast(_e: Nag): Clip {
     pageAt.push(at);
     at += ROLL + p.hold;
   }
-  const FADE = 0.3;
+  const FADE = MOTION.base;
   const END = at + FADE;
   const BOLT = pageAt[1]! + ROLL;
   const drizzle = particles({ duration: END, dark: hex("#0B2A4A"), light: hex("#2F5F96"), speed: 4, count: 20, fadeIn: 0.6 });

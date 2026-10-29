@@ -1,27 +1,32 @@
 // Growlithe: it bounds in from the far side and the name pops up behind it, letter by letter, as it passes; it stops,
 // wags its cream tail and barks their way (its jaw drops, a puff of embers, and the letters hop towards it in a wave),
-// then bounds off that way. From over there, where it went, comes its cry: "GROWL!", or "GRR!" when a wide name leaves
-// less room for the bubble.
+// then bounds off that way. From over there, where it went, its cry rises into view: "GROWL!", or "GRR!" (in the tiny
+// font if need be) when a wide name leaves less room for the bubble. The cry stays, pointing their way, until the end.
 //
 // The name is NAME_EDGE from the far edge on its ink and Growlithe stops a clear column past it. Letters pop from where
-// it is on the screen, so the same holds for someone on the left. At the end the name is wiped away their way.
+// it is on the screen, so the same holds for someone on the left. At the end the name and the cry are wiped away their
+// way.
 
 import {
   GROWLITHE_SIZE,
   MOTION,
   NAME_EDGE,
+  Raster,
   clip,
   drawEmberPuff,
   drawGrowlithe,
+  drawSpeechBubble,
   fade,
   lerp,
   mirrorX,
   outBack,
+  outCubic,
+  readTime,
   seq,
   span,
-  speechBubble,
   speechBubbleSize,
   wipeOut,
+  type BubbleFont,
   type Clip,
   type GrowlithePose,
 } from "@vladzaharia/bar-pixel";
@@ -29,10 +34,18 @@ import type { Redirect } from "../../../src/presets.ts";
 import { AMBER } from "../look.ts";
 import { BIG_Y, BLACK, H, W, big, letterSpans, nameInk } from "./kit.ts";
 
-/** Its cries, the longest that fits first. */
-const CRIES = ["GROWL!", "GRR!"];
+/** Its cries, roomiest first: the first whose bubble keeps two clear columns from the name is used. */
+const CRIES: { text: string; font: BubbleFont }[] = [
+  { text: "GROWL!", font: "small" },
+  { text: "GROWL!", font: "tiny" },
+  { text: "GRR!", font: "small" },
+  { text: "GRR!", font: "tiny" },
+];
 /** The bubble's edge nearest the speaker, who has gone off the edge on their side (its tail reaches the edge). */
 const BUBBLE_EDGE = W - 3;
+/** The bubble's top row: a row clear of the top edge. It rises into place from RISE rows lower. */
+const BUBBLE_TOP = 1;
+const RISE = 4;
 
 export function dog(e: Redirect): Clip {
   const DW = GROWLITHE_SIZE.width;
@@ -48,11 +61,18 @@ export function dog(e: Redirect): Clip {
   const BARK = tStop + 0.35;
   const tLeave = BARK + 0.9;
   const SPEED = HOP_LEN / HOP;
-  // The bubble pops up as it bounds off the edge, at their side, clear of the name.
-  const cry = CRIES.find((c) => BUBBLE_EDGE - speechBubbleSize(c).width + 1 >= nameR + inkW + 1) ?? CRIES[CRIES.length - 1]!;
-  const bubble = speechBubble({ x: e.dir > 0 ? BUBBLE_EDGE : W - 1 - BUBBLE_EDGE, top: 0, dir: e.dir > 0 ? -1 : 1, text: cry });
+  // The bubble rises into view as it bounds off the edge, at their side, clear of the name; it stays until the end.
+  const cry = CRIES.find((c) => BUBBLE_EDGE - speechBubbleSize(c.text, c.font).width + 1 >= nameR + inkW + 2) ?? CRIES[CRIES.length - 1]!;
   const tCry = tLeave + (W - stopX) / SPEED;
-  const total = tCry + bubble.duration + 0.4;
+  const total = tCry + MOTION.quick + readTime(cry.text) + 0.5;
+  const bubbleX = e.dir > 0 ? BUBBLE_EDGE : W - 1 - BUBBLE_EDGE;
+  const drawCry = (r: Raster, t: number) => {
+    const p = outCubic(span(t, tCry, tCry + MOTION.quick));
+    if (p <= 0) return;
+    const b = new Raster(W, H);
+    drawSpeechBubble(b, { x: bubbleX, top: BUBBLE_TOP + Math.round((1 - p) * RISE), dir: e.dir > 0 ? -1 : 1, text: cry.text, font: cry.font });
+    r.draw(b, 0, 0, p);
+  };
   /** Its x in the rightward layout and its hop phase (0..1 within a hop; -1 standing). */
   const at = (t: number): [number, number] => {
     if (t < tStop) return [lerp(startX, stopX, t / tStop), (t / HOP) % 1];
@@ -96,7 +116,7 @@ export function dog(e: Redirect): Clip {
     // A puff of embers with the bark, out of its mouth their way.
     const nose = mirrorX(stopX + DW, 1, e.dir);
     drawEmberPuff(r, nose + 0.5, 9.5, e.dir, span(t, BARK, BARK + 0.6));
-    if (t >= tCry) bubble.draw(r, Math.min(bubble.duration, t - tCry));
+    drawCry(r, t);
   });
   return seq(fade({ from: 0, to: 1, duration: MOTION.base }), scene, wipeOut(scene, { direction: e.dir, edge: AMBER, duration: MOTION.base }));
 }

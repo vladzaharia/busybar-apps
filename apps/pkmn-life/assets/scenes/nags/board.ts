@@ -44,11 +44,14 @@ const FACES: ((r: Raster) => void)[] = [
 ];
 
 export function board(_e: Nag): Clip {
-  const letters = flapBoard({ lines: LINES, x: X0, rows: ROWS, cols: COLS });
-  // Once the letters have stopped and been read, the logo flap turns, and lands on Jira.
-  const LOGO_AT = letters.settled + readTime(LINES.join(" "));
+  const flaps = { lines: LINES, x: X0, rows: ROWS, cols: COLS };
+  // Once the letters have stopped and been read, the logo flap turns, and lands on Jira. When the letters stop doesn't
+  // depend on how long the board runs, so it is read off a first build, and the board is built for the whole body.
+  const { settled } = flapBoard(flaps);
+  const LOGO_AT = settled + readTime(LINES.join(" "));
   const LAND = LOGO_AT + (FACES.length - 1) * LOGO_FLIP;
   const BODY = LAND + MOTION.scene + MOTION.base;
+  const letters = flapBoard({ ...flaps, duration: BODY });
   const logo = flapFaces({ ...LOGO, width: LOGO.size, height: LOGO.size, faces: FACES, at: LOGO_AT, flip: LOGO_FLIP, duration: BODY });
   const centre = MARK_OPTICAL_CENTRE[12];
 

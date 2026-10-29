@@ -5,6 +5,7 @@
 
 import {
   BUG_SIZE,
+  DIALOGUE_RISE,
   bugFrame,
   clip,
   dialogue,
@@ -78,17 +79,17 @@ function sparks(r: Raster, p: number): void {
   }
 }
 
-/** The dialogue box dropping away from the bottom edge over the battle (as `dialogueRise` raises it), 0.18 s. */
+/** The dialogue box dropping away from the bottom edge over the battle (as `dialogueRise` raises it). */
 function dialogueDrop(hp: number): Clip {
-  return clip(0.18, (r, t) => {
+  return clip(DIALOGUE_RISE, (r, t) => {
     battle(r, { issueX: ISSUE.x, hud: 1, hp, t });
-    drawDialogue(r, { lines: [], typed: -1, t, rise: 1 - inCubic(t / 0.18) });
+    drawDialogue(r, { lines: [], typed: -1, t, rise: 1 - inCubic(t / DIALOGUE_RISE) });
   });
 }
 
 /** The empty dialogue box rising over the battle, the issue at `hp`. */
 function dialogueRaise(hp: number): Clip {
-  return layer(clip(0.18, (r, t) => battle(r, { issueX: ISSUE.x, hud: 1, hp, t })), dialogueRise());
+  return layer(clip(DIALOGUE_RISE, (r, t) => battle(r, { issueX: ISSUE.x, hud: 1, hp, t })), dialogueRise());
 }
 
 /** "???" and other question marks pulse from the ink to amber, as every nag's "?" does. */
@@ -114,7 +115,7 @@ export function encounter(preset: Nag): Clip {
   const rise = dialogueRaise(1);
   const talk = dialogue({
     pages: [
-      { lines: ["A wild ISSUE", "appeared!"], hold: 0.8 },
+      { lines: ["A wild ISSUE", "appeared!"], hold: 0.9 },
       ...paginate(preset.message, 66, 1.5),
       { lines: ["TRAINER used", "FILE JIRA TICKET!"], hold: 0.9 },
     ],
@@ -185,12 +186,12 @@ export function encounter(preset: Nag): Clip {
   });
 
   // 7. The ticket fades to black, then the black fades away off the clock.
-  const toBlack = clip(0.3, (r, t) => {
+  const toBlack = clip(MOTION.base, (r, t) => {
     battle(r, { issueX: ISSUE.x, hud: 0, hp: 0, t, hidden: true });
     drawJiraTicket(r, TICKET.x, TICKET.y);
-    fade({ duration: 0.3, from: 0, to: 1 }).draw(r, t);
+    fade({ duration: MOTION.base, from: 0, to: 1 }).draw(r, t);
   });
-  const reveal = fade({ duration: 0.35, from: 1, to: 0 });
+  const reveal = fade({ duration: MOTION.base, from: 1, to: 0 });
 
   return seq(intro, arrive, rise, talk, lower, attack, raise, finale, drop, turn, toBlack, reveal);
 }

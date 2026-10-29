@@ -65,7 +65,7 @@ export function invaders(_e: Nag): Clip {
   const SINK = 3.25;
   const TEXT_AT = 3.75;
   const END = TEXT_AT + LINE.length / TYPE_CPS + readTime(LINE) + 0.9;
-  const FADE = 0.35;
+  const FADE = MOTION.base;
 
   const formationX = (t: number) => FORMATION_X + MARCH[Math.floor(t / STEP) % MARCH.length]!;
   // A wave steps down into place from above the screen, a row at a time.

@@ -6,8 +6,8 @@
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { buildAnim, calendarIcon, hex, writePng, type BuiltAnim, type Raster } from "@vladzaharia/bar-pixel";
-import { ENTRIES, stylesFor, type NagStyle, type RedirectStyle, type Style } from "../src/presets.ts";
+import { buildAnim, calendarIcon, hex, writePng, type AnimPart, type BuiltAnim, type Clip, type Raster } from "@vladzaharia/bar-pixel";
+import { ENTRIES, NAG_STYLES, REDIRECT_STYLES, type Entry, type Style } from "../src/presets.ts";
 import { backIcon, frontIcon } from "./icons.ts";
 import { cardParts } from "./scenes/cards.ts";
 import { BACK_HEIGHT, BACK_WIDTH, backParts } from "./scenes/menu.ts";
@@ -24,7 +24,7 @@ rmSync(join(SRC, "images"), { recursive: true, force: true });
 
 const kb = (n: number) => `${(n / 1024).toFixed(0)} KB`;
 let total = 0;
-const front = (parts: [string, Parameters<typeof buildAnim>[0]["parts"][number][1]][], path: string): BuiltAnim => {
+const front = (parts: AnimPart[], path: string): BuiltAnim => {
   const built = buildAnim({ width: 72, height: 16, fps: 60, format: "argb8888", parts });
   write(path, built.data);
   total += built.data.length;
@@ -32,11 +32,14 @@ const front = (parts: [string, Parameters<typeof buildAnim>[0]["parts"][number][
   return built;
 };
 
+/** Each of the entry's styles with its scene: a nag's from NAG_SCENES, a redirect's from REDIRECT_SCENES. */
+const scenesOf = (entry: Entry): [Style, Clip][] =>
+  entry.kind === "nag" ? NAG_STYLES.map((s) => [s, NAG_SCENES[s](entry)]) : REDIRECT_STYLES.map((s) => [s, REDIRECT_SCENES[s](entry)]);
+
 // Front: 72×16 with alpha (they play over the live clock), 60 fps. One file per entry and style.
 const fronts = ENTRIES.map((entry, k) => {
   const byStyle: Partial<Record<Style, { path: string; built: BuiltAnim }>> = {};
-  for (const style of stylesFor(entry)) {
-    const scene = entry.kind === "nag" ? NAG_SCENES[style as NagStyle](entry) : REDIRECT_SCENES[style as RedirectStyle](entry);
+  for (const [style, scene] of scenesOf(entry)) {
     const path = `animations/front_${k}_${style}.anim`;
     byStyle[style] = { path, built: front([["default", scene]], path) };
   }

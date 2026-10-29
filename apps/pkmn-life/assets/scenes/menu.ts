@@ -22,6 +22,7 @@ import {
   PKMN_SIZE,
   span,
   textWidth,
+  type AnimPart,
   type Clip,
   type Color,
   type Raster,
@@ -143,10 +144,11 @@ const show = (k: number, seconds: number): Clip =>
   });
 
 /** Every section of the back screen, given how long each entry's front animation runs in each style. */
-export function backParts(frontSeconds: Partial<Record<Style, number>>[]): [string, Clip][] {
-  const parts: [string, Clip][] = [];
+export function backParts(frontSeconds: Partial<Record<Style, number>>[]): AnimPart[] {
+  const parts: AnimPart[] = [];
   ENTRIES.forEach((entry, k) => {
-    parts.push([`enter-${k}`, enter(k)], [`idle-${k}`, idle(k)], [`use-${k}`, use(k)]);
+    // The app loops idle-K, so it is rendered as a loop: its last frame is not the first one again.
+    parts.push([`enter-${k}`, enter(k)], [`idle-${k}`, idle(k), { loop: true }], [`use-${k}`, use(k)]);
     for (const style of stylesFor(entry)) parts.push([`show-${k}-${style}`, show(k, frontSeconds[k]![style]!)]);
     if (k > 0) parts.push([`go-${k - 1}-${k}`, go(k - 1, k)]);
     if (k < ENTRIES.length - 1) parts.push([`go-${k + 1}-${k}`, go(k + 1, k)]);

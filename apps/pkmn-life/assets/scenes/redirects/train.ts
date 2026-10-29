@@ -19,6 +19,7 @@ import {
   hex,
   inQuad,
   lerp,
+  mirrorX,
   outQuad,
   seq,
   span,
@@ -33,6 +34,8 @@ import { BIG, BLACK, H, W, big } from "./kit.ts";
 const LETTER_Y = capTop(BIG, 1);
 const DECK_Y = 12;
 const ORANGE = hex("#FF7A33");
+/** The share of its average speed the train still has as it stops, and already has as it sets off. */
+const CREEP = 0.6;
 
 export function train(e: Redirect): Clip {
   const f = big();
@@ -63,11 +66,15 @@ export function train(e: Redirect): Clip {
   const HOLD = 1.9;
   const DEPART = 1.8;
   const total = ARRIVE + HOLD + DEPART;
+  // It brakes as it comes in, but stops from a walking pace rather than creeping its last pixels, and pulls away the
+  // same way: part steady speed, part easing.
+  const brake = (u: number) => lerp(u, outQuad(u), 1 - CREEP);
+  const pull = (u: number) => lerp(u, inQuad(u), 1 - CREEP);
   /** The train's back end in the rightward layout. */
   const trainX = (t: number) => {
-    if (t < ARRIVE) return lerp(-L - 1, X0, outQuad(t / ARRIVE));
+    if (t < ARRIVE) return lerp(-L - 1, X0, brake(t / ARRIVE));
     if (t < ARRIVE + HOLD) return X0;
-    return lerp(X0, W + 2, inQuad((t - ARRIVE - HOLD) / DEPART));
+    return lerp(X0, W + 2, pull((t - ARRIVE - HOLD) / DEPART));
   };
   const speed = (t: number) => Math.abs(trainX(t + 0.01) - trainX(t - 0.01)) / 0.02;
   // Puffs of steam off the chimney (rightward x 10.5 into the engine): one every so often while it moves, two big ones
@@ -76,7 +83,7 @@ export function train(e: Redirect): Clip {
   for (let t = 0; t < total; t += 0.16) if (speed(t) > 6) puffs.push({ t, x: trainX(t) + engineX + 10.5, big: false });
   for (const dt of [0.25, 0.4]) puffs.push({ t: ARRIVE + dt, x: X0 + engineX + 10.5, big: true });
   /** Rightward x to the screen, for something `w` wide. */
-  const sx = (x: number, w: number) => (e.dir > 0 ? x : W - x - w);
+  const sx = (x: number, w: number) => mirrorX(x, w, e.dir);
 
   const scene = clip(total, (r, t) => {
     r.fillRect(0, 0, W, H, BLACK);

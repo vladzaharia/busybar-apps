@@ -1,6 +1,6 @@
 // Front nag "Bug squash": the clock dims out, a bug scuttles in and stops, nervous. A Jira ticket drops from above and
 // flattens it (the screen shakes, dust puffs, its legs twitch), then NO TICKET, / NO FIX. drops in beside it. An iris
-// closes on the ticket and opens again onto the clock.
+// closes on the ticket, holds a moment round it, shuts, and opens again onto the clock.
 
 import {
   BUG_SIZE,
@@ -45,6 +45,8 @@ const TX = STOP + Math.round(BUG_SIZE.width / 2) - Math.round(TICKET_SIZE.width 
 const FLAT = 3;
 const REST_Y = FLOOR - FLAT - TICKET_SIZE.height;
 const LINES = ["NO TICKET,", "NO FIX."];
+/** The circle the closing iris holds on round the ticket: its mark and most of the card. */
+const SETTLE = 10;
 /** The two lines share a left edge, the group centred on its ink in the room right of the ticket. */
 const ROOM = TX + TICKET_SIZE.width + 3;
 const TEXT_X = ROOM + Math.round((W - ROOM - Math.max(...LINES.map((l) => inkWidth(l, font("small"))))) / 2);
@@ -117,5 +119,7 @@ export function squash(_e: Nag): Clip {
   const body = layer(clip(D, (r) => r.fillRect(0, 0, W, H, BLACK)), shake(scene, { from: HIT, to: HIT + 0.35, amplitude: 2, vertical: true }));
   const centre = { x: TX + TICKET_SIZE.width / 2, y: REST_Y + TICKET_SIZE.height / 2 };
 
-  return seq(fade({ duration: MOTION.base, from: 0, to: 1 }), closeWith(body, iris({ mode: "cover", ...centre })), iris({ mode: "reveal", ...centre }));
+  // The iris-out: it closes to a circle round the ticket, holds a moment on it, and shuts.
+  const close = iris({ mode: "cover", ...centre, settle: { radius: SETTLE, hold: 0.25 } });
+  return seq(fade({ duration: MOTION.base, from: 0, to: 1 }), closeWith(body, close), iris({ mode: "reveal", ...centre }));
 }
