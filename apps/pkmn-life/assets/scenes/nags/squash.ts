@@ -10,6 +10,7 @@ import {
   bugFrame,
   capTop,
   clip,
+  closeWith,
   drawBug,
   drawJiraTicket,
   dropIn,
@@ -30,7 +31,7 @@ import {
   type Clip,
 } from "@vladzaharia/bar-pixel";
 import type { Nag } from "../../../src/presets.ts";
-import { AMBER, BLACK, WHITE, closeWith } from "../look.ts";
+import { AMBER, BLACK, WHITE } from "../look.ts";
 
 const W = 72;
 const H = 16;

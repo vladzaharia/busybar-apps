@@ -1,7 +1,7 @@
 // What every nag shares, so the eleven of them read as one set: one lettering white, one emphasis for "?" (amber, on
-// one pulse), soft fills instead of white, and how a scene closes over its last frame.
+// one pulse), and soft fills instead of white. (A scene closes over its last frame with bar-pixel's closeWith.)
 
-import { hex, holdEnd, layer, mix, type Clip, type Color } from "@vladzaharia/bar-pixel";
+import { hex, mix, type Color } from "@vladzaharia/bar-pixel";
 
 /** Lettering on a dark ground. */
 export const WHITE = hex("#FFFFFF");
@@ -27,8 +27,3 @@ export const asking =
   (base: Color) =>
   (_i: number, ch: string, t: number): Color =>
     ch === "?" ? ask(base, t) : base;
-
-/** `body`, then `cover` played over its last frame: how a scene closes behind a transition instead of cutting. */
-export function closeWith(body: Clip, cover: Clip): Clip {
-  return layer(holdEnd(body, cover.duration), { clip: cover, at: body.duration });
-}

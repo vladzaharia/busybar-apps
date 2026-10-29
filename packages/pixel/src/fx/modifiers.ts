@@ -4,7 +4,7 @@
 import { inCubic, outCubic, rng, span } from "../ease.ts";
 import { hex, Raster, type Color } from "../raster.ts";
 import { MOTION } from "../motion.ts";
-import { clip, type Clip } from "../timeline.ts";
+import { clip, layer, type Clip } from "../timeline.ts";
 
 function layerOf(r: Raster, c: Clip, t: number): Raster {
   const l = new Raster(r.width, r.height);
@@ -138,3 +138,10 @@ export function holdEnd(c: Clip, extra: number): Clip {
   return clip(c.duration + extra, (r, t) => c.draw(r, Math.min(c.duration, t)));
 }
 
+/**
+ * `body`, then `cover` played over its held last frame: how a scene closes behind a transition (blinds, an iris, a dim)
+ * instead of cutting to it. Lasts body + cover.
+ */
+export function closeWith(body: Clip, cover: Clip): Clip {
+  return layer(holdEnd(body, cover.duration), { clip: cover, at: body.duration });
+}

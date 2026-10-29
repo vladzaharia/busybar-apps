@@ -7,6 +7,7 @@ import {
   MOTION,
   blinds,
   clip,
+  closeWith,
   drawJiraMark,
   flapBoard,
   flapFaces,
@@ -19,7 +20,7 @@ import {
   type Raster,
 } from "@vladzaharia/bar-pixel";
 import type { Nag } from "../../../src/presets.ts";
-import { BLACK, JIRA_LIGHT, closeWith } from "../look.ts";
+import { BLACK, JIRA_LIGHT } from "../look.ts";
 
 /** The logo flap, a pixel in from the left edge; the letter tiles start past it and end a pixel in from the right. */
 const LOGO = { x: 1, y: 0, size: 15 };

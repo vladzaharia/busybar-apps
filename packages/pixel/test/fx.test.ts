@@ -538,3 +538,21 @@ test("rain starts when asked and falls from under the cloud", async () => {
   }
   assert.ok(Math.min(...rows) >= 6 && Math.max(...rows) === 15, "from the cloud's base to the bottom edge");
 });
+
+test("closeWith plays the cover over the body's held last frame", async () => {
+  const { closeWith } = await import("../src/index.ts");
+  const body = clip(1, (r, t) => r.fillRect(0, 0, Math.round(t * 10), 1, hex("#FFFFFF")));
+  const cover = clip(0.5, (r, t) => r.fillRect(20, 0, 1, 1, hex("#FF0000", t / 0.5)));
+  const c = closeWith(body, cover);
+  assert.equal(c.duration, 1.5);
+  const at = (t: number) => {
+    const r = new Raster(24, 1);
+    c.draw(r, t);
+    return lit(r).map(([x]) => x);
+  };
+  assert.deepEqual(at(0.5), [0, 1, 2, 3, 4], "the body on its own");
+  // Under the cover the body stays on its last frame, all ten pixels, and the cover is drawn on top.
+  assert.deepEqual(at(1.25), [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 20]);
+  assert.deepEqual(at(1.5), [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 20]);
+});
+

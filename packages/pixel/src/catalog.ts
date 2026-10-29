@@ -674,6 +674,15 @@ export const CATALOG: CatalogEntry[] = [
     demo: seq(fx.squash(clip(1.5, (r) => screen(r)), { time: MOTION.quick }), pause(MOTION.rest)),
   },
   {
+    id: "close-with",
+    name: "Close with",
+    group: "Modifiers",
+    about: "Plays a transition over a clip's held last frame, so a scene closes behind blinds, an iris or a fade instead of cutting to it: the body, then the cover on top of where it stopped.",
+    usage: 'closeWith(scene, iris({ mode: "cover" }))  // scene + cover',
+    display: "front",
+    demo: seq(fx.closeWith(clip(1.4, (r, t) => screen(r, t < 0.7 ? "14:27" : "14:28")), fx.iris({ mode: "cover" })), pause(MOTION.rest)),
+  },
+  {
     id: "tear",
     name: "Tear",
     group: "Modifiers",

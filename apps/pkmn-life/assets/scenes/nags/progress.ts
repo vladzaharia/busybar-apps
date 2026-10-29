@@ -7,6 +7,7 @@ import {
   Raster,
   capTop,
   clip,
+  closeWith,
   drawBar,
   fade,
   font,
@@ -25,7 +26,7 @@ import {
   type Clip,
 } from "@vladzaharia/bar-pixel";
 import type { Nag } from "../../../src/presets.ts";
-import { AMBER, BLACK, JIRA, WHITE, asking, closeWith } from "../look.ts";
+import { AMBER, BLACK, JIRA, WHITE, asking } from "../look.ts";
 
 const W = 72;
 const H = 16;
