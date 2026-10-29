@@ -10,10 +10,11 @@ current sprint. The back is a handheld-RPG move menu: pick an entry and press ST
 
 ## The styles
 
-Every style is pre-rendered at build time, for every name, and plays over the live clock: it opens by covering the
-clock and ends by uncovering it. The Jira mark is placed by its optical centre, the lettering is one white, and a "?"
-that is asked of the room (the encounter's, the ticker's, the 8-ball's, the progress bar's) pulses from white to
-amber, the same way everywhere. [The gallery](#the-gallery) plays them all.
+Every style is pre-rendered at build time, for every name, and plays over the live clock: it opens by covering the clock
+and ends by uncovering it. The Jira mark is placed by its optical centre, the lettering is one white, and a "?" that is
+asked of the room (the encounter's, the ticker's, the 8-ball's, the progress bar's, the ticket buddy's) pulses to amber,
+the same way everywhere: from white, or from dark ink to a deeper amber on a light box. [The gallery](#the-gallery)
+plays them all.
 
 ### The Jira nag
 
@@ -24,7 +25,7 @@ amber, the same way everywhere. [The gallery](#the-gallery) plays them all.
 | **Departure board** | Blinds close onto a split-flap board: every flap clatters and stops on FILE A / TICKET?, then the airline flap turns through other logos and lands on Jira. |
 | **Stuck progress bar** | "Filing ticket..." with a spinner and a bar that creeps to 99% and stalls, turns amber, and rolls away for "...you didn't, did you?". |
 | **404** | The clock tears into black; "404 \| TICKET NOT FOUND" flickers in through heavy glitching, slams into place and tears apart on the way out. |
-| **Bug squash** | A bug scuttles in; a Jira ticket drops from above and flattens it (the screen shakes, dust puffs), then NO TICKET, / NO FIX. |
+| **Bug squash** | A bug scuttles in; a Jira ticket drops from above and flattens it (the screen shakes, dust puffs), then NO TICKET, / NO FIX. An iris closes to a circle round the ticket, holds, and shuts. |
 | **Ticket buddy** | The Jira ticket, with a face, hops in and asks "FILE ME?", then "PLEASE?" with big eyes, and does a happy double hop. |
 | **Slot machine** | Bulbs chase round a slot machine, the lever is pulled, three reels land on Jira, Jira, Jira; confetti, "JACKPOT!", then "FILE IT!". |
 | **Magic 8-ball** | "WHAT DO I NEED NOW?" types beside an 8-ball. It shakes, and the view irises into its window, where "SIGNS POINT TO", then "A TICKET", float up out of the ink. |
@@ -41,7 +42,7 @@ name (the limit is [46 px](#who-the-redirects-send-to), e.g. DAMIAN) gets fewer 
 | **Runway** | An amber wipe, then amber chevrons chasing their way with the name opposite: as many chevrons (two to four) as fit beside the name. |
 | **Nudge** | A big arrow sweeps across, settles pointing their way and keeps nudging. |
 | **Wayfinding sign** | A dark-yellow airport sign with the name and an arrow slides in from their side, and out again. |
-| **Walker** | A little person walks in leaving the name behind them letter by letter, waves, points their way, walks over and says "HI!" in a speech bubble ("HI" when the name is wide), then steps off. |
+| **Walker** | A little person walks in leaving the name behind them letter by letter, waves, points their way, walks over and says "HI!" in a speech bubble, then steps off, leaving an arrow pointing after them. |
 | **Trainer** | Battle stripes, then a dialogue box: "TRAINER ALEX can help you!", "Go see ALEX!". |
 | **Scroller** | Chevrons and the name stream their way like a moving-walkway sign, slow to a stop with the name centred for as long as it takes to read, and speed off. |
 | **Motorway sign** | A green gantry sign drops in with the name in white and a GO! tab and exit arrow on their side; the sheen runs across and the arrow nudges. It slides off their way. |
@@ -50,7 +51,7 @@ name (the limit is [46 px](#who-the-redirects-send-to), e.g. DAMIAN) gets fewer 
 | **Paper plane** | A paper plane loops the loop, then tows the name in on a banner, holds it still while it is read, and pulls it off their way. |
 | **Pointing hand** | A big cartoon hand pokes in pointing their way; the name drops in where it points, gets two pokes, and a last jab knocks it off. |
 | **Little train** | An engine chugs in pulling flatcars, one letter of the name on each, stops, lets off steam and chugs away their way. |
-| **Growlithe** | Growlithe bounds in with the name popping up behind it, barks their way (a puff of embers, the letters hop), and bounds off; its cry, "GROWL!" ("GRR!" when the name is wide), comes from over there. |
+| **Growlithe** | Growlithe bounds in with the name popping up behind it, barks their way (a puff of embers, the letters hop), and bounds off; its cry, "GROWL!" ("GRR!" when the name is wide), rises into view from over there and stays until the end. |
 | **Shout** | A megaphone shouts "HEY!" at them, then blasts out the name; the letters fly off their way. |
 | **Treasure map** | A parchment unrolls their way, a dotted red trail walks off and an X stamps down; the name rises out of the ground in gold, and the map rolls up. |
 
@@ -81,13 +82,14 @@ Mac remote uses, is its name in lower case without spaces or punctuation: `alex`
 | OK (press the wheel) | Change how the selected entry plays: a style, or random (FILE A TICKET also has Each in turn) | |
 | BACK | Leave the app | Stop it |
 
-The back header shows how the next START will play: the style's name (ENCOUNTER, 404, GROWLITHE ...), RANDOM, or
-for FILE A TICKET on **Each in turn**, ALT: and the style it plays next. OK on FILE A TICKET cycles each in turn →
-random → the eleven styles in the order of [the table](#the-jira-nag) (encounter, ticker, board, progress, 404,
-squash, buddy, slots, 8-ball, invaders, forecast). Each in turn plays the nags in that same order, the next one after
-every play, and starts over after the last. OK on a redirect cycles random → the fifteen looks (runway, nudge, sign,
-walker, trainer, scroller, motorway, exit, parcel, plane, hand, train, Growlithe, shout, map). In random, each START
-picks a style, every style coming up once per round in a fresh order.
+The back header shows how the next START will play: the style's name (ENCOUNTER, 404, GROWLITHE ...), RANDOM, or for
+FILE A TICKET on **Each in turn**, ALT: and the style it plays next. OK on FILE A TICKET cycles each in turn → random →
+the eleven styles in the order of [the table](#the-jira-nag) (encounter, ticker, board, progress, 404, squash, buddy,
+slots, 8-ball, invaders, forecast). Each in turn plays the nags in that same order, and starts over after the last; it
+moves on once the style it announced has played (a remote request for another style leaves it due). OK on a redirect
+cycles random → the fifteen looks (runway, nudge, sign, walker, trainer, scroller, motorway, exit, parcel, plane, hand,
+train, Growlithe, shout, map). In random, each START picks a style, every style coming up once per round in a fresh
+order.
 
 ## Clock
 

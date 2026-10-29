@@ -73,7 +73,7 @@ const NAG_ABOUT: Record<NagStyle, { name: string; about: string }> = {
   squash: {
     name: "Bug squash",
     about:
-      "A bug scuttles in and stops, nervous. A Jira ticket drops from above and flattens it (the screen shakes, dust puffs, its legs twitch), then NO TICKET, / NO FIX. drops in beside it. An iris closes on the ticket.",
+      "A bug scuttles in and stops, nervous. A Jira ticket drops from above and flattens it (the screen shakes, dust puffs, its legs twitch), then NO TICKET, / NO FIX. drops in beside it. An iris closes to a circle round the ticket, holds a moment, and shuts.",
   },
   buddy: {
     name: "Ticket buddy",
@@ -120,7 +120,7 @@ const REDIRECT_ABOUT: Record<RedirectStyle, { name: string; about: string }> = {
   walker: {
     name: "Walker",
     about:
-      "The clock fades, a little person walks in from the far side leaving the name behind them letter by letter, waves, points the way with arrows blinking from their hand, walks over to that side and says \"HI!\" in a speech bubble, then steps off the edge.",
+      "The clock fades, a little person walks in from the far side leaving the name behind them letter by letter, waves, points the way with arrows blinking from their hand, walks over to that side and says \"HI!\" in a speech bubble, then steps off the edge, an arrow still pointing after them.",
   },
   trainer: {
     name: "Trainer",
@@ -164,7 +164,7 @@ const REDIRECT_ABOUT: Record<RedirectStyle, { name: string; about: string }> = {
   dog: {
     name: "Growlithe",
     about:
-      "Growlithe bounds in and the name pops up behind it as it passes; it stops, wags its cream tail and barks their way (jaw drops, a puff of embers, the letters hop towards it in a wave), then bounds off that way. Over there comes its cry: \"GROWL!\", or \"GRR!\" when a wide name leaves less room.",
+      "Growlithe bounds in and the name pops up behind it as it passes; it stops, wags its cream tail and barks their way (jaw drops, a puff of embers, the letters hop towards it in a wave), then bounds off that way. Over there its cry rises into view and stays: \"GROWL!\", or \"GRR!\" when a wide name leaves less room.",
   },
   shout: {
     name: "Shout",
@@ -234,7 +234,7 @@ const review: PreviewEntry[] = [
   // The Jira mark, the ticket sprite and the glare fixes, in the nags.
   reviewNag(
     "encounter",
-    "Look at: (1) the Jira mark flying at the bug and the ticket it becomes: the mark's weight sits top-right, so it is placed by its optical centre now, not its box; (2) the glare fixes: the dialogue boxes have a darker fill (#9DA9BC, was #CFD8E6) and the opening flashes are softer; (3) one lettering white for the whole set, and the \"???\" pulsing from white to amber, the same \"?\" pulse as in the ticker, the 8-ball and the stuck progress bar. Back screen (not drawn here): the header names the style, e.g. ENCOUNTER, and shows ALT: TICKER (the next in turn) when FILE A TICKET is set to Each in turn, which steps through all 11 nags in order after every play; OK cycles Each in turn, Random, then each style. Shared timings: every style opens and closes with the same few beats from the MOTION tokens (a transition about 0.4 s, a big move about 0.65 s, a scene-level entrance about 1.1 s) and holds what is read for readTime of it; look for any style whose entrance or exit feels faster or slower than the rest.",
+    "Look at: (1) the Jira mark flying at the bug and the ticket it becomes: the mark's weight sits top-right, so it is placed by its optical centre now, not its box; (2) the glare fixes: the dialogue boxes have a darker fill (#9DA9BC, was #CFD8E6) and the opening flashes are softer; (3) one lettering white for the whole set, and the \"???\" pulsing to amber, the same \"?\" pulse as in the ticker, the 8-ball, the stuck progress bar and the ticket buddy (dark ink on the light box pulses to a deeper amber, so it stays clear of the box). Back screen (not drawn here): the header names the style, e.g. ENCOUNTER, and shows ALT: TICKER (the next in turn) when FILE A TICKET is set to Each in turn, which steps through all 11 nags in order, moving on once the one it announced has played; OK cycles Each in turn, Random, then each style. Shared timings: every style opens and closes with the same few beats from the MOTION tokens (a transition about 0.4 s, a big move about 0.65 s, a scene-level entrance about 1.1 s) and holds what is read for readTime of it; look for any style whose entrance or exit feels faster or slower than the rest.",
   ),
   reviewNag(
     "ticker",
@@ -250,15 +250,15 @@ const review: PreviewEntry[] = [
   ),
   reviewNag(
     "squash",
-    "Look at: the reworked ticket sprite (the card with the mark, the summary lines and the Task checkbox) dropping onto the bug, and the squash.",
+    "Look at: the reworked ticket sprite (the card with the mark, the summary lines and the Task checkbox) dropping onto the bug, and the squash; then the iris closing to a circle round the ticket, holding, and shutting.",
   ),
   reviewNag(
     "buddy",
-    "Look at: the ticket with a face (the reworked sprite), and its hops. Prototype behaviour you may want changed: the hops carry it off the top of the screen. Keep them, or lower them?",
+    "Look at: the ticket with a face (the reworked sprite), and its hops, lowered so all of it stays on the screen (squash and stretch carry the bounce); and the amber \"?\" in its bubbles.",
   ),
   reviewNag(
     "notfound",
-    "Look at: the exit. As in the prototype, the picture flickers in and out through heavy glitching on its way off before the black fades away. Keep the flicker, or end it more quietly?",
+    "Look at: the flicker on the way in and out. The glitch stays, but each time the picture comes back it fades up rather than strobing on: in, faint, then brighter, then for good; out, back at half, then a quarter, then gone.",
   ),
   reviewNag(
     "eightball",
@@ -281,10 +281,10 @@ const review: PreviewEntry[] = [
     "dog",
     "ALEX",
     1,
-    "Look at: the Growlithe sprite (orange with black stripes, the big head, the cream mane and tail tuft: unmistakably Growlithe?) and its cry. There is no ARF! any more: after it bounds off, the cry pops at their edge, \"GROWL!\", with a puff of embers when it barks.",
+    "Look at: the Growlithe sprite (orange with black stripes, the big head, the cream mane and tail tuft: unmistakably Growlithe?) and its cry. There is no ARF! any more: after it bounds off, the cry rises into view at their edge, \"GROWL!\" in the larger lettering a row clear of the top, and stays until the wipe, pointing their way; a puff of embers when it barks.",
   ),
-  reviewRedirect("dog", "DAMIAN", 1, "Look at: the wide name leaves less room for the cry, so Growlithe says \"GRR!\" instead of \"GROWL!\". Does it still read?"),
-  reviewRedirect("dog", "SAM", -1, "Growlithe for someone on the left: it bounds in from the right, barks left, and the cry pops at the left edge."),
+  reviewRedirect("dog", "DAMIAN", 1, "Look at: the wide name leaves less room for the cry, so Growlithe says \"GRR!\" instead of \"GROWL!\", two clear columns from the name. Does it still read?"),
+  reviewRedirect("dog", "SAM", -1, "Growlithe for someone on the left: it bounds in from the right, barks left, and the cry rises at the left edge."),
   reviewRedirect(
     "shout",
     "ALEX",
@@ -317,16 +317,16 @@ const review: PreviewEntry[] = [
     "walker",
     "DAMIAN",
     1,
-    "Wide name: the walker stands where the name ends, the arrows and the bubble take what room is left, and the bubble says \"HI\" without its \"!\" (a pixel narrower). Does \"HI\" still read as a greeting?",
+    "Wide name: the walker stands where the name ends, and the arrows and the bubble take what room is left. The bubble is a row clear of the top, in the larger lettering, and its \"HI!\" keeps two clear columns from the name; once they step off, an arrow points after them.",
   ),
-  reviewRedirect("walker", "DAMIAN", -1, "Wide name, mirrored: the walker and the \"HI\" bubble for someone on the left."),
-  reviewRedirect("motorway", "DAMIAN", 1, "Wide name: DAMIAN, the widest, fills the room the sign leaves it with exactly 3 px to spare; the GO! tab and arrow sit clear of it."),
+  reviewRedirect("walker", "DAMIAN", -1, "Wide name, mirrored: the walker and the \"HI!\" bubble for someone on the left."),
+  reviewRedirect("motorway", "DAMIAN", 1, "Wide name: DAMIAN, the widest, fills the room the sign leaves it with 2 px to spare; the GO! tab (its G now with a bar, so it no longer reads OO!) and the arrow sit clear of it."),
   reviewRedirect("motorway", "DAMIAN", -1, "Wide name, mirrored: the tab and arrow on the left."),
   reviewRedirect(
     "exit",
     "DAMIAN",
     1,
-    "Wide name: the exit sign gets cramped. A wide name takes the second chevron, then the smaller chevron and the gaps, and lastly the visitor stands in front of the table's near end. Is this still readable, and is it acceptable?",
+    "Wide name: the exit sign gets cramped. A wide name takes the second chevron, then the smaller chevron and the gaps, and lastly the visitor stands in front of the table's near end (and the edge of its monitor). The name keeps 3 px from the screen's edge, like every name set against an edge, and two clear columns from the visitor. Is this still readable, and is it acceptable?",
   ),
   reviewRedirect("exit", "DAMIAN", -1, "Wide name, mirrored: the cramped exit sign for someone on the left."),
   reviewRedirect(
