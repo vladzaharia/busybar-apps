@@ -288,6 +288,35 @@ function to8(v: number): number {
   return Math.max(0, Math.min(255, Math.round(v * 255)));
 }
 
+/** Whether (x, y) is inside the polygon `pts` (even-odd rule). */
+function inPolygon(pts: readonly (readonly [number, number])[], x: number, y: number): boolean {
+  let inside = false;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const [xi, yi] = pts[i]!;
+    const [xj, yj] = pts[j]!;
+    if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+
+/**
+ * A filled polygon (screen coordinates, any shape), anti-aliased by 4 x 4 supersampling. Coverage is sharpened a
+ * little (below 15% is dropped, above 75% is solid) so small shapes that turn, a paper plane, keep their edges.
+ */
+export function fillPolygon(r: Raster, pts: readonly (readonly [number, number])[], c: Color, alpha = 1): void {
+  const SS = 4;
+  const xs = pts.map((p) => p[0]);
+  const ys = pts.map((p) => p[1]);
+  for (let y = Math.floor(Math.min(...ys)); y <= Math.ceil(Math.max(...ys)); y++) {
+    for (let x = Math.floor(Math.min(...xs)); x <= Math.ceil(Math.max(...xs)); x++) {
+      let n = 0;
+      for (let sy = 0; sy < SS; sy++) for (let sx = 0; sx < SS; sx++) if (inPolygon(pts, x + (sx + 0.5) / SS, y + (sy + 0.5) / SS)) n++;
+      const k = Math.max(0, Math.min(1, (n / (SS * SS) - 0.15) / 0.6));
+      if (k > 0) r.blend(x, y, c, alpha * k);
+    }
+  }
+}
+
 /** Whether a pixel lies inside a rounded rectangle whose corners are cut on the pixel grid. */
 export function inRoundRect(x: number, y: number, w: number, h: number, r: number): boolean {
   if (x < 0 || y < 0 || x >= w || y >= h) return false;

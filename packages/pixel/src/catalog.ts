@@ -517,6 +517,57 @@ export const CATALOG: CatalogEntry[] = [
     }),
   },
 
+  {
+    id: "road-sign",
+    name: "Road sign",
+    group: "Wayfinding",
+    about: "A motorway guide sign filling the screen: green panel, inset white rim, a lettered tab in the top corner on one side and a diagonal exit arrow under it that nudges that way; the sheen runs the same way. roadSignLayout() gives the columns a name may use, 3 px clear of the rim and the tab.",
+    usage: 'drawRoadSign(r, { tab: "GO!", dir: 1, sheen, nudge }); roadSignLayout({ tab, dir }).room',
+    display: "front",
+    demo: clip(3, (r, t) => {
+      const nudge = t % 1.1 < 0.4 ? Math.round(Math.sin(((t % 1.1) / 0.4) * Math.PI)) : 0;
+      fx.drawRoadSign(r, { tab: "GO!", dir: 1, sheen: ((t % 2.2) / 2.2) * 122 - 25, nudge });
+      const f = font("extra_large");
+      const { room } = fx.roadSignLayout({ tab: "GO!", dir: 1 });
+      r.text("ALEX", f, room.x0 + Math.round((room.x1 - room.x0 + 1 - inkWidth("ALEX", f)) / 2), capCentre("extra_large"), fx.ROAD_INK);
+    }),
+  },
+  {
+    id: "exit-sign",
+    name: "Exit sign pictograms",
+    group: "Wayfinding",
+    about: "An illuminated EXIT sign that flickers on like a fluorescent tube, with its pictograms: an ISO figure that walks (pictoStep) and stands, and a person sat at their desk with a monitor, looking across it. A knock-out ring in the sign's green keeps a figure apart from what it overlaps.",
+    usage: 'drawExitPanel(r, exitFlickerOn(t), t); drawPictogram(r, x, 2, 1, pictoStep(t), { ink, halo }); drawPersonAtDesk(r, x, 3, -1, { ink, dim, screen })',
+    display: "front",
+    demo: clip(4, (r, t) => {
+      const light = fx.exitFlickerOn(Math.min(t, 0.7));
+      fx.drawExitPanel(r, light, t);
+      const ink = fx.exitInk(light);
+      const halo = mix(fx.EXIT_SIGN.deep, fx.EXIT_SIGN.lit, 0.92 * light);
+      fx.drawPersonAtDesk(r, 40, 3, -1, { ink, dim: fx.exitInk(0.55 * light), screen: fx.exitInk(light, fx.EXIT_SIGN.screen) });
+      const walk = span(t, 1.0, 2.6);
+      r.clip = { x0: 0, y0: 1, x1: r.width, y1: r.height - 1 };
+      fx.drawPictogram(r, Math.round(lerp(18, 30, walk)), 2, 1, walk > 0 && walk < 1 ? fx.pictoStep(t) : "stand", { ink, halo });
+      r.clip = null;
+      fx.drawChevron(r, 63, 4, 9, 1, mix(fx.EXIT_SIGN.deep, ink, fx.chase(t, 0, { period: 0.8, floor: 0.45 })));
+    }),
+  },
+  {
+    id: "map-trail",
+    name: "Map trail",
+    group: "Wayfinding",
+    about: "A treasure map's dotted trail drawing itself along any path, dash by dash (trailDashes walks it by length, so the dashes are even), with a light running along it once it is down; and the X that marks the spot, stamped down from big.",
+    usage: "const dashes = trailDashes((s) => [x, y]); drawTrail(r, dashes, { t, start, duration, dir, glint }); drawTreasureX(r, cx, cy, { stamp })",
+    display: "front",
+    demo: (() => {
+      const dashes = fx.trailDashes((s) => [lerp(2, 50, s), 9 + Math.sin(s * Math.PI * 1.7 + 0.4) * 3.2 - s * 1.5]);
+      return clip(3.5, (r, t) => {
+        r.fillRect(0, 0, r.width, r.height, hex("#4A3518"));
+        fx.drawTrail(r, dashes, { t, start: 0.2, duration: 1.4, dir: 1, glint: 2.0 });
+        fx.drawTreasureX(r, 58.5, 7.5, { stamp: span(t, 1.6, 1.8) });
+      });
+    })(),
+  },
 
   // Sprites -------------------------------------------------------------------------------------------------------
   {
@@ -577,6 +628,136 @@ export const CATALOG: CatalogEntry[] = [
       fx.drawRain(r, { x, y: 7, t, start: 0.4 });
       const bolt = t > 2 ? Math.max(0, 1 - (t - 2) / 0.25) * (Math.floor((t - 2) * 30) % 2 === 0 ? 1 : 0.4) : 0;
       fx.drawCloud(r, x, 1, { flash: bolt });
+    }),
+  },
+  {
+    id: "van",
+    name: "Delivery van",
+    group: "Sprites",
+    about: "A brown delivery van whose cargo box is a sign: drawVan returns the box's side for the caller to letter (caps on rows 3..12 sit with a row of box above and below). Its wheels turn while it moves and the indicator blinks when it parks; it faces either way, lettering never mirrored.",
+    usage: "const side = drawVan(r, x, { cargo: inkW + 8, dir, t, moving, blink }); r.text(name, f, side.x + 4, y, gold)",
+    display: "front",
+    demo: (() => {
+      const f = font("extra_large");
+      const cargo = inkWidth("ALEX", f) + 8;
+      const w = fx.vanWidth(cargo);
+      const park = Math.round((72 - w) / 2);
+      return clip(3.5, (r, t) => {
+        const x = t < 0.9 ? lerp(-w - 2, park, outCubic(t / 0.9)) : t < 2.6 ? park : lerp(park, 74, Math.pow(span(t, 2.6, 3.5), 2));
+        const side = fx.drawVan(r, x, { cargo, dir: 1, t, moving: t < 0.9 || t > 2.6, blink: t > 0.9 && t < 2.6 && (t - 0.9) % 0.7 < 0.35 });
+        r.text("ALEX", f, side.x + 4, capCentre("extra_large"), hex("#FFB020"));
+      });
+    })(),
+  },
+  {
+    id: "train",
+    name: "Little train",
+    group: "Sprites",
+    about: "An orange engine with turning drive wheels and a coupling rod, flatcars that can each carry a letter, a rail whose sleepers slide past, and puffs of steam that grow and thin out.",
+    usage: "drawRails(r, 15, travel); drawFlatcar(r, x, 12, width, travel); drawEngine(r, x, 0, dir, travel); drawPuff(r, cx, cy, age)",
+    display: "front",
+    demo: (() => {
+      const f = font("extra_large");
+      const letters = ["H", "I", "!"];
+      return clip(4, (r, t) => {
+        const X = t < 1.6 ? lerp(-60, 18, 1 - Math.pow(1 - t / 1.6, 2)) : t < 2.6 ? 18 : lerp(18, 80, Math.pow(span(t, 2.6, 4), 2));
+        fx.drawRails(r, 15, X);
+        let x = X;
+        for (const ch of letters) {
+          const w = inkWidth(ch, f) + 2;
+          fx.drawFlatcar(r, x, 12, w, X);
+          r.text(ch, f, Math.round(x) + 1, fx.capTop("extra_large", 1), hex("#FFB020"));
+          x += w + 1;
+        }
+        fx.drawEngine(r, x, 0, 1, X);
+        if (t > 1.6 && t < 3.0) fx.drawPuff(r, Math.round(x) + 10.5 - (t - 1.6) * 4, 0.6 - (t - 1.6), (t - 1.6) / 1.4, true);
+      });
+    })(),
+  },
+  {
+    id: "paper-plane",
+    name: "Paper plane",
+    group: "Sprites",
+    about: "A paper plane drawn as a shape (the near wing over the darker folded far one), so it turns smoothly through a loop; and a cloth banner it can tow, with a flapping swallow-tail and a ripple of shade running down it.",
+    usage: "drawPaperPlane(r, x, y, angle, dir); drawBanner(r, { left, right, top: 1, height: 14, dir, t })",
+    display: "front",
+    demo: clip(4, (r, t) => {
+      const f = font("extra_large");
+      if (t < 1.2) {
+        const th = (t / 1.2) * Math.PI * 2;
+        fx.drawPaperPlane(r, 20 + 5 * Math.sin(th), 8 + 5 * Math.cos(th), -th, 1);
+        return;
+      }
+      // The banner unfurls from x 14 as the plane pulls it, then holds still while the plane bobs ahead of it.
+      const BW = inkWidth("HI", f) + 7;
+      const px = Math.min(14 + BW + 10, lerp(20, 14 + BW + 10, (t - 1.2) / 0.8));
+      const right = px - 10;
+      const left = Math.max(14, right - BW);
+      const bob = Math.sin(t * 4) * 0.6;
+      fx.drawBanner(r, { left, right, top: 1, height: 14, dir: 1, t });
+      fx.drawLine(r, px - 4.5, 8 + bob, right, 7.5, hex("#8A94A6"));
+      if (right - left >= BW) r.text("HI", f, left + 4, capCentre("extra_large"), hex("#2A1700"));
+      fx.drawPaperPlane(r, px, 8 + bob, 0.16 * Math.cos(t * 4), 1);
+    }),
+  },
+  {
+    id: "pointing-hand",
+    name: "Pointing hand",
+    group: "Sprites",
+    about: "A big cartoon hand pointing out of a blue cuff. Its index finger is 7 to 14 px past the knuckles, so a wide word leaves a shorter finger rather than a cropped hand; run the cuff off the edge with HAND_SLEEVE.",
+    usage: "drawPointingHand(r, x, 0, dir, { finger: 14 })  // handWidth(finger) wide, rows 1..14",
+    display: "front",
+    demo: clip(3, (r, t) => {
+      const f = font("extra_large");
+      // A short word leaves the whole finger; a wide one a shorter finger, the hand 4 px short of it either way.
+      const word = t < 1.5 ? "SAM" : "WWWWW";
+      const nx = 72 - 3 - inkWidth(word, f);
+      const finger = Math.min(14, Math.max(7, nx - 4 - 3 - 16));
+      const poke = (t % 1.5) > 0.6 && (t % 1.5) < 0.9 ? 2 : 0;
+      const x = nx - 4 - fx.handWidth(finger) + 1 - 2 + poke;
+      fx.drawPointingHand(r, x, 0, 1, { finger });
+      if (x > 0) r.fillRect(0, 4, x, 9, fx.HAND_SLEEVE);
+      r.text(word, f, nx, capCentre("extra_large"), hex("#FFB020"));
+    }),
+  },
+  {
+    id: "growlithe",
+    name: "Growlithe",
+    group: "Sprites",
+    about: "Growlithe, 18 x 13: a big orange head with a cream tuft and a shiny eye, a cream bib, black stripes across its back and a bushy cream tail. It stands, wags, barks (its jaw open), leaps and lands; drawEmberPuff puffs a few embers out of its mouth.",
+    usage: 'drawGrowlithe(r, x, 3, dir, "bark"); drawEmberPuff(r, noseX, 7, dir, p)',
+    display: "front",
+    demo: clip(4, (r, t) => {
+      const HOP = 0.32;
+      const stop = 20;
+      const x = t < 1.28 ? lerp(-20, stop, t / 1.28) : stop;
+      let pose: fx.GrowlithePose = "stand";
+      let y = 3;
+      if (t < 1.28) {
+        const ph = (t / HOP) % 1;
+        pose = ph > 0.15 && ph < 0.85 ? "leap" : "gather";
+        y = 3 - Math.round(Math.sin(ph * Math.PI) * 3);
+      } else if (t > 2.0 && t < 2.5) pose = Math.floor(t * 9) % 2 ? "bark" : "stand";
+      else pose = Math.floor(t * 9) % 2 ? "wag" : "stand";
+      fx.drawGrowlithe(r, x, y, 1, pose);
+      fx.drawEmberPuff(r, stop + 18, 8, 1, span(t, 2.0, 2.6));
+      if (t > 2.0 && t < 3.6) fx.drawSpeechBubble(r, { x: stop + 21, top: 0, dir: 1, text: "GRR!", pop: outBack(span(t, 2.0, 2.25), 2.2) });
+    }),
+  },
+  {
+    id: "megaphone",
+    name: "Megaphone",
+    group: "Sprites",
+    about: "A megaphone, 12 x 11: mouthpiece, an orange cone flaring to a cream bell rim with the dark inside of the bell showing, and a handle; drawSoundArcs sends three arcs out of its bell that way, stopping short of a column (where the words start).",
+    usage: "drawMegaphone(r, x, 3, dir); drawSoundArcs(r, x + MEGAPHONE_SIZE.mouth + 1, 8, dir, p, { stop })",
+    display: "front",
+    demo: clip(3, (r, t) => {
+      const f = font("extra_large");
+      const kick = (t % 1.5) < 0.2 ? -Math.round(Math.sin(((t % 1.5) / 0.2) * Math.PI)) : 0;
+      fx.drawMegaphone(r, 2 + kick, 3, 1);
+      const x = 72 - 3 - inkWidth("HEY!", f);
+      fx.drawSoundArcs(r, 13 + kick, 8, 1, (t % 1.5) / 0.9, { stop: x - 2 });
+      r.text("HEY!", f, x, capCentre("extra_large"), W);
     }),
   },
   // Logo ----------------------------------------------------------------------------------------------------------

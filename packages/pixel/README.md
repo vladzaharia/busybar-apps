@@ -4,14 +4,17 @@ Build-time toolkit for pre-rendered BUSY Bar animation.
 
 - `.anim` encoder and decoder (`encodeAnim`, `AnimReader`, `decodeAnim`): raw, RLE and QOI frames, change masks,
   sections. Checked against the firmware's own code (see below).
-- `Raster`, the firmware's fonts (`font`, `textWidth`, `inkWidth`), masks, PNG I/O, the Jira mark sprites (and the
-  ticket, with or without a face), icons (calendar, monograms, a capture ball, a moon).
+- `Raster`, the firmware's fonts (`font`, `textWidth`, `inkWidth`), masks, PNG I/O, `fillPolygon`, the Jira mark
+  sprites (and the ticket, with or without a face), icons (calendar, monograms, a capture ball, a moon).
 - Timeline: `clip`, `seq`, `layer`, `buildAnim` (named parts → sections, with their lengths); a clip's last frame is
   drawn at its `duration`, so what it ends on shows.
 - Effects (`src/fx/`): transitions, backgrounds, text (including title cards and a split-flap board), HUD (with a
-  slot reel), wayfinding (chevrons, arrows, a chevron chase, a scrolling band, a walking figure), sprites (a bug,
-  ticket invaders, an 8-ball, a rain cloud, squash-and-stretch hops) and modifiers (with screen tearing). Every one
-  is in `src/catalog.ts` with a demo; `pnpm gallery <out-dir>` renders the browsable gallery.
+  slot reel), wayfinding (chevrons, arrows, a chevron chase, a scrolling band, a walking figure, a motorway sign, an
+  EXIT sign with its pictograms, a treasure map's trail and X), vehicles (a delivery van, a little train, a paper
+  plane towing a banner), sprites (a bug, ticket invaders, an 8-ball, a rain cloud, squash-and-stretch hops, a
+  pointing hand, Growlithe, a megaphone with sound arcs) and modifiers (with screen tearing, and `closeWith` to close
+  a scene behind a transition). Every one is in `src/catalog.ts` with a demo; `pnpm gallery <out-dir>` renders the
+  browsable gallery.
 - `MOTION` and `readTime`: durations calibrated against the stock animations.
 - `writePreview`, `drawElements`: preview pages and a draw-element emulator.
 

@@ -295,3 +295,196 @@ export function drawRain(
     }
   });
 }
+
+// --- Pointing hand -----------------------------------------------------------------------------------------------
+
+// A cartoon hand pointing right out of a blue cuff: the index finger out, the others curled under the thumb. The
+// finger's middle (columns 20..26, on its rows only) is what `pointingHand` shortens.
+const HAND = [
+  "..............................",
+  ".........oooo.................",
+  ".......ooSSSSoo...............",
+  "......oSSSSSSSSoooooooooooo...",
+  "CCCww.oSSSSSSSSSSSSSSSSSSSSo..",
+  "CCCwwoSSSSSSSSSSSSSSSSSSSSSSo.",
+  "CCCwwoSSSSSSSSSdddddddddddddo.",
+  "CCCwwoSSSSSSSSSoooooooooooo...",
+  "CCCwwoSSSSSSSSSSSSSo..........",
+  "CCCwwoSSSSSSSSSddddo..........",
+  "CCCwwoSSSSSSSSSoooo...........",
+  "CCCwwoSSSSSSSSSSSSo...........",
+  "CCCww.oSSSSSSSSdddo...........",
+  "......ooSSSSSoooo.............",
+  "........oooo..................",
+];
+const HAND_PALETTE: Record<string, Color> = { C: hex("#1D7AFC"), w: hex("#CFE3F5"), S: hex("#FFC892"), d: hex("#E0904F"), o: hex("#A0521C") };
+/** The hand's sleeve colour, to run the cuff on off the edge of the screen. */
+export const HAND_SLEEVE = HAND_PALETTE.C!;
+
+/** The pointing hand is 15 rows tall (its first row empty) and `handWidth(finger)` wide. */
+export const HAND_HEIGHT = 15;
+/** The hand's width with the index finger reaching `finger` px past the knuckles (7..14). */
+export const handWidth = (finger = 14) => 30 - (14 - Math.max(7, Math.min(14, Math.round(finger))));
+
+/** The hand's rows with the index finger `finger` px long: a wide name leaves a shorter finger, not a cropped hand. */
+function pointingHand(finger = 14): string[] {
+  const cut = 14 - Math.max(7, Math.min(14, Math.round(finger)));
+  return HAND.map((row) => row.slice(0, 20) + row.slice(20 + cut));
+}
+
+/**
+ * A big cartoon hand pointing towards `dir` out of a blue cuff, top-left at (x, y); its cuff is the 5 columns on the
+ * side away from `dir` (rows y + 4..y + 12). `finger` (7..14) is how far the index finger reaches past the knuckles.
+ */
+export function drawPointingHand(r: Raster, x: number, y: number, dir: Direction, o: { finger?: number; alpha?: number } = {}): void {
+  stampPalette(r, pointingHand(o.finger), Math.round(x), Math.round(y), HAND_PALETTE, o.alpha ?? 1, dir < 0);
+}
+
+// --- Growlithe ---------------------------------------------------------------------------------------------------
+
+// Growlithe facing right, 18 x 13: a big orange head with a cream tuft on top and a shiny eye, a cream bib under it,
+// black stripes slanting across its back, and a bushy cream tail. Stripes are near black: on the LEDs they read as
+// gaps in the orange, as on the real thing.
+const PUP_BASE = [
+  "..........CCC.....",
+  "........oCCCCC....",
+  ".CC.....ooCCCOO...",
+  "CCCC...OOOOOOOOO..",
+  "CCCCC..OOOOOOEwOO.",
+  "CCCCC..OOOOOOEEOOO",
+  ".CCCc..OOOOOOOOOOn",
+  "..CcOKOOKOcCCOOOO.",
+  "...OOKOOKOCCCC....",
+  "...OKOOKOOCCCc....",
+  "...OOOOOOOOCc.....",
+  "...oO.....oO......",
+  "...oO.....oO......",
+];
+/** Rows replaced from PUP_BASE for each pose. */
+const PUP_POSES: Record<GrowlithePose, Record<number, string>> = {
+  stand: {},
+  // The tail swung up over its back.
+  wag: {
+    0: "..CC......CCC.....",
+    1: ".CCCC...oCCCCC....",
+    2: ".CCCC...ooCCCOO...",
+    3: "..CCCc.OOOOOOOOO..",
+    4: "..CCCc.OOOOOOEwOO.",
+    5: "...CCc.OOOOOOEEOOO",
+    6: "...Cc..OOOOOOOOOOn",
+    7: "...cOKOOKOcCCOOOO.",
+  },
+  // The jaw dropped open.
+  bark: { 5: "CCCCC..OOOOOOEEOO.", 6: ".CCCc..OOOOOOOOmmn", 7: "..CcOKOOKOcCCOOOOO" },
+  // Legs stretched fore and aft.
+  leap: { 11: ".oO.........oO....", 12: "oO...........oO..." },
+  // Legs tucked under.
+  gather: { 11: ".....oO.oO........", 12: "......oOo........." },
+};
+const PUP_PALETTE: Record<string, Color> = {
+  O: hex("#FF7A1E"),
+  o: hex("#C8501A"),
+  K: hex("#1E0C04"),
+  C: hex("#FFE6A8"),
+  c: hex("#D9B070"),
+  E: hex("#140804"),
+  w: hex("#FFFFFF"),
+  n: hex("#2A160A"),
+  m: hex("#7A1E08"),
+};
+
+/** Growlithe's poses: standing, wagging (its tail up), barking, mid-leap and landing. */
+export type GrowlithePose = "stand" | "wag" | "bark" | "leap" | "gather";
+
+/** Growlithe is 18 px wide and 13 tall; its nose is the far column on the side it faces, on row 5 or 6. */
+export const GROWLITHE_SIZE = { width: 18, height: 13 } as const;
+
+/** Growlithe, top-left at (x, y), facing `dir`, in `pose`. */
+export function drawGrowlithe(r: Raster, x: number, y: number, dir: Direction, pose: GrowlithePose = "stand", alpha = 1): void {
+  const rows = PUP_BASE.map((row, i) => PUP_POSES[pose][i] ?? row);
+  stampPalette(r, rows, Math.round(x), Math.round(y), PUP_PALETTE, alpha, dir < 0);
+}
+
+/**
+ * A small puff of embers out of a fire type's mouth at (x, y), towards `dir`, at `p` 0..1 of its life (none at 0 or
+ * 1): a few sparks drifting forward and up, yellow to red as they cool, fading out.
+ */
+export function drawEmberPuff(r: Raster, x: number, y: number, dir: Direction, p: number): void {
+  if (p <= 0 || p >= 1) return;
+  const sparks = [
+    [1.0, -0.15, 0],
+    [0.8, -0.55, 0.12],
+    [1.2, 0.2, 0.2],
+    [0.6, -0.9, 0.3],
+  ] as const;
+  for (const [reach, rise, lag] of sparks) {
+    const q = (p - lag) / (1 - lag);
+    if (q <= 0) continue;
+    const sx = x + dir * reach * q * 6;
+    const sy = y + rise * q * 4 - q * q * 1.5;
+    // Hot and bright as they leave, cooling to orange; they fade out late, so they read as sparks, not smoke.
+    const c = mix(hex("#FFF0B0"), hex("#FF7A1E"), q);
+    const a = 1 - q * q;
+    r.glow(sx, sy, 1.6, 1.6, { ...hex("#FF9A1F"), a: a * 0.7 }, 1.2);
+    r.blend(sx, sy, c, a);
+  }
+}
+
+// --- Megaphone ---------------------------------------------------------------------------------------------------
+
+// A megaphone pointing right, 12 x 11: a mouthpiece at the back, the orange cone flaring to a cream bell rim with the
+// dark inside of the bell showing through it, and a grey handle under the cone.
+const MEGAPHONE = [
+  "........WW..",
+  "......ooWiW.",
+  "....oooOWiW.",
+  "hh.ooooOWiW.",
+  "hhoooooOWiW.",
+  "hhoooooOWiW.",
+  "hh.ooooOWiW.",
+  "....oooOWiW.",
+  "....gg.oWiW.",
+  "....gg..WW..",
+  ".....gg.....",
+];
+const MEGAPHONE_PALETTE: Record<string, Color> = {
+  h: hex("#5A616E"),
+  o: hex("#FF7A33"),
+  O: hex("#FFA36E"),
+  W: hex("#FFE3C8"),
+  i: hex("#8A3A14"),
+  g: hex("#8A93A3"),
+};
+
+/** The megaphone is 12 x 11; its bell's mouth is the column 10 px in from its back, centred 5 rows down. */
+export const MEGAPHONE_SIZE = { width: 12, height: 11, mouth: 10, mouthY: 5 } as const;
+
+/** A megaphone pointing towards `dir`, top-left at (x, y). */
+export function drawMegaphone(r: Raster, x: number, y: number, dir: Direction, alpha = 1): void {
+  stampPalette(r, MEGAPHONE, Math.round(x), Math.round(y), MEGAPHONE_PALETTE, alpha, dir < 0);
+}
+
+/**
+ * Sound coming out of a megaphone: up to three arcs ")))" leaving the point (x, cy) towards `dir`, at `p` 0..1 of a
+ * shout (none at 0 or 1). They spread `reach` px and fade as they go; nothing is drawn past column `stop` (where a word
+ * starts), so a shout never touches its words.
+ */
+export function drawSoundArcs(r: Raster, x: number, cy: number, dir: Direction, p: number, o: { reach?: number; color?: Color; stop?: number } = {}): void {
+  if (p <= 0 || p >= 1) return;
+  const reach = o.reach ?? 12;
+  const color = o.color ?? hex("#FFB020");
+  for (let k = 0; k < 3; k++) {
+    const q = p * 1.5 - k * 0.25;
+    if (q <= 0 || q >= 1) continue;
+    const rad = 2 + q * reach;
+    const a = 1 - q;
+    r.shade((px, py) => {
+      const dx = (px + 0.5 - x) * dir;
+      const dy = (py + 0.5 - cy) * 0.75;
+      if (dx <= 0 || Math.abs(Math.atan2(dy, dx)) > 0.9) return null;
+      if (o.stop !== undefined && (dir > 0 ? px >= o.stop : px <= o.stop)) return null;
+      const k2 = 1 - Math.abs(Math.hypot(dx, dy) - rad) * 1.4;
+      return k2 > 0 ? { ...color, a: k2 * a } : null;
+    });
+  }
+}

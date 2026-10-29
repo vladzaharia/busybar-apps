@@ -556,3 +556,114 @@ test("closeWith plays the cover over the body's held last frame", async () => {
   assert.deepEqual(at(1.5), [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 20]);
 });
 
+
+// --- Pieces from the redirects (signs, vehicles, sprites, the map) -------------------------------------------------
+
+test("stampPalette's flip mirrors art within its own width", async () => {
+  const { stampPalette } = await import("../src/index.ts");
+  const art = ["#..", "##."];
+  const r = new Raster(8, 2);
+  stampPalette(r, art, 2, 0, { "#": hex("#FFFFFF") }, 1, true);
+  assert.deepEqual(lit(r), [[4, 0], [3, 1], [4, 1]]);
+});
+
+test("sparkles keep off the rectangle they are told to avoid, arms included", async () => {
+  const { sparkles } = await import("../src/index.ts");
+  const avoid = { x: 20, y: 2, width: 30, height: 12 };
+  const s = sparkles({ duration: 2, count: 12, seed: 4, box: { x: 15, y: 0, width: 40, height: 16 }, avoid });
+  for (let t = 0; t < 2; t += 0.05) {
+    const r = new Raster(72, 16);
+    s.draw(r, t);
+    for (const [x, y] of lit(r)) assert.ok(x < avoid.x || x >= avoid.x + avoid.width || y < avoid.y || y >= avoid.y + avoid.height, `(${x},${y}) at ${t}`);
+  }
+});
+
+test("a road sign leaves its room 3 px clear of the rim and the tab, mirrored for the left", async () => {
+  const { roadSignLayout } = await import("../src/index.ts");
+  const right = roadSignLayout({ tab: "GO!", dir: 1 });
+  assert.equal(right.room.x0, 5, "the rim is column 1");
+  assert.equal(right.tab.x - right.room.x1, 4);
+  assert.ok(right.room.x1 - right.room.x0 + 1 >= inkWidth("DAMIAN", font("extra_large")), "the widest name fits");
+  const left = roadSignLayout({ tab: "GO!", dir: -1 });
+  assert.deepEqual(left.room, { x0: 71 - right.room.x1, x1: 71 - right.room.x0 });
+  assert.equal(left.tab.x, 72 - right.tab.x - right.tab.width);
+});
+
+test("the van's cargo side is where its lettering goes, either way it faces", async () => {
+  const { drawVan, vanWidth } = await import("../src/index.ts");
+  for (const dir of [1, -1] as const) {
+    const r = new Raster(72, 16);
+    const side = drawVan(r, 5, { cargo: 40, dir });
+    assert.deepEqual([side.width, side.y, side.height], [40, 1, 13]);
+    assert.equal(side.x, dir > 0 ? 5 : 5 + vanWidth(40) - 40);
+    // The box is solid brown across rows 2..13, under the lettering and a row round it.
+    for (let y = 2; y <= 13; y++) for (let x = side.x + 2; x < side.x + side.width - 2; x++) assert.ok(r.data[(y * 72 + x) * 4 + 3]! > 0.99, `(${x},${y})`);
+  }
+});
+
+test("the pointing hand's finger shortens instead of the hand", async () => {
+  const { drawPointingHand, handWidth } = await import("../src/index.ts");
+  assert.equal(handWidth(14), 30);
+  assert.equal(handWidth(7), 23);
+  assert.equal(handWidth(3), 23, "no shorter than 7");
+  for (const finger of [14, 7]) {
+    const r = new Raster(72, 16);
+    drawPointingHand(r, 0, 0, 1, { finger });
+    const xs = lit(r).map(([x]) => x);
+    const ys = lit(r).map(([, y]) => y);
+    assert.equal(Math.max(...xs), handWidth(finger) - 2, "the fingertip");
+    assert.ok(Math.min(...ys) >= 1 && Math.max(...ys) <= 14, "rows 1..14, clear of the edges");
+  }
+});
+
+test("Growlithe and the megaphone mirror exactly", async () => {
+  const { drawGrowlithe, drawMegaphone, GROWLITHE_SIZE, MEGAPHONE_SIZE } = await import("../src/index.ts");
+  const mirrored = (draw: (r: Raster, x: number, dir: 1 | -1) => void, w: number) => {
+    const a = new Raster(72, 16);
+    const b = new Raster(72, 16);
+    draw(a, 10, 1);
+    draw(b, 72 - 10 - w, -1);
+    const flip = lit(b).map(([x, y]) => `${71 - x},${y}`).sort();
+    assert.deepEqual(lit(a).map(([x, y]) => `${x},${y}`).sort(), flip);
+  };
+  for (const pose of ["stand", "wag", "bark", "leap", "gather"] as const) mirrored((r, x, dir) => drawGrowlithe(r, x, 2, dir, pose), GROWLITHE_SIZE.width);
+  mirrored((r, x, dir) => drawMegaphone(r, x, 3, dir), MEGAPHONE_SIZE.width);
+});
+
+test("sound arcs go only their way, and stop short of a word", async () => {
+  const { drawSoundArcs } = await import("../src/index.ts");
+  for (const dir of [1, -1] as const) {
+    for (let p = 0.05; p < 1; p += 0.1) {
+      const r = new Raster(72, 16);
+      const x = dir > 0 ? 12 : 60;
+      drawSoundArcs(r, x, 8, dir, p, { reach: 14, stop: dir > 0 ? 22 : 50 });
+      for (const [px] of lit(r)) assert.ok(dir > 0 ? px >= x && px < 22 : px <= x && px > 50, `dir ${dir} p ${p.toFixed(2)}: x ${px}`);
+    }
+  }
+});
+
+test("a trail's dashes are even along a winding path, and the X lands where asked", async () => {
+  const { trailDashes, drawTreasureX } = await import("../src/index.ts");
+  const dashes = trailDashes((s) => [2 + s * 40, 8 + Math.sin(s * 9) * 4], { dash: 2, gap: 2 });
+  // About 50 px of path in 4 px periods; a 2 px dash on a slant covers up to 4 pixels.
+  assert.ok(dashes.length >= 11 && dashes.length <= 13, `${dashes.length} dashes`);
+  for (const d of dashes) assert.ok(d.length >= 2 && d.length <= 4, `a dash of ${d.length}`);
+  const r = new Raster(72, 16);
+  drawTreasureX(r, 30.5, 7.5);
+  const xs = lit(r).map(([x]) => x);
+  const ys = lit(r).map(([, y]) => y);
+  assert.deepEqual([Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)], [27, 34, 4, 11], "7 x 7 and its shadow");
+});
+
+test("the exit sign never flickers from lit to nothing", async () => {
+  const { exitFlickerOn, exitFlickerOff } = await import("../src/index.ts");
+  for (let t = 0; t <= 0.7; t += 1 / 60) assert.ok(exitFlickerOn(t, 0.7) >= 0.12, `on at ${t}`);
+  assert.equal(exitFlickerOn(0.7, 0.7), 1);
+  let prev = exitFlickerOff(0, 0.45);
+  for (let t = 1 / 60; t <= 0.45; t += 1 / 60) {
+    const l = exitFlickerOff(t, 0.45);
+    if (t > 0.17) assert.ok(prev - l < 0.25, `off drops ${(prev - l).toFixed(2)} at ${t}`);
+    prev = l;
+  }
+  assert.ok(exitFlickerOff(0.45, 0.45) < 1e-9);
+});

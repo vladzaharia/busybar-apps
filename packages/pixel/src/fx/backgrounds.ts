@@ -138,17 +138,32 @@ export function drawSparks(r: Raster, cx: number, cy: number, p: number, o: { co
   }
 }
 
-/** Twinkling four-point sparkles scattered over the screen (or a box). */
-export function sparkles(o: { duration: number; seed?: number; count?: number; color?: Color; box?: { x: number; y: number; width: number; height: number } }): Clip {
+type Box = { x: number; y: number; width: number; height: number };
+
+/**
+ * Twinkling four-point sparkles scattered over the screen (or a box). `avoid` keeps every sparkle, arms included, off
+ * a rectangle (a word they glint around, never on): positions that would touch it are drawn again.
+ */
+export function sparkles(o: { duration: number; seed?: number; count?: number; color?: Color; box?: Box; avoid?: Box }): Clip {
   const rand = rng(o.seed ?? 13);
-  const sparks = Array.from({ length: o.count ?? 8 }, () => ({ x: rand(), y: rand(), phase: rand(), rate: 0.6 + rand() * 0.8 }));
+  const at = (box: Box, s: { x: number; y: number }) => ({ x: Math.round(box.x + s.x * (box.width - 1)), y: Math.round(box.y + s.y * (box.height - 1)) });
+  // A sparkle's arms reach a pixel out from its centre.
+  const clear = (p: { x: number; y: number }) => {
+    const a = o.avoid;
+    return !a || p.x + 1 < a.x || p.x - 1 >= a.x + a.width || p.y + 1 < a.y || p.y - 1 >= a.y + a.height;
+  };
+  const sparks = Array.from({ length: o.count ?? 8 }, () => {
+    let s = { x: rand(), y: rand() };
+    for (let k = 0; k < 64 && o.box && o.avoid && !clear(at(o.box, s)); k++) s = { x: rand(), y: rand() };
+    return { ...s, phase: rand(), rate: 0.6 + rand() * 0.8 };
+  });
   return clip(o.duration, (r, t) => {
     const box = o.box ?? { x: 0, y: 0, width: r.width, height: r.height };
     for (const s of sparks) {
       const life = (t * s.rate + s.phase) % 1;
       const a = Math.sin(life * Math.PI);
-      const x = Math.round(box.x + s.x * (box.width - 1));
-      const y = Math.round(box.y + s.y * (box.height - 1));
+      const { x, y } = at(box, s);
+      if (!clear({ x, y })) continue;
       const c = o.color ?? WHITE;
       r.blend(x, y, c, a, "add");
       if (a > 0.5) {

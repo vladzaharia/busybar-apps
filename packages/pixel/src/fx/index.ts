@@ -7,3 +7,6 @@ export * from "./arrows.ts";
 export * from "./sprites.ts";
 export * from "./flap.ts";
 export * from "./reel.ts";
+export * from "./signs.ts";
+export * from "./vehicles.ts";
+export * from "./map.ts";

@@ -301,7 +301,11 @@ export function stamp(r: Raster, art: string[], x: number, y: number, color: Col
   art.forEach((row, ry) => [...row].forEach((c, rx) => c === "#" && r.blend(x + rx, y + ry, color, alpha, mode)));
 }
 
-/** Stamps multi-colour pixel art: each character maps to a colour in `palette`; unmapped characters stay empty. */
-export function stampPalette(r: Raster, art: string[], x: number, y: number, palette: Record<string, Color>, alpha = 1): void {
-  art.forEach((row, ry) => [...row].forEach((c, rx) => palette[c] && r.blend(x + rx, y + ry, palette[c]!, alpha)));
+/**
+ * Stamps multi-colour pixel art: each character maps to a colour in `palette`; unmapped characters stay empty. `flip`
+ * mirrors it left to right within its own width (the widest row), so art drawn facing right faces left.
+ */
+export function stampPalette(r: Raster, art: readonly string[], x: number, y: number, palette: Record<string, Color>, alpha = 1, flip = false): void {
+  const w = flip ? Math.max(...art.map((row) => row.length)) : 0;
+  art.forEach((row, ry) => [...row].forEach((c, rx) => palette[c] && r.blend(x + (flip ? w - 1 - rx : rx), y + ry, palette[c]!, alpha)));
 }
