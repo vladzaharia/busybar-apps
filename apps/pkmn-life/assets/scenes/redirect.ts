@@ -43,7 +43,7 @@ import {
   type Clip,
   type WalkerPose,
 } from "@vladzaharia/bar-pixel";
-import type { Redirect, RedirectStyle } from "../../src/presets.ts";
+import type { Redirect } from "../../src/presets.ts";
 
 const W = 72;
 const H = 16;
@@ -59,7 +59,7 @@ const nameW = (e: Redirect) => textWidth(e.name, font(BIG));
 const black = (duration: number): Clip => clip(duration, (r) => r.fillRect(0, 0, W, H, BLACK));
 
 /** Runway: an amber wipe towards them, then chevrons chasing their way with the name opposite. */
-function runway(e: Redirect): Clip {
+export function runway(e: Redirect): Clip {
   const AMBER = hex("#FFB020");
   const cw = chevronWidth(11);
   const count = 4;
@@ -79,7 +79,7 @@ function runway(e: Redirect): Clip {
 }
 
 /** Nudge: a big arrow sweeps across, blacking out the clock behind it, settles pointing at them and keeps nudging. */
-function nudge(e: Redirect): Clip {
+export function nudge(e: Redirect): Clip {
   const BLUE = hex("#2F86FF");
   const LIGHT = hex("#9CC6FF");
   const IN = 0.55;
@@ -113,7 +113,7 @@ function nudge(e: Redirect): Clip {
 }
 
 /** Wayfinding sign: an airport-style yellow sign slides in from their side over the clock, then back out. */
-function sign(e: Redirect): Clip {
+export function sign(e: Redirect): Clip {
   const Y1 = hex("#FFD21F");
   const Y2 = hex("#F2B600");
   const EDGE = hex("#7A5A00");
@@ -152,7 +152,7 @@ function sign(e: Redirect): Clip {
  * waves, points the way with arrows blinking from their hand, walks over to that side and says "HI!" to them in a
  * speech bubble, then steps off the edge.
  */
-function walker(e: Redirect): Clip {
+export function walker(e: Redirect): Clip {
   const CH = hex("#62C7FF");
   const FADE = MOTION.base;
   const WALK_IN = 1.3;
@@ -222,7 +222,7 @@ function walker(e: Redirect): Clip {
 /**
  * Trainer: Pkmn Life's battle stripes, "TRAINER ALEX can help you!", then "Go see ALEX!" with ▶ marching their way.
  */
-function trainer(e: Redirect): Clip {
+export function trainer(e: Redirect): Clip {
   const CPS = MOTION.typeSpeed;
   const page1 = [`TRAINER ${e.name}`, "can help you!"];
   const page2 = [`Go see ${e.name}!`];
@@ -247,7 +247,7 @@ function trainer(e: Redirect): Clip {
  * Scroller: chevron groups and the name stream towards them like a moving-walkway sign. The band's front wipes the
  * clock away as it arrives; at the end it speeds off and the clock is uncovered in the same direction.
  */
-function scroller(e: Redirect): Clip {
+export function scroller(e: Redirect): Clip {
   const V = 30;
   const OUT = 0.6;
   const total = HOLD + 0.6 + OUT;
@@ -263,5 +263,3 @@ function scroller(e: Redirect): Clip {
   });
   return seq(scene, wipe({ mode: "reveal", direction: e.dir, color: BLACK, edge: hex("#2F86FF"), duration: MOTION.quick }));
 }
-
-export const REDIRECT_SCENES: Record<RedirectStyle, (e: Redirect) => Clip> = { runway, nudge, sign, walker, trainer, scroller };

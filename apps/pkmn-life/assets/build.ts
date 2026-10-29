@@ -7,13 +7,11 @@ import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildAnim, calendarIcon, hex, writePng, type BuiltAnim, type Raster } from "@vladzaharia/bar-pixel";
-import { ENTRIES, stylesFor, type Style } from "../src/presets.ts";
+import { ENTRIES, stylesFor, type NagStyle, type RedirectStyle, type Style } from "../src/presets.ts";
 import { backIcon, frontIcon } from "./icons.ts";
 import { cardParts } from "./scenes/cards.ts";
-import { encounter } from "./scenes/encounter.ts";
 import { BACK_HEIGHT, BACK_WIDTH, backParts } from "./scenes/menu.ts";
-import { REDIRECT_SCENES } from "./scenes/redirect.ts";
-import { ticker } from "./scenes/ticker.ts";
+import { NAG_SCENES, REDIRECT_SCENES } from "./scenes/registry.ts";
 
 const SRC = fileURLToPath(new URL("../src/", import.meta.url));
 const write = (path: string, data: Uint8Array | string) => {
@@ -38,7 +36,7 @@ const front = (parts: [string, Parameters<typeof buildAnim>[0]["parts"][number][
 const fronts = ENTRIES.map((entry, k) => {
   const byStyle: Partial<Record<Style, { path: string; built: BuiltAnim }>> = {};
   for (const style of stylesFor(entry)) {
-    const scene = entry.kind === "nag" ? (style === "encounter" ? encounter : ticker)(entry) : REDIRECT_SCENES[style as keyof typeof REDIRECT_SCENES](entry);
+    const scene = entry.kind === "nag" ? NAG_SCENES[style as NagStyle](entry) : REDIRECT_SCENES[style as RedirectStyle](entry);
     const path = `animations/front_${k}_${style}.anim`;
     byStyle[style] = { path, built: front([["default", scene]], path) };
   }

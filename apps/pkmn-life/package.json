@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "assets": "node assets/redirects.ts && node assets/build.ts",
+    "test": "node assets/redirects.ts && node --test test/*.test.ts",
     "typecheck": "pnpm assets && tsc && tsc -p assets",
     "build": "pnpm assets && busy-cli build --emit both",
     "app:install": "busy-cli app install",
