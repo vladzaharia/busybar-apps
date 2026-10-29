@@ -6,7 +6,7 @@ current sprint. The back is a handheld-RPG move menu: pick an entry and press ST
 | Entry | What the front shows | Styles |
 | --- | --- | --- |
 | FILE A TICKET | "Did you file a JIRA ticket yet???" | **Wild encounter**: the screen flashes and stripes away, a wild ISSUE (a bug) scuttles in with its HP bar, and the message plays out in typed dialogue boxes. Then TRAINER uses FILE JIRA TICKET: the Jira mark flies at the bug, its HP drains, it's super effective, and the bug turns into a Jira ticket. **Burst ticker**: the clock switches off into a burst, the Jira chevrons fly in, the message glides in letter by letter, then rolls up in full. |
-| A person, e.g. ALEX | Sends people to Alex, on the right | **Runway** (amber chevrons chasing their way), **Nudge** (a big arrow pointing and nudging), **Wayfinding sign** (a yellow airport sign sliding in from their side), **Walker** (a little person walks in, waves and says "HI!" in a speech bubble, points, and heads off their way), **Trainer** ("TRAINER ALEX can help you!"), **Scroller** (chevrons and the name streaming their way). Mirrored for someone on the left. |
+| A person, e.g. ALEX | Sends people to Alex, on the right | **Runway** (amber chevrons chasing their way), **Nudge** (a big arrow pointing and nudging), **Wayfinding sign** (a yellow airport sign sliding in from their side), **Walker** (a little person walks in, points their way, walks over and says "HI!" in a speech bubble), **Trainer** ("TRAINER ALEX can help you!"), **Scroller** (chevrons and the name streaming their way). Mirrored for someone on the left. |
 
 "Right" and "left" are as someone facing the front display sees them.
 

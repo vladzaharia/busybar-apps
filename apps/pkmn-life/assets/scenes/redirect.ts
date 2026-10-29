@@ -150,25 +150,29 @@ function sign(e: Redirect): Clip {
 
 /**
  * Walker: the clock fades, a little person walks in from the far side leaving the name behind them letter by letter,
- * waves and says "HI!" in a speech bubble, points the way with arrows blinking from their hand, then walks off
- * towards them.
+ * waves, points the way with arrows blinking from their hand, walks over to that side and says "HI!" to them in a
+ * speech bubble, then steps off the edge.
  */
 function walker(e: Redirect): Clip {
   const CH = hex("#62C7FF");
   const FADE = MOTION.base;
   const WALK_IN = 1.3;
-  const POINT = 1.9;
-  const WALK_OUT = 1.7;
+  const WAVE = 0.7;
+  const POINT = 1.6;
+  const SPEED = 24;
   const standX = mx(e, 40, 7);
-  // Beside their head on the side they face, its tail slanting back to them; gone before the arrows take that space.
-  const hello = speechBubble({ x: e.dir > 0 ? standX + 9 : standX - 3, top: 0, dir: e.dir, text: "HI!" });
-  const WAVE = Math.max(0.7, hello.duration);
+  // Where they stop to say hi: at the edge on that side. There is no room for the bubble beyond them, so it sits on
+  // the inner side, between the name and them, its tail slanting back to them.
+  const stopX = mx(e, 64, 7);
+  const exitX = e.dir > 0 ? W + 1 : -8;
+  const hello = speechBubble({ x: e.dir > 0 ? stopX - 3 : stopX + 9, top: 0, dir: e.dir > 0 ? -1 : 1, text: "HI!" });
   const tWave = WALK_IN;
   const tPoint = tWave + WAVE;
-  const tOut = tPoint + POINT;
-  const total = tOut + WALK_OUT;
+  const tOver = tPoint + POINT;
+  const tHello = tOver + Math.abs(stopX - standX) / SPEED;
+  const tExit = tHello + hello.duration;
+  const total = tExit + Math.abs(exitX - stopX) / SPEED;
   const enterX = e.dir > 0 ? -8 : W + 1;
-  const SPEED = 24;
   const walkX = (t: number) => lerp(enterX, standX, inOutCubic(span(t, 0, tWave)) * 0.3 + span(t, 0, tWave) * 0.7);
   const f = font(BIG);
   const nx = mx(e, 3, nameW(e));
@@ -193,12 +197,15 @@ function walker(e: Redirect): Clip {
     let pose: WalkerPose;
     if (t < tWave) [x, pose] = [walkX(t), walkFrame(t)];
     else if (t < tPoint) [x, pose] = [standX, "wave"];
-    else if (t < tOut) [x, pose] = [standX, "point"];
-    else [x, pose] = [standX + Math.min(Math.abs((e.dir > 0 ? W + 1 : -8) - standX), (t - tOut) * SPEED) * e.dir, walkFrame(t - tOut)];
-    if (t >= tPoint) {
+    else if (t < tOver) [x, pose] = [standX, "point"];
+    else if (t < tHello) [x, pose] = [standX + (t - tOver) * SPEED * e.dir, walkFrame(t - tOver)];
+    else if (t < tExit) [x, pose] = [stopX, "wave"];
+    else [x, pose] = [stopX + Math.min(Math.abs(exitX - stopX), (t - tExit) * SPEED) * e.dir, walkFrame(t - tExit)];
+    // The arrows point the way until they get there; the bubble takes that space.
+    if (t >= tPoint && t < tHello) {
       for (let k = 0; k < 3; k++) drawChevron(r, mx(e, 50 + k * 6, chevronWidth(7)), 4, 7, e.dir, mix(hex("#0B2A40"), CH, chase(t - tPoint, k, { period: 0.9, step: 0.15, decay: 0.22 })));
     }
-    if (t >= tWave && t < tPoint) hello.draw(r, t - tWave);
+    if (t >= tHello && t < tExit) hello.draw(r, t - tHello);
     drawWalker(r, x, 1, e.dir, pose, WHITE, t);
     r.text(e.name, f, nx, BIG_Y, WHITE, (i) => {
       const q = span(t, letterAt[i]!, letterAt[i]! + 0.3);
