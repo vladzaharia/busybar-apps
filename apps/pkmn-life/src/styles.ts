@@ -1,6 +1,6 @@
 // What the back menu decides about styles, apart from drawing and playing (main.ts does those): the header's labels,
-// how OK and "alternate" step through them, and which style a remote request plays. Pure, so test/menu.test.ts can
-// check them, and it imports nothing from the bar.
+// how OK and "alternate" step through them, when "alternate" moves on, and which style a remote request plays. Pure,
+// so test/menu.test.ts can check them, and it imports nothing from the bar.
 
 import { NAG_STYLES, REDIRECT_STYLES, stylesFor, type Entry, type NagStyle, type RedirectStyle, type Style } from "./presets.ts";
 
@@ -13,9 +13,12 @@ export type RedirectMode = "random" | RedirectStyle;
 export const NAG_MODES: readonly NagMode[] = ["alternate", "random", ...NAG_STYLES];
 export const REDIRECT_MODES: readonly RedirectMode[] = ["random", ...REDIRECT_STYLES];
 
+/** The width of the back header's style label, px: its box runs from x 56 to 127 of the 148 px back. */
+export const HEADER_WIDTH = 72;
+
 /**
- * The header's names for the styles, in capitals. A nag's must fit the 72 px header after "ALT: " and a redirect's on its
- * own, in the small font (test/menu.test.ts checks every one).
+ * The header's names for the styles, in capitals. A nag's must fit the HEADER_WIDTH px header after "ALT: " and a
+ * redirect's on its own, in the small font (test/menu.test.ts checks every one).
  */
 export const STYLE_NAMES: Record<Style, string> = {
   encounter: "ENCOUNTER",
@@ -49,6 +52,15 @@ export const STYLE_NAMES: Record<Style, string> = {
 /** The nag "alternate" plays after `style`: the next of NAG_STYLES, and the first again after the last. */
 export function nextInTurn(style: NagStyle): NagStyle {
   return NAG_STYLES[(NAG_STYLES.indexOf(style) + 1) % NAG_STYLES.length]!;
+}
+
+/**
+ * Where "alternate" stands after a play to the end: `due` is the nag it announced ("ALT: BOARD"), `played` the style
+ * that played and `mode` the nag mode it was started in. It moves on only when the announced nag played in that mode;
+ * a remote request for another style, or a switch to "alternate" while something else played, leaves it due.
+ */
+export function turnAfter(due: NagStyle, played: Style, mode: NagMode): NagStyle {
+  return mode === "alternate" && played === due ? nextInTurn(due) : due;
 }
 
 /** The mode after `mode` in `modes`, wrapping; a mode that isn't in the list (an old saved value) goes to the first. */

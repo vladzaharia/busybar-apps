@@ -43,9 +43,9 @@ test("label centres on ink", () => {
   const even = words.filter((w) => core.inkWidth(w, "extra_large") % 2 === 0);
   assert.ok(even.length >= 2, "the sample has even-width words");
   for (const w of words) {
-    for (const font of ["extra_large", "small", "bold"] as const) {
-      const m = margins(core.label({ id: "t", text: w, font, box: { x: 0, y: 0, width: 72, height: 16 } }));
-      assert.ok(Math.abs(m.left - m.right) <= 1, `${font} ${w}: margins ${m.left} / ${m.right}`);
+    for (const name of ["extra_large", "small", "bold"] as const) {
+      const m = margins(core.label({ id: "t", text: w, font: name, box: { x: 0, y: 0, width: 72, height: 16 } }));
+      assert.ok(Math.abs(m.left - m.right) <= 1, `${name} ${w}: margins ${m.left} / ${m.right}`);
     }
   }
   // Right-aligned, the ink ends at the box's edge.

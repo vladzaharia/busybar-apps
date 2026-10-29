@@ -25,7 +25,7 @@ import {
 import manifest from "./appmeta/manifest.json";
 import { BACK, CALENDAR, CARDS, FRONT } from "./generated/clips.ts";
 import { ENTRIES, NAG_STYLES, REDIRECT_STYLES, SPRINTS, type Entry, type NagStyle, type Style } from "./presets.ts";
-import { NAG_MODES, REDIRECT_MODES, STYLE_NAMES, nextInTurn, nextMode, requestedStyle, type NagMode, type RedirectMode } from "./styles.ts";
+import { HEADER_WIDTH, NAG_MODES, REDIRECT_MODES, STYLE_NAMES, nextMode, requestedStyle, turnAfter, type NagMode, type RedirectMode } from "./styles.ts";
 
 const SPRINT_DISPLAYS: SprintStyle[] = ["none", "bar", "dots", "short"];
 /**
@@ -176,7 +176,7 @@ function main(): void {
   function drawStyleLabel(): void {
     labelShown = true;
     const text = styleLabel(ENTRIES[sel]!);
-    void device.draw([{ ...label({ id: "style", text, font: "small", display: "back", color: "#8C8C8CFF", box: { x: 56, y: 0, width: 72, height: 11 } }), z_index: 2 }]);
+    void device.draw([{ ...label({ id: "style", text, font: "small", display: "back", color: "#8C8C8CFF", box: { x: 56, y: 0, width: HEADER_WIDTH, height: 11 } }), z_index: 2 }]);
   }
 
   function showMenu(): void {
@@ -203,16 +203,19 @@ function main(): void {
     menu.then(`show-${sel}-${style}`);
     if (labelShown) void device.clear(["style"]);
     labelShown = false;
+    // The mode it starts in, for "Each in turn" when it ends (the setting may change while it plays).
+    const mode = nagMode;
     // The front clip ends on a transparent frame over the clock; remove it just after.
-    showing = timers.after(seconds * 1000 + 150, () => finish(true));
+    showing = timers.after(seconds * 1000 + 150, () => finish({ style, mode }));
   }
 
-  function finish(played: boolean): void {
+  /** Back to the menu; `played` is what played to the end (nothing if it was stopped). */
+  function finish(played?: { style: Style; mode: NagMode }): void {
     timers.cancel(showing ?? undefined);
     showing = null;
     void front.stop();
-    // "Each in turn": the next nag in NAG_STYLES after every play, the first again after the last.
-    if (played && ENTRIES[sel]!.kind === "nag" && nagMode === "alternate") nextNag = nextInTurn(nextNag);
+    // "Each in turn" moves on once the nag it announced has played (see turnAfter).
+    if (played) nextNag = turnAfter(nextNag, played.style, played.mode);
     showMenu();
   }
 
@@ -223,12 +226,12 @@ function main(): void {
   function onRemote(r: RemoteRequest): void {
     const [action, id, styleWord] = r.words;
     if (action === "stop") {
-      if (showing) finish(false);
+      if (showing) finish();
       if (carding) stopCard();
       return;
     }
     if (action === "card") {
-      if (showing) finish(false);
+      if (showing) finish();
       playCard();
       return;
     }
@@ -266,7 +269,7 @@ function main(): void {
       cycleStyle(ENTRIES[sel]!);
       drawStyleLabel();
     } else if (event.key === "back") {
-      if (showing) finish(false);
+      if (showing) finish();
       else if (carding) stopCard();
       else app.quit();
     }

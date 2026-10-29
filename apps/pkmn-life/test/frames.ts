@@ -138,14 +138,22 @@ export function inkBox(name: string, f: Font, at: { x: number; y: number }): { x
   return { x0: at.x + m.ox, x1: at.x + m.ox + m.w - 1, y0: at.y + m.oy, y1: at.y + m.oy + m.h - 1 };
 }
 
-/** Mean Rec. 709 luminance, 0..1, of the frame composited on black (the bar's LEDs are dark where nothing is lit). */
+/** Rec. 709 luminance, 0..1, of the pixel at byte `i`, composited on black (the bar's LEDs are dark where nothing is lit). */
+const lumAt = (frame: Uint8Array, i: number): number =>
+  ((0.2126 * frame[i]! + 0.7152 * frame[i + 1]! + 0.0722 * frame[i + 2]!) * (frame[i + 3]! / 255)) / 255;
+
+/** Mean Rec. 709 luminance, 0..1, of the frame composited on black. */
 export function luminance(frame: Uint8Array): number {
   let sum = 0;
-  for (let i = 0; i < frame.length; i += 4) {
-    const a = frame[i + 3]! / 255;
-    sum += (0.2126 * frame[i]! + 0.7152 * frame[i + 1]! + 0.0722 * frame[i + 2]!) * a;
-  }
-  return sum / 255 / (frame.length / 4);
+  for (let i = 0; i < frame.length; i += 4) sum += lumAt(frame, i);
+  return sum / (frame.length / 4);
+}
+
+/** The share, 0..1, of the frame's pixels lit above `level` luminance (as `luminance` measures it). */
+export function brightShare(frame: Uint8Array, level: number): number {
+  let n = 0;
+  for (let i = 0; i < frame.length; i += 4) if (lumAt(frame, i) > level) n++;
+  return n / (frame.length / 4);
 }
 
 /** How many pixels of the frame are not fully transparent. */
