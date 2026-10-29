@@ -38,6 +38,13 @@ Over Wi-Fi, add the bar's address and its HTTP API password:
 `pnpm app:install --addr 192.168.1.42 --password <password>`. Enable Wi-Fi access first in the bar's web UI
 (Network → HTTP API). The app also appears in the bar's **Apps** menu.
 
+## Releases
+
+One version covers everything: push a `vX.Y.Z` tag and the **Release** workflow puts every app (for the bar, and in
+the simulator), the packages and the Mac app in one [GitHub Release](https://github.com/vladzaharia/busybar-apps/releases),
+and the simulators and the effects gallery on [GitHub Pages](https://vladzaharia.github.io/busybar-apps/).
+[`RELEASE.md`](RELEASE.md) says how.
+
 ## Make a new app
 
 ```sh

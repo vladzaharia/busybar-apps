@@ -1,25 +1,27 @@
-# Releases Pkmn Life Remote, the Mac app: built on the xcode-27 runner, signed with Developer ID (hardened runtime,
-# secure timestamp), notarized and stapled, zipped with SHA256SUMS.txt, and attached to a GitHub Release. Runs for a
-# pushed remote-v* tag (the repository's other apps aren't released here), or by hand: on a remote-v* tag, or from the
-# default branch with a version, which leaves the files on the run's page and makes no GitHub Release.
-# The signing job runs in the `release` environment, which holds every secret. mac/RELEASE.md covers the one-time
-# setup, the secrets, and how to cut a release.
-name: Mac release
+# Releases everything in the repository under one version: each BUSY Bar app's package and its simulator, the shared
+# packages, and Pkmn Life Remote, the Mac app (built on the xcode-27 runner, signed with Developer ID, notarized and
+# stapled). They go in one GitHub Release with SHA256SUMS.txt, and the simulators and the effects gallery go to GitHub
+# Pages. Runs for a pushed vX.Y.Z tag, or by hand: on a v* tag, or from the default branch with a version, which leaves
+# the files on the run's page and makes no GitHub Release.
+# The Mac app's job runs once its signing is set up (the MAC_TEAM_ID variable; until then the release goes out without
+# it), in the `release` environment, which holds every secret. RELEASE.md covers cutting a release; mac/RELEASE.md the
+# Mac app's one-time setup and its secrets.
+name: Release
 
 on:
   push:
-    tags: ["remote-v*"]
+    tags: ["v*"]
   workflow_dispatch:
     inputs:
       version:
-        description: Version X.Y.Z (needed when running from the default branch; a remote-v* tag sets it)
+        description: Version X.Y.Z (needed when running from the default branch; a v* tag sets it)
         type: string
         required: false
 
 permissions: {}
 
 concurrency:
-  group: mac-release-${{ github.ref }}
+  group: release-${{ github.ref }}
   cancel-in-progress: false
 
 defaults:
@@ -40,27 +42,29 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: read
+      pages: read # the GitHub Pages address, for the notes
     outputs:
       version: ${{ steps.version.outputs.version }}
       build: ${{ steps.version.outputs.build }}
       tag: ${{ steps.version.outputs.tag }}
       is_tag: ${{ steps.version.outputs.is_tag }}
       prerelease: ${{ steps.version.outputs.prerelease }}
+      pages_url: ${{ steps.notes.outputs.pages_url }}
     steps:
       # The whole history and every tag (annotated ones with their messages), for the checks and notes below.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
-      # A remote-v* tag must point at a commit on the default branch (pushed, or picked in a manual run); a manual run
-      # from a branch must be from the default branch. Nothing else releases.
+      # A v* tag must point at a commit on the default branch (pushed, or picked in a manual run); a manual run from a
+      # branch must be from the default branch. Nothing else releases.
       - name: Check the ref
         env:
           EVENT: ${{ github.event_name }}
           REF: ${{ github.ref }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
-          if ! mac/PkmnLifeRemote/Tools/ci/check-ref.sh --event "$EVENT" --ref "$REF" --sha "$GITHUB_SHA" \
+          if ! scripts/release/check-ref.sh --event "$EVENT" --ref "$REF" --sha "$GITHUB_SHA" \
               --default-branch "$DEFAULT_BRANCH" 2> "$RUNNER_TEMP/ref.txt"; then
             echo "::error::$(cat "$RUNNER_TEMP/ref.txt")"
             exit 1
@@ -74,15 +78,28 @@ jobs:
         run: |
           args=(--ref "$REF" --run-number "$RUN_NUMBER")
           if [[ -n "$VERSION" ]]; then args+=(--version "$VERSION"); fi
-          mac/PkmnLifeRemote/Tools/ci/version.sh "${args[@]}" | tee -a "$GITHUB_OUTPUT"
+          scripts/release/version.sh "${args[@]}" | tee -a "$GITHUB_OUTPUT"
+      # The Mac app is listed when its job will run; the simulators are linked once GitHub Pages is on (RELEASE.md,
+      # Setup), which also lets the pages job run.
       - name: Release notes
+        id: notes
         env:
           TAG: ${{ steps.version.outputs.tag }}
+          VERSION: ${{ steps.version.outputs.version }}
+          MAC_TEAM_ID: ${{ vars.MAC_TEAM_ID }}
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
         run: |
           mkdir -p notes
           ref="$GITHUB_SHA"
           if [[ -n "$TAG" ]]; then ref="refs/tags/$TAG"; fi
-          mac/PkmnLifeRemote/Tools/ci/release-notes.sh --ref "$ref" > notes/release.md
+          args=(--version "$VERSION" --ref "$ref")
+          if [[ -n "$MAC_TEAM_ID" ]]; then args+=(--mac); fi
+          if site="$(gh api "repos/$REPO/pages" --jq .html_url 2>/dev/null)" && [[ -n "$site" ]]; then
+            args+=(--site-url "$site")
+            echo "pages_url=$site" >> "$GITHUB_OUTPUT"
+          fi
+          scripts/release/release-notes.sh "${args[@]}" > notes/release.md
           cat notes/release.md >> "$GITHUB_STEP_SUMMARY"
       # Artifacts belong to the run, not the attempt: "Re-run all jobs" replaces this one.
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -93,9 +110,58 @@ jobs:
           if-no-files-found: error
           overwrite: true
 
+  build:
+    name: Apps, simulators and packages
+    needs: prepare
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write # build provenance: the Sigstore certificate for the attestation
+      attestations: write
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Test
+        run: pnpm test
+      # Every package.json and app manifest takes the release's version first (in this checkout only).
+      - name: Build
+        run: scripts/release/build.sh --version "$VERSION" --out dist/release --site dist/site
+      - name: Attest build provenance
+        if: ${{ !github.event.repository.private }}
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-checksums: dist/release/SHA256SUMS.txt
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-files
+          path: dist/release/
+          retention-days: 30
+          if-no-files-found: error
+          overwrite: true
+      # The GitHub Pages site (the pages job publishes it for a tag).
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: dist/site/
+          retention-days: 30
+
+  # Skipped until the Mac app's signing is set up (mac/RELEASE.md, One-time setup), which sets MAC_TEAM_ID.
   mac:
     name: Developer ID, notarized
     needs: prepare
+    if: vars.MAC_TEAM_ID != ''
     runs-on: xcode-27
     timeout-minutes: 90
     environment: release
@@ -158,7 +224,7 @@ jobs:
           Tools/ci/secrets.sh run -- Tools/ci/package-mac.sh --app "dist/Pkmn Life Remote.app" --version "$VERSION" \
             --build "$BUILD" --output dist/release --notarize
       # Signed SLSA build provenance for every file in SHA256SUMS.txt, tied to this workflow, commit, and run
-      # (mac/RELEASE.md, Verifying a download). GitHub offers attestations for private repositories only on Enterprise
+      # (RELEASE.md, Verifying a download). GitHub offers attestations for private repositories only on Enterprise
       # Cloud, so while this repository is private the step is skipped.
       - name: Attest build provenance
         if: ${{ !github.event.repository.private }}
@@ -177,11 +243,14 @@ jobs:
         if: always()
         run: Tools/ci/secrets.sh cleanup
 
-  # A tag's GitHub Release: created as a draft with the files, then published. Holds no Apple secret.
+  # A tag's GitHub Release: created as a draft with the files, then published. Holds no Apple secret. Waits for the Mac
+  # app when its job runs, and goes without it when that job is skipped (not when it fails).
   release:
     name: GitHub Release
-    needs: [prepare, mac]
-    if: needs.prepare.outputs.is_tag == 'true'
+    needs: [prepare, build, mac]
+    if: >-
+      ${{ !cancelled() && needs.prepare.outputs.is_tag == 'true' && needs.build.result == 'success'
+      && (needs.mac.result == 'success' || needs.mac.result == 'skipped') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -196,25 +265,56 @@ jobs:
           persist-credentials: false
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          name: mac-release
+          name: release-files
           path: dist
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        if: needs.mac.result == 'success'
+        with:
+          name: mac-release
+          path: mac-dist
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: release-notes
           path: notes
+      # Each job's files against its own checksums, then the Mac app's joined to the rest: one SHA256SUMS.txt.
       - name: Verify checksums
-        working-directory: dist
-        run: sha256sum -c SHA256SUMS.txt
+        run: |
+          (cd dist && sha256sum -c SHA256SUMS.txt)
+          if [[ -d mac-dist ]]; then
+            (cd mac-dist && sha256sum -c SHA256SUMS.txt)
+            find mac-dist -maxdepth 1 -type f ! -name SHA256SUMS.txt -exec cp {} dist/ \;
+            cat mac-dist/SHA256SUMS.txt >> dist/SHA256SUMS.txt
+            (cd dist && sha256sum -c SHA256SUMS.txt)
+          fi
       # A re-run updates its own draft (stale files go), but never a published release.
       - name: Create or update the draft release
         env:
           VERSION: ${{ needs.prepare.outputs.version }}
           PRERELEASE: ${{ needs.prepare.outputs.prerelease }}
         run: |
-          url="$(mac/PkmnLifeRemote/Tools/ci/github-release.sh draft --repo "$REPO" --tag "$TAG" \
-            --title "Pkmn Life Remote $VERSION" --notes-file notes/release.md --prerelease "$PRERELEASE" dist/*)"
+          url="$(scripts/release/github-release.sh draft --repo "$REPO" --tag "$TAG" \
+            --title "busybar-apps $VERSION" --notes-file notes/release.md --prerelease "$PRERELEASE" dist/*)"
           { echo "### GitHub Release (draft)"; echo "$url"; } >> "$GITHUB_STEP_SUMMARY"
       - name: Publish it
         run: |
-          url="$(mac/PkmnLifeRemote/Tools/ci/github-release.sh publish --repo "$REPO" --tag "$TAG")"
+          url="$(scripts/release/github-release.sh publish --repo "$REPO" --tag "$TAG")"
           { echo "### GitHub Release"; echo "$url"; } >> "$GITHUB_STEP_SUMMARY"
+
+  # The released simulators and the effects gallery on GitHub Pages, once the release is out: not for prereleases, and
+  # only while GitHub Pages is on (RELEASE.md, Setup).
+  pages:
+    name: GitHub Pages
+    needs: [prepare, release]
+    if: needs.prepare.outputs.prerelease != 'true' && needs.prepare.outputs.pages_url != ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deploy
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

@@ -1,9 +1,9 @@
 #!/bin/bash
-# Manages a remote-v* tag's GitHub Release for mac-release.yml: created as a draft with its files, then published.
+# Manages a v* tag's GitHub Release for release.yml: created as a draft with its files, then published.
 #
-#   Tools/ci/github-release.sh draft --repo OWNER/NAME --tag remote-v1.2.0 --title "Pkmn Life Remote 1.2.0" \
+#   scripts/release/github-release.sh draft --repo OWNER/NAME --tag v1.2.0 --title "busybar-apps 1.2.0" \
 #       --notes-file notes/release.md --prerelease false FILE...
-#   Tools/ci/github-release.sh publish --repo OWNER/NAME --tag remote-v1.2.0
+#   scripts/release/github-release.sh publish --repo OWNER/NAME --tag v1.2.0
 #
 # draft    creates the release as a draft with FILE... attached. If a draft for the tag exists (a re-run), it's brought
 #          up to date: title, notes, and prerelease flag set again, assets that aren't among FILE... deleted, FILE...
@@ -42,7 +42,7 @@ while (( $# )); do
     shift
 done
 [[ "$repo" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || fail "--repo must be OWNER/NAME"
-[[ "$tag" =~ ^remote-v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] || fail "--tag must be a release tag such as remote-v1.2.0"
+[[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] || fail "--tag must be a release tag such as v1.2.0"
 [[ "$prerelease" == true || "$prerelease" == false ]] || fail "--prerelease is true or false"
 
 # state: "missing", "draft", or "published". gh finds a draft by the tag it will create.

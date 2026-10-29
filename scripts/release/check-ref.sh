@@ -1,11 +1,11 @@
 #!/bin/bash
-# Decides whether a ref may start a Pkmn Life Remote release: a remote-v* tag on a commit that's on the repository's
-# default branch (pushed, or picked in a manual run), or a manual run from the default branch itself.
+# Decides whether a ref may start a release (release.yml): a vX.Y.Z tag on a commit that's on the repository's default
+# branch (pushed, or picked in a manual run), or a manual run from the default branch itself.
 #
-#   Tools/ci/check-ref.sh --event push --ref refs/tags/remote-v1.2.0 --sha <commit> --default-branch <branch>
-#                         [--remote origin]
+#   scripts/release/check-ref.sh --event push --ref refs/tags/v1.2.0 --sha <commit> --default-branch <branch>
+#                                [--remote origin]
 #
-# --default-branch is the repository's (mac-release.yml passes github.event.repository.default_branch), so renaming
+# --default-branch is the repository's (release.yml passes github.event.repository.default_branch), so renaming
 # it needs no change here. Needs the full history with the remote's branches (actions/checkout with fetch-depth: 0),
 # so <remote>/<default branch> can be compared with the tagged commit. Exit status 1 means the ref is refused; the
 # message says why.
@@ -36,7 +36,7 @@ done
     || { usage >&2; echo "check-ref.sh: --event, --ref, --sha, and --default-branch are required" >&2; exit 2; }
 
 case "$ref" in
-    refs/tags/remote-v*)
+    refs/tags/v[0-9]*)
         branch="$remote/$default_branch"
         git rev-parse --verify --quiet "refs/remotes/$branch" >/dev/null \
             || fail "$branch isn't fetched; check out with fetch-depth: 0"
@@ -48,10 +48,10 @@ case "$ref" in
         echo "check-ref.sh: ${ref#refs/tags/} (${commit:0:12}) is on $default_branch"
         ;;
     "refs/heads/$default_branch")
-        [[ "$event" == workflow_dispatch ]] || fail "only a remote-v* tag push or a manual run starts a release, not a $event to $default_branch"
+        [[ "$event" == workflow_dispatch ]] || fail "only a v* tag push or a manual run starts a release, not a $event to $default_branch"
         echo "check-ref.sh: manual run from $default_branch"
         ;;
     *)
-        fail "releases run from a remote-v* tag or from $default_branch, not $ref"
+        fail "releases run from a v* tag or from $default_branch, not $ref"
         ;;
 esac

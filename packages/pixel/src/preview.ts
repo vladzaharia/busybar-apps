@@ -47,7 +47,8 @@ export function writePreview(
     files[file] = join(out, file);
     return { id: e.id, name: e.name, group: e.group, about: e.about, usage: e.usage, display: e.display, frames: e.frames.length, fps: e.fps, file };
   });
-  const html = `<title>${esc(o.title)}</title>
+  const html = `<meta charset="utf-8">
+<title>${esc(o.title)}</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

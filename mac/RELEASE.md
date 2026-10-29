@@ -1,9 +1,10 @@
 # Releasing Pkmn Life Remote
 
-Releases of the Mac app are signed with Developer ID, notarized by Apple and stapled, so they open with a double-click
-on any Mac with macOS 26 or later, with no right-click → Open. GitHub Actions makes them: push a `remote-vX.Y.Z` tag and
-the **Mac release** workflow (`.github/workflows/mac-release.yml`) builds the app, signs it, notarizes it, and attaches
-it to a GitHub Release.
+The Mac app ships in the repository's release ([../RELEASE.md](../RELEASE.md): one `vX.Y.Z` tag releases everything).
+Its copy is signed with Developer ID, notarized by Apple and stapled, so it opens with a double-click on any Mac with
+macOS 26 or later, with no right-click → Open. The **Release** workflow's `mac` job (`.github/workflows/release.yml`)
+builds the app, signs it, notarizes it, and hands it to the release. The job runs once the one-time setup below is done
+(it sets `MAC_TEAM_ID`); until then, releases go out without the Mac app.
 
 It is modelled on Daybook's release pipeline (`vladzaharia/daybook`, `docs/release.md`), less what a SwiftPM app with
 no App Store side doesn't need: no Xcode project or XcodeGen, no iPhone or TestFlight, and no cloud-managed signing
@@ -19,12 +20,15 @@ notarization, for an app that installs as well from a ZIP) and resuming a notari
 | CI | `mac-kit` | `ubuntu-latest` | `swift test` on Linux (PkmnLifeRemoteKit only) |
 | CI | `lint` | `ubuntu-24.04` | actionlint 1.7.12 (pinned, checksum-verified; it runs shellcheck on every `run:` block) and shellcheck on the scripts |
 | Mac visual check (`mac-visual.yml`) | `screens` | `xcode-27` | `Tools/screenshots.sh` |
-| Mac release (`mac-release.yml`) | `prepare` | `ubuntu-24.04` | checks the ref (`check-ref.sh`), works out the version (`version.sh`), writes the notes (`release-notes.sh`) |
-| Mac release | `mac` | `xcode-27`, environment `release` | `swift test`; build; sign with Developer ID; notarize, staple, check, zip (`package-mac.sh`); attest (public repositories); the `mac-release` artifact |
-| Mac release | `release` | `ubuntu-24.04` | tags only: a draft GitHub Release with the ZIP and `SHA256SUMS.txt`, then published (`github-release.sh`) |
+| Release (`release.yml`) | `prepare` | `ubuntu-24.04` | checks the ref (`check-ref.sh`), works out the version (`version.sh`), writes the notes (`release-notes.sh`) |
+| Release | `build` | `ubuntu-24.04` | the BUSY Bar apps, their simulators and the packages ([../RELEASE.md](../RELEASE.md)) |
+| Release | `mac` | `xcode-27`, environment `release` | once `MAC_TEAM_ID` is set: `swift test`; build; sign with Developer ID; notarize, staple, check, zip (`package-mac.sh`); attest (public repositories); the `mac-release` artifact |
+| Release | `release` | `ubuntu-24.04` | tags only: a draft GitHub Release with every file and one `SHA256SUMS.txt`, then published (`github-release.sh`) |
+| Release | `pages` | `ubuntu-24.04` | tags only: the simulators and the effects gallery on GitHub Pages |
 
-The scripts are in `PkmnLifeRemote/Tools/ci/`, next to the app they build, so the Mac visual check (which runs on
-pull requests touching `mac/`) runs when they change. Each prints its usage with `--help`.
+The Mac app's scripts are in `PkmnLifeRemote/Tools/ci/`, next to the app they build, so the Mac visual check (which
+runs on pull requests touching `mac/`) runs when they change. The release's own (the ref, the version, the notes, the
+GitHub Release) are in `scripts/release/`. Each prints its usage with `--help`.
 
 ## Runner and Xcode
 
@@ -119,7 +123,7 @@ Repository **variables**:
 | `MAC_TEAM_ID` | `48H7CLBV8Y` (not a secret): the team whose Developer ID identity signs |
 | `MAC_RELEASE_XCODE_BUILD` | optional: the exact Xcode build releases must use; unset means `27A9275` |
 
-The `release` environment allows deployments only from the default branch and `remote-v*` tags. On a public
+The `release` environment allows deployments only from the default branch and `v*` tags. On a public
 repository it also has required reviewers (the owner), so each release run waits for approval.
 
 ## One-time setup
@@ -147,69 +151,48 @@ The repository is public (since 2026-10-28), so Actions' standard runners, `xcod
    ```
 
    It sets a read-only default `GITHUB_TOKEN` for workflows (every job here asks for what it needs), creates the
-   `release` environment with its deployment policies (the current default branch, read from GitHub, and `remote-v*`
+   `release` environment with its deployment policies (the current default branch, read from GitHub, and `v*`
    tags) and, on a public repository, required reviewers; stores the five secrets (values go to `gh` on standard
    input, never on a command line); sets `MAC_TEAM_ID`; and with `--protect-tags` adds a ruleset so only admins
-   create, move or delete `remote-v*` tags. Before storing anything it checks the `.p12`'s password and that it holds
+   create, move or delete `v*` tags. Before storing anything it checks the `.p12`'s password and that it holds
    a Developer ID Application certificate for the team. Delete the local `.p8` and `.p12` afterwards, or keep them
    only in a password manager.
 
    If the default branch is renamed (to `main`, say), run it again: it adds the new branch's policy. Remove the old
    one under Settings › Environments › `release`.
 
-## Cutting a release
+## In a release
 
-From a commit on the default branch that has been pushed and whose CI passed. The tag must point at a commit on the
-default branch: `prepare` checks it (`git merge-base --is-ancestor`) and refuses anything else.
+Cutting a release is the same for everything ([../RELEASE.md](../RELEASE.md#cutting-a-release)). For the Mac app:
 
-```sh
-git tag -a remote-v0.2.0 -m "Pkmn Life Remote 0.2.0: the round buttons"
-git push origin remote-v0.2.0
-```
-
-- On a public repository, approve the run: Actions › Mac release › Review deployments › `release` › Approve.
-- The tag's message opens the release notes, followed by the commits since the previous `remote-v*` tag that touch
-  `mac/`.
-- The GitHub Release is created as a draft with `PkmnLifeRemote-0.2.0-macOS-arm64.zip` and `SHA256SUMS.txt`, then
-  published, and becomes "Latest" unless it is a prerelease. A tag such as `remote-v0.2.0-rc.1` releases version
-  0.2.0 as a prerelease.
-- The BUSY Bar apps' tags (anything not `remote-v*`) don't start this workflow.
-
-By hand, for a notarized build without a release (the files are on the run's page, in the `mac-release` artifact):
-
-```sh
-gh workflow run mac-release.yml --ref claude/busy-knuth-fqso2y -f version=0.2.0   # from the default branch
-gh workflow run mac-release.yml --ref remote-v0.2.0                               # a tag: the full release
-```
+- On a public repository its job waits for approval: Actions › Release › Review deployments › `release` › Approve.
+- The release gets `PkmnLifeRemote-X.Y.Z-macOS-arm64.zip`, with its checksum in the release's `SHA256SUMS.txt`.
+- By hand, for a notarized build without a release (the files are on the run's page, in the `mac-release` artifact):
+  `gh workflow run release.yml --ref main -f version=0.2.0`.
 
 ### Versions
 
-- `CFBundleShortVersionString` comes from the tag: `remote-vX.Y.Z` gives `X.Y.Z` (from the default branch, the
-  `version` input). `CFBundleVersion` is the Mac release workflow's run number, which only grows.
+- `CFBundleShortVersionString` comes from the tag: `vX.Y.Z` gives `X.Y.Z` (from the default branch, the `version`
+  input). `CFBundleVersion` is the Release workflow's run number, which only grows.
 - Both are set with PlistBuddy in the built bundle (`build-app.sh --version --build`); `Support/Info.plist` in git
   keeps its own (0.1.0, build 1), which local builds use.
 - The build is `arm64` only (the runner's architecture), hence `-macOS-arm64` in the file name.
 
 ### Re-running
 
-- **Re-run failed jobs** re-runs the failed jobs and the ones after them (after approval, on a public repository).
-  The version and build number stay the run's.
-- A `mac` job whose notarization was still in progress builds, signs and submits again; the earlier submission
-  finishes on Apple's side unused. `xcrun notarytool info <id>` (with the key) says how it ended.
-- The `release` job updates its own draft (title, notes, prerelease flag, files; stale files are deleted). A published
-  release is never changed: the job fails rather than swap files people may have downloaded. Ship a fix as a new
-  version, or unpublish first (`gh release edit remote-v0.2.0 --draft=true`) and re-run.
+As for every release ([../RELEASE.md](../RELEASE.md#re-running)), after approval on a public repository. A `mac` job
+whose notarization was still in progress builds, signs and submits again; the earlier submission finishes on Apple's
+side unused. `xcrun notarytool info <id>` (with the key) says how it ended.
 
 ### Verifying a download
 
+The checksums and build provenance as for every file ([../RELEASE.md](../RELEASE.md#verifying-a-download)), then:
+
 ```sh
-shasum -a 256 -c SHA256SUMS.txt
 ditto -x -k PkmnLifeRemote-0.2.0-macOS-arm64.zip .                # or double-click it
 spctl -a -vv -t exec "Pkmn Life Remote.app"       # accepted, source=Notarized Developer ID
 xcrun stapler validate "Pkmn Life Remote.app"
 codesign --verify --deep --strict "Pkmn Life Remote.app"
-gh attestation verify PkmnLifeRemote-0.2.0-macOS-arm64.zip --repo vladzaharia/busybar-apps \
-    --signer-workflow vladzaharia/busybar-apps/.github/workflows/mac-release.yml   # public repository only
 ```
 
 ## Signing on your own Mac
@@ -248,7 +231,7 @@ macOS may ask once whether codesign can use the key in your keychain; choose Alw
 | codesign: "The timestamp service is not available" | Apple's timestamp server didn't answer. Re-run. |
 | Notarization `Invalid` | The log printed above the error names each problem (unsigned code, no hardened runtime, no secure timestamp). |
 | "Notarization still in progress" | Apple took longer than 45 minutes. Re-run the failed job ([Re-running](#re-running)). |
-| `prepare`: "remote-v… points at …, which isn't on <branch>" | The tag is on a commit that isn't on the default branch (not merged, or not pushed). Delete the tag, merge and push, tag the merged commit. |
+| `prepare`: "v… points at …, which isn't on <branch>" | The tag is on a commit that isn't on the default branch (not merged, or not pushed). Delete the tag, merge and push, tag the merged commit. |
 | `release`: "… is already published" | See [Re-running](#re-running). |
 | "Attest build provenance" skipped | The repository is private: attestations need a public repository (or GitHub Enterprise Cloud). |
 
@@ -258,9 +241,9 @@ None of these needs a secret, or sends anything to Apple or GitHub:
 
 ```sh
 actionlint                                                     # uses .github/actionlint.yaml
-shellcheck mac/PkmnLifeRemote/build-app.sh mac/PkmnLifeRemote/Tools/*.sh mac/PkmnLifeRemote/Tools/ci/*.sh
+shellcheck mac/PkmnLifeRemote/build-app.sh mac/PkmnLifeRemote/Tools/*.sh mac/PkmnLifeRemote/Tools/ci/*.sh scripts/release/*.sh
 cd mac/PkmnLifeRemote
-Tools/ci/version.sh --ref refs/tags/remote-v1.2.3 --run-number 42
+../../scripts/release/version.sh --ref refs/tags/v1.2.3 --run-number 42
 ./build-app.sh --version 1.2.3 --build 42 && Tools/ci/check-app.sh --app "dist/Pkmn Life Remote.app" --kind adhoc
 ./build-app.sh --sign-only --developer-id                      # as the release's signing step, from your keychain
 Tools/ci/check-app.sh --app "dist/Pkmn Life Remote.app" --kind developer-id --team-id 48H7CLBV8Y --version 1.2.3 --build 42

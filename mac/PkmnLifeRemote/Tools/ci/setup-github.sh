@@ -1,6 +1,6 @@
 #!/bin/bash
-# Configures GitHub for Pkmn Life Remote's release workflow (mac-release.yml): the `release` environment (deployments
-# from the default branch and remote-v* tags only; required reviewers when GitHub allows them), its secrets, the
+# Configures GitHub for the release workflow's Mac job (release.yml): the `release` environment (deployments from the
+# default branch and v* tags only; required reviewers when GitHub allows them), its secrets, the
 # MAC_TEAM_ID repository variable, a read-only default workflow token, and optionally a ruleset for the release tags.
 # Prints the plan and changes nothing unless --apply is given.
 #
@@ -20,7 +20,7 @@
 #                              required reviewers on a private repository only on GitHub Enterprise, so on a private
 #                              repository they are left out (with a note) unless --force-reviewers is given.
 #   --force-reviewers          ask for required reviewers even on a private repository
-#   --protect-tags             also add a tag ruleset: only admins create, move, or delete remote-v* tags
+#   --protect-tags             also add a tag ruleset: only admins create, move, or delete v* (release) tags
 #   --apply                    make the changes. Without it, nothing is sent to GitHub but two reads (the default
 #                              branch and the visibility).
 #
@@ -39,7 +39,7 @@ force_reviewers=0
 protect_tags=0
 apply=0
 environment="release"
-tag_pattern="remote-v*"
+tag_pattern="v*"
 
 usage() { sed -n '2,/^set -euo/p' "$0" | sed '$d' | sed -E 's/^# ?//'; }
 fail() { echo "setup-github.sh: $*" >&2; exit 1; }
@@ -190,11 +190,11 @@ run gh variable set MAC_TEAM_ID --body "$team_id" --repo "$repo"
 # --- 5. Optional tag protection ------------------------------------------------------------------------------------
 if (( protect_tags )); then
     say "Tag ruleset: only repository admins create, move, or delete $tag_pattern tags"
-    ruleset="{\"name\":\"Pkmn Life Remote release tags\",\"target\":\"tag\",\"enforcement\":\"active\",\"conditions\":{\"ref_name\":{\"include\":[\"refs/tags/$tag_pattern\"],\"exclude\":[]}},\"rules\":[{\"type\":\"creation\"},{\"type\":\"update\"},{\"type\":\"deletion\"}],\"bypass_actors\":[{\"actor_id\":5,\"actor_type\":\"RepositoryRole\",\"bypass_mode\":\"always\"}]}"
+    ruleset="{\"name\":\"Release tags\",\"target\":\"tag\",\"enforcement\":\"active\",\"conditions\":{\"ref_name\":{\"include\":[\"refs/tags/$tag_pattern\"],\"exclude\":[]}},\"rules\":[{\"type\":\"creation\"},{\"type\":\"update\"},{\"type\":\"deletion\"}],\"bypass_actors\":[{\"actor_id\":5,\"actor_type\":\"RepositoryRole\",\"bypass_mode\":\"always\"}]}"
     printf "   \$ echo '%s' | gh api -X POST repos/%s/rulesets --input -\n" "$ruleset" "$repo"
     if (( apply )); then
-        if gh api "repos/$repo/rulesets" --jq '.[].name' | grep -qxF "Pkmn Life Remote release tags"; then
-            echo "   (ruleset 'Pkmn Life Remote release tags' already exists)"
+        if gh api "repos/$repo/rulesets" --jq '.[].name' | grep -qxF "Release tags"; then
+            echo "   (ruleset 'Release tags' already exists)"
         else
             printf '%s' "$ruleset" | gh api -X POST "repos/$repo/rulesets" --input - --silent
         fi

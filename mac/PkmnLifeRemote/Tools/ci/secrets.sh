@@ -3,7 +3,7 @@
 #
 #   Tools/ci/secrets.sh run -- COMMAND [ARGUMENTS...]
 #                              set up as below, run COMMAND with the outputs in its environment, then clean up,
-#                              whatever COMMAND's outcome (also on SIGINT/SIGTERM). mac-release.yml wraps each step
+#                              whatever COMMAND's outcome (also on SIGINT/SIGTERM). release.yml wraps each step
 #                              that needs a secret in this, so the key file and the keychain exist only while that
 #                              step runs.
 #   Tools/ci/secrets.sh setup  the same set-up on its own (outputs go to $GITHUB_ENV when it's set, otherwise printed)
@@ -11,7 +11,7 @@
 #                              delete the keychain (restoring the keychain search list) and the files; safe to run more
 #                              than once, and when setup never ran
 #
-# Inputs (environment; in mac-release.yml these come from the `release` environment's secrets). Each step gets only
+# Inputs (environment; in release.yml these come from the `release` environment's secrets). Each step gets only
 # the ones it needs, and setup handles whichever are there (at least one):
 #   ASC_KEY_ID, ASC_ISSUER_ID     App Store Connect API key ID and issuer ID      } notarization
 #   ASC_KEY_P8_BASE64             the AuthKey_<id>.p8 file, base64-encoded        } (raw PEM is accepted too)

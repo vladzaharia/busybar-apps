@@ -127,9 +127,9 @@ entry or a setting there, add it here too; `swift test` fails until the two matc
 
 ## Releases
 
-Signed releases come from the **Mac release** workflow (`.github/workflows/mac-release.yml`): push a `remote-vX.Y.Z`
-tag and it builds the app, signs it with Developer ID (hardened runtime, secure timestamp), has Apple notarize it,
-staples the ticket, and attaches the ZIP to a GitHub Release, so it opens with a double-click. On your own Mac,
+Signed builds come with the repository's releases (the **Release** workflow, `.github/workflows/release.yml`, for a
+`vX.Y.Z` tag): it builds the app, signs it with Developer ID (hardened runtime, secure timestamp), has Apple notarize
+it, staples the ticket, and attaches the ZIP to the GitHub Release, so it opens with a double-click. On your own Mac,
 `./build-app.sh --developer-id` signs the same way from your keychain, and `--notarize <profile>` notarizes too. Its
-scripts are in `Tools/ci`. [`RELEASE.md`](RELEASE.md) has the one-time setup, how to cut a release, and how to check a
-download.
+scripts are in `Tools/ci`. [`RELEASE.md`](RELEASE.md) has the one-time setup and how to check a download;
+[`../RELEASE.md`](../RELEASE.md) how to cut a release.

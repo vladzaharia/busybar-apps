@@ -1,6 +1,6 @@
 #!/bin/bash
 # Selects the Xcode a CI job builds Pkmn Life Remote with, and checks it's the one expected. Every Mac job (ci.yml,
-# mac-visual.yml, mac-release.yml) runs on the `xcode-27` runner image and calls this first, so they all build with
+# mac-visual.yml, release.yml) runs on the `xcode-27` runner image and calls this first, so they all build with
 # one toolchain.
 #
 #   Tools/ci/select-xcode.sh [--xcode /Applications/Xcode_27.1.app] [--expect 27.1] [--expect-build 27A9275]
@@ -9,7 +9,7 @@
 #                   Xcode_27.1.app is the 27.1 install (27A9275); Xcode.app is 27.0.
 #   --expect        fail unless `xcodebuild -version` is Xcode <this> or a patch release of it (27.1, 27.1.1; not
 #                   27.10). Default 27.1.
-#   --expect-build  also fail unless the build is exactly this. mac-release.yml passes the MAC_RELEASE_XCODE_BUILD
+#   --expect-build  also fail unless the build is exactly this. release.yml passes the MAC_RELEASE_XCODE_BUILD
 #                   repository variable (default 27A9275), so a release never ships from an Xcode build CI hasn't used.
 #
 # Exports DEVELOPER_DIR through $GITHUB_ENV (no sudo xcode-select needed), so every later step, `swift` included,

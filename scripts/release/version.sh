@@ -1,20 +1,22 @@
 #!/bin/bash
-# Works out a Pkmn Life Remote release's version and build number.
+# Works out a release's version and build number. One version covers everything the repository releases: the BUSY
+# Bar apps, the packages, and the Mac app.
 #
-#   Tools/ci/version.sh --ref refs/tags/remote-v1.2.0 --run-number 7
-#   Tools/ci/version.sh --ref refs/heads/<default branch> --version 1.2.0 --run-number 8
+#   scripts/release/version.sh --ref refs/tags/v1.2.0 --run-number 7
+#   scripts/release/version.sh --ref refs/heads/<default branch> --version 1.2.0 --run-number 8
 #
 # Prints key=value lines (append them to $GITHUB_OUTPUT):
-#   version     X.Y.Z, from the tag remote-vX.Y.Z (or --version on a branch): the app's CFBundleShortVersionString
-#   build       the release workflow's run number, e.g. 7: CFBundleVersion. mac-release.yml's counter only grows (a
-#               re-run keeps its run's number), so later releases have higher builds. If the workflow is ever renamed or
-#               recreated its counter restarts at 1; nothing depends on the build number but a person reading it.
-#   tag         the tag name (remote-vX.Y.Z[-suffix]), or empty on a branch
+#   version     X.Y.Z, from the tag vX.Y.Z (or --version on a branch): every package.json and app manifest's version,
+#               and the Mac app's CFBundleShortVersionString
+#   build       the release workflow's run number, e.g. 7: the Mac app's CFBundleVersion. release.yml's counter only
+#               grows (a re-run keeps its run's number), so later releases have higher builds. If the workflow is ever
+#               renamed or recreated its counter restarts at 1; nothing depends on the build number but a person reading
+#               it.
+#   tag         the tag name (vX.Y.Z[-suffix]), or empty on a branch
 #   is_tag      true or false
-#   prerelease  true when the tag has a suffix (remote-v1.2.0-rc.1); the GitHub Release is marked so
+#   prerelease  true when the tag has a suffix (v1.2.0-rc.1); the GitHub Release is marked so
 #
-# The repository also holds the BUSY Bar apps, so the Mac app's tags carry the "remote-" prefix: remote-vX.Y.Z with
-# plain integers, optionally followed by -suffix. Exit status 2 means the input was rejected.
+# Tags are vX.Y.Z with plain integers, optionally followed by -suffix. Exit status 2 means the input was rejected.
 set -euo pipefail
 
 ref=""
@@ -38,7 +40,7 @@ done
 number='(0|[1-9][0-9]*)'
 semver="^${number}\\.${number}\\.${number}\$"
 
-[[ -n "$ref" ]] || fail "--ref is required (for example refs/tags/remote-v1.2.0 or refs/heads/<branch>)"
+[[ -n "$ref" ]] || fail "--ref is required (for example refs/tags/v1.2.0 or refs/heads/<branch>)"
 [[ "$run_number" =~ ^[1-9][0-9]{0,8}$ ]] || fail "--run-number must be a positive integer, got '${run_number}'"
 
 tag=""
@@ -47,8 +49,8 @@ prerelease=false
 case "$ref" in
     refs/tags/*)
         tag="${ref#refs/tags/}"
-        [[ "$tag" =~ ^remote-v([0-9]+\.[0-9]+\.[0-9]+)(-[0-9A-Za-z.-]+)?$ ]] \
-            || fail "tag '$tag' isn't remote-vX.Y.Z or remote-vX.Y.Z-suffix"
+        [[ "$tag" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)(-[0-9A-Za-z.-]+)?$ ]] \
+            || fail "tag '$tag' isn't vX.Y.Z or vX.Y.Z-suffix"
         from_tag="${BASH_REMATCH[1]}"
         [[ -n "${BASH_REMATCH[2]}" ]] && prerelease=true
         [[ "$from_tag" =~ $semver ]] || fail "tag '$tag' has a component with a leading zero"
@@ -63,7 +65,7 @@ case "$ref" in
         [[ "$version" =~ $semver ]] || fail "version '$version' isn't X.Y.Z with plain integers"
         ;;
     *)
-        fail "unsupported ref '$ref': use a tag refs/tags/remote-vX.Y.Z or a branch refs/heads/<name>"
+        fail "unsupported ref '$ref': use a tag refs/tags/vX.Y.Z or a branch refs/heads/<name>"
         ;;
 esac
 
