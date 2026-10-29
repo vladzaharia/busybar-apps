@@ -10,7 +10,7 @@ export const NAG_STYLES = ["encounter", "ticker", "board", "progress", "notfound
 export type NagStyle = (typeof NAG_STYLES)[number];
 
 /** The styles a redirect can be shown in. */
-export const REDIRECT_STYLES = ["runway", "nudge", "sign", "walker", "trainer", "scroller"] as const;
+export const REDIRECT_STYLES = ["runway", "nudge", "sign", "walker", "trainer", "scroller", "motorway", "exit", "parcel", "plane", "hand", "train", "dog", "shout", "map"] as const;
 export type RedirectStyle = (typeof REDIRECT_STYLES)[number];
 
 export type Style = NagStyle | RedirectStyle;

@@ -36,7 +36,8 @@ is its name in lower case without spaces or punctuation: `alex`. Give the [Mac a
 | BACK | Leave the app | Stop it |
 
 The back header shows how the next START will play. FILE A TICKET cycles alternate → random → encounter → ticker
-("alternate" switches style after each play). The redirects cycle random → each of the six looks. In random, each
+("alternate" switches style after each play). The redirects cycle random → each of the fifteen looks (runway, nudge,
+sign, walker, trainer, scroller, motorway, exit, parcel, plane, hand, train, Growlithe, shout, map). In random, each
 START picks a style, every style coming up once per round in a fresh order.
 
 ## Clock
@@ -115,7 +116,8 @@ Over Wi-Fi: `pnpm app:install --addr <bar-ip> --password <http-api-password>`.
 | `src/presets.ts` | The entries and their styles |
 | `assets/scenes/encounter.ts`, `ticker.ts`, `nags/` | Front: the nag styles (one file each under `nags/`) |
 | `assets/scenes/look.ts` | What the nags share: the lettering white, the amber "?" pulse, soft box fills |
-| `assets/scenes/redirect.ts` | Front: the six redirect looks |
+| `assets/scenes/redirect.ts` | Front: the first six redirect looks |
+| `assets/scenes/redirects/` | Front: the other nine (motorway sign, exit sign, parcel van, paper plane, pointing hand, little train, Growlithe, shout, treasure map), one file each; `kit.ts` holds what they share |
 | `assets/scenes/registry.ts` | Every front style by id (`NAG_SCENES`, `REDIRECT_SCENES`): what the build renders and the guard test checks |
 | `test/styles.test.ts`, `frames.ts` | The guard test: every style, in every name and direction, against the visual audit (`pnpm test`) |
 | `assets/scenes/cards.ts` | Front: the Majora's Mask title cards (dawn, meal, dusk, days remaining) |

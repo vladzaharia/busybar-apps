@@ -15,8 +15,33 @@ import { eightball } from "./nags/eightball.ts";
 import { invaders } from "./nags/invaders.ts";
 import { forecast } from "./nags/forecast.ts";
 import { nudge, runway, scroller, sign, trainer, walker } from "./redirect.ts";
+import { motorway } from "./redirects/motorway.ts";
+import { exit } from "./redirects/exit.ts";
+import { parcel } from "./redirects/parcel.ts";
+import { plane } from "./redirects/plane.ts";
+import { hand } from "./redirects/hand.ts";
+import { train } from "./redirects/train.ts";
+import { dog } from "./redirects/dog.ts";
+import { shout } from "./redirects/shout.ts";
+import { map } from "./redirects/map.ts";
 import { ticker } from "./ticker.ts";
 
 export const NAG_SCENES: Record<NagStyle, (e: Nag) => Clip> = { encounter, ticker, board, progress, notfound, squash, buddy, slots, eightball, invaders, forecast };
 
-export const REDIRECT_SCENES: Record<RedirectStyle, (e: Redirect) => Clip> = { runway, nudge, sign, walker, trainer, scroller };
+export const REDIRECT_SCENES: Record<RedirectStyle, (e: Redirect) => Clip> = {
+  runway,
+  nudge,
+  sign,
+  walker,
+  trainer,
+  scroller,
+  motorway,
+  exit,
+  parcel,
+  plane,
+  hand,
+  train,
+  dog,
+  shout,
+  map,
+};

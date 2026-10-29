@@ -58,6 +58,15 @@ const STYLE_NAMES: Record<Style, string> = {
   walker: "WALKER",
   trainer: "TRAINER",
   scroller: "SCROLLER",
+  motorway: "MOTORWAY",
+  exit: "EXIT",
+  parcel: "PARCEL",
+  plane: "PLANE",
+  hand: "HAND",
+  train: "TRAIN",
+  dog: "GROWLITHE",
+  shout: "SHOUT",
+  map: "MAP",
 };
 
 const DEFAULTS = {
