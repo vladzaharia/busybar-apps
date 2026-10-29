@@ -1,20 +1,25 @@
 #!/usr/bin/env node
 // Builds a simulator page for an app: its real build (busy-cli, bundled into one script) running against the
 // emulated device, in a page showing the bar's front and back with working buttons and wheel.
-// Usage: node packages/sim/scripts/build.ts <app-dir> [--out <dir>]
-// The output folder is static: open index.html through any web server, or publish it.
+// Usage: node packages/sim/scripts/build.ts <app-dir> [--out <dir>] [--serve [--port N]]
+// The output folder is static: open index.html through any web server, or publish it. With --serve, it is then
+// served by scripts/serve.ts, which also answers the bar's HTTP API for the open page (for the Mac remote, curl).
 
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { parseArgs } from "node:util";
 import { build } from "vite";
+import { serveFromCli } from "./serve.ts";
 
-const args = process.argv.slice(2);
-const appDir = resolve(args.find((a) => !a.startsWith("--")) ?? ".");
-const outIdx = args.indexOf("--out");
-const out = resolve(outIdx >= 0 ? args[outIdx + 1]! : join(appDir, "dist", "sim"));
+const { values: opts, positionals } = parseArgs({
+  allowPositionals: true,
+  options: { out: { type: "string" }, serve: { type: "boolean" }, port: { type: "string" } },
+});
+const appDir = resolve(positionals[0] ?? ".");
+const out = resolve(opts.out ?? join(appDir, "dist", "sim"));
 const SIM = fileURLToPath(new URL("..", import.meta.url));
 
 // 1. The app, built the official way into a single script (assets first, if the app has an asset step).
@@ -73,3 +78,5 @@ writeFileSync(join(out, "index.html"), html);
 writeFileSync(join(out, "files.json"), JSON.stringify(files, null, 2));
 rmSync(tmp, { recursive: true, force: true });
 console.log(`simulator → ${relative(process.cwd(), join(out, "index.html")) || join(out, "index.html")} (${Object.keys(pack).length} package files)`);
+if (opts.serve) await serveFromCli(out, opts.port);
+else if (opts.port !== undefined) console.warn("--port only applies with --serve.");

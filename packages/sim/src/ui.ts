@@ -337,8 +337,12 @@ export interface SettingField {
   max?: number;
 }
 
-/** A form for the app's settings.json; values persist in this browser. */
-export function settingsForm(root: HTMLElement, fields: Record<string, SettingField>, values: Record<string, unknown>, onChange: () => void): void {
+/**
+ * A form for the app's settings.json; values persist in this browser. Returns a function that shows `values` again,
+ * for when they change elsewhere (a write over the HTTP API).
+ */
+export function settingsForm(root: HTMLElement, fields: Record<string, SettingField>, values: Record<string, unknown>, onChange: () => void): () => void {
+  const shows: (() => void)[] = [];
   for (const [id, f] of Object.entries(fields)) {
     if (f.type === "group") continue;
     const row = document.createElement("label");
@@ -346,23 +350,26 @@ export function settingsForm(root: HTMLElement, fields: Record<string, SettingFi
     const name = document.createElement("span");
     name.textContent = f.label;
     let input: HTMLInputElement | HTMLSelectElement;
+    let show: () => void;
     if (f.type === "enum") {
-      input = document.createElement("select");
-      for (const o of f.options ?? []) input.append(new Option(o.label, o.value));
-      input.value = String(values[id]);
-      input.addEventListener("change", () => ((values[id] = input.value), onChange()));
+      const select = (input = document.createElement("select"));
+      for (const o of f.options ?? []) select.append(new Option(o.label, o.value));
+      show = () => (select.value = String(values[id]));
+      select.addEventListener("change", () => ((values[id] = select.value), onChange()));
     } else if (f.type === "boolean") {
-      input = document.createElement("input");
-      input.type = "checkbox";
-      input.checked = !!values[id];
-      input.addEventListener("change", () => ((values[id] = (input as HTMLInputElement).checked), onChange()));
+      const box = (input = document.createElement("input"));
+      box.type = "checkbox";
+      show = () => (box.checked = !!values[id]);
+      box.addEventListener("change", () => ((values[id] = box.checked), onChange()));
       row.classList.add("check");
     } else {
-      input = document.createElement("input");
-      input.type = f.type === "integer" ? "number" : f.type === "color" ? "color" : f.type === "time" ? "time" : "text";
-      input.value = String(values[id]);
-      input.addEventListener("change", () => ((values[id] = f.type === "integer" ? Number(input.value) : input.value), onChange()));
+      const text = (input = document.createElement("input"));
+      text.type = f.type === "integer" ? "number" : f.type === "color" ? "color" : f.type === "time" ? "time" : "text";
+      show = () => (text.value = String(values[id]));
+      text.addEventListener("change", () => ((values[id] = f.type === "integer" ? Number(text.value) : text.value), onChange()));
     }
+    show();
+    shows.push(show);
     input.id = `setting-${id}`;
     row.append(name, input);
     if (f.description) {
@@ -372,6 +379,7 @@ export function settingsForm(root: HTMLElement, fields: Record<string, SettingFi
     }
     root.append(row);
   }
+  return () => shows.forEach((show) => show());
 }
 
 export function logger(list: HTMLElement): (line: string) => void {

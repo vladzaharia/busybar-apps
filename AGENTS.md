@@ -71,6 +71,7 @@ finish a piece of work. A fresh machine needs `scripts/setup.sh` first (cloud se
 pnpm typecheck            # every package and app (apps render their assets first)
 pnpm test                 # encoder, timeline, catalog, core, simulator rules
 cd apps/<slug> && pnpm sim    # the app in the simulator: dist/sim/index.html
+cd apps/<slug> && pnpm sim:serve   # the same, served on 127.0.0.1:2879 with the bar's HTTP API (point the Mac app there)
 cd mac/PkmnLifeRemote && swift test                  # the Mac app's logic (works on Linux)
 cd mac/PkmnLifeRemote && Tools/screenshots.sh        # the Mac app in every state, as PNGs (macOS 26)
 ```

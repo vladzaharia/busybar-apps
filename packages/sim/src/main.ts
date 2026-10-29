@@ -1,6 +1,7 @@
 // Simulator entry: reads the app embedded in the page, wires the emulated device, the host and the controls, and
 // runs the paint loop.
 
+import { connectBridge, type Bridge } from "./bridge.ts";
 import { Device } from "./device.ts";
 import { AppHost, type AppFn } from "./host.ts";
 import { Buttons, LedPainter, OledPainter, bindButton, bindKeyboard, bindWheel, logger, settingsForm, showState, type SettingField } from "./ui.ts";
@@ -17,6 +18,8 @@ declare global {
   interface Window {
     __SIM__: SimConfig;
     __barApp: AppFn;
+    /** Where the dev server's relay is (scripts/serve.ts sets it when it serves the page); absent elsewhere. */
+    __SIM_BRIDGE__?: string;
   }
 }
 
@@ -34,6 +37,13 @@ function start(): void {
   } catch {
     /* storage unavailable: defaults it is */
   }
+  const save = () => {
+    try {
+      localStorage.setItem(storeKey, JSON.stringify(values));
+    } catch {
+      /* not saved, still applied */
+    }
+  };
 
   let packed: Promise<Record<string, string>> | undefined;
   const device = new Device({
@@ -82,15 +92,34 @@ function start(): void {
   bindKeyboard(buttons, wheel);
   $("restart").addEventListener("click", () => host.start());
 
+  let bridge: Bridge | null = null;
+  let showSettings = () => {};
   if (cfg.settings) {
-    settingsForm($("settings"), cfg.settings.fields, values, () => {
-      try {
-        localStorage.setItem(storeKey, JSON.stringify(values));
-      } catch {
-        /* not saved, still applied */
-      }
+    showSettings = settingsForm($("settings"), cfg.settings.fields, values, () => {
+      save();
+      bridge?.changed();
       log("settings changed: restarting the app so it reads them");
       host.start();
+    });
+  }
+
+  // Served by scripts/serve.ts: the bar's HTTP API reaches this page (the Mac remote, curl).
+  if (window.__SIM_BRIDGE__) {
+    bridge = connectBridge(window.__SIM_BRIDGE__, {
+      values,
+      // A settings write over the HTTP API: the app sees it on its next read, without a restart (as on the bar).
+      onSettings: (next) => {
+        const changed = Object.entries(next).filter(([k, v]) => JSON.stringify(values[k]) !== JSON.stringify(v));
+        Object.assign(values, next);
+        save();
+        showSettings();
+        const what = changed.map(([k, v]) => `${k} = ${JSON.stringify(v)}`).join(", ");
+        log(`Mac remote: settings written over the HTTP API${what ? `: ${what}` : " (no changes)"}`);
+      },
+      onLaunch: () => {
+        log("Mac remote: app launched over the HTTP API, restarting it");
+        host.start();
+      },
     });
   }
 

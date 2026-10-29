@@ -9,6 +9,7 @@
     "typecheck": "pnpm assets && tsc",
     "build": "pnpm assets && busy-cli build --emit both",
     "sim": "node ../../packages/sim/scripts/build.ts . --out dist/sim",
+    "sim:serve": "node ../../packages/sim/scripts/build.ts . --out dist/sim --serve",
     "app:install": "busy-cli app install",
     "app:uninstall": "busy-cli app uninstall",
     "app:run": "busy-cli app run",
