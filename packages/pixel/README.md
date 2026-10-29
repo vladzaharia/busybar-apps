@@ -5,7 +5,8 @@ Build-time toolkit for pre-rendered BUSY Bar animation.
 - `.anim` encoder and decoder (`encodeAnim`, `AnimReader`, `decodeAnim`): raw, RLE and QOI frames, change masks,
   sections. Checked against the firmware's own code (see below).
 - `Raster`, the firmware's fonts (`font`, `textWidth`, `inkWidth`), masks, PNG I/O, `fillPolygon`, the Jira mark
-  sprites (and the ticket, with or without a face), icons (calendar, monograms, a capture ball, a moon).
+  sprites (placed by their optical centre: `jiraMarkIn`, `MARK_OPTICAL_CENTRE`; and the ticket, with or without a
+  face), icons (calendar, monograms, a capture ball, a moon).
 - Timeline: `clip`, `seq`, `layer`, `buildAnim` (named parts → sections, with their lengths); a clip's last frame is
   drawn at its `duration`, so what it ends on shows.
 - Effects (`src/fx/`): transitions, backgrounds, text (including title cards and a split-flap board), HUD (with a

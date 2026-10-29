@@ -22,8 +22,12 @@ On the panel:
 
 - A round button per entry, left to right as the redirects point: the people to the left of the bar, **Ticket**
   (File a Ticket), the people to the right. Who they are is set in Settings (below). Click a button to play it. Its
-  tooltip says what a click plays. Right-click (or Control-click) to play a particular version now, or to change what
-  a click plays: the bar's own setting, random, or one version.
+  tooltip says what a click plays. Right-click (or Control-click) to play a particular style now, or to change what
+  a click plays: the bar's own setting (what Ticket style or Redirect style says on the bar, Each in turn
+  included), random, or one style. Ticket has the eleven Jira styles (wild encounter, burst ticker, departure board,
+  stuck progress bar, 404, bug squash, ticket buddy, slot machine, magic 8-ball, ticket invaders, forecast); a person
+  has the fifteen redirect styles (runway, nudge, wayfinding sign, walker, trainer, scroller, motorway sign, exit
+  sign, parcel van, paper plane, pointing hand, little train, Growlithe, shout, treasure map).
 
 The colours come from what each entry looks like on the bar: the ticket in Jira blue, the redirects in Runway's
 amber, Title Card in the bar's orange.
@@ -50,7 +54,7 @@ The menu bar icon has all of the same, plus **Show Panel**.
   `redirects.json` ([apps/pkmn-life](../apps/pkmn-life#who-the-redirects-send-to)): `< Sam, Alex >`, where `< Sam`
   sits to the left of the bar and `Alex >` to the right. The names stay in this Mac's preferences.
 - **Pkmn Life**: the app's own settings on the bar, the same as on the bar and in its web UI: the ticket and redirect
-  styles, the clock and its animation, the sprint display, sprint changes, Mac remote. Changes go to the bar as you make them, and Pkmn
+  styles (Ticket style: Each in turn, Random or one of the eleven; Redirect style: Random or one of the fifteen), the clock and its animation, the sprint display, sprint changes, Mac remote. Changes go to the bar as you make them, and Pkmn
   Life picks them up within a second while **Mac remote** is on (otherwise when it next starts).
 
 Pkmn Life must be installed on the bar, with **Mac remote** on (the default). macOS asks once for permission to reach

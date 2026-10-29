@@ -8,7 +8,13 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { font, textWidth } from "@vladzaharia/bar-pixel";
 
-/** Widest name on the front in the large font: Runway's chevrons start at x = 50, the name at x = 3. */
+/**
+ * Widest name on the front in the large font: 46 px, about five letters (DAMIAN is exactly 46). Every style lays itself
+ * out from the name's ink width and drops decorations before they would touch it (chevrons, the walker's "!", the
+ * visitor's walk). What cannot shrink sets the limit: with a 46 px name the paper plane keeps its nose 2 px off the
+ * edge, the motorway sign has 3 px to spare, and the parcel van is 65 of the 72 px long (its cargo box is the name
+ * plus 4 px either side).
+ */
 const MAX_NAME_WIDTH = 46;
 /** The back menu spreads its rows over 43 px; past 7 entries they would be closer than the 5 px lettering. */
 const MAX_ENTRIES = 7;
