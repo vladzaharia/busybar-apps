@@ -184,7 +184,8 @@ export function roll(o: {
   /** Window the words roll through; each word is centred in it. */
   box: { x: number; width: number; height?: number };
   rollTime?: number;
-  color?: LetterColor;
+  /** Per-letter colour; also told which of `words` the letter is in (two are on screen while one rolls into the other). */
+  color?: (index: number, ch: string, t: number, word: number) => Color;
 }): Clip {
   const ROLL = o.rollTime ?? 0.26;
   const starts: number[] = [];
@@ -206,7 +207,7 @@ export function roll(o: {
       const hop = i > 0 && settle > 0 && settle < 1 ? -Math.sin(settle * Math.PI) * 1.5 : 0;
       const x = Math.round(o.box.x + (o.box.width - inkWidth(w.text, f)) / 2);
       const y = capCentre(w.font, height) + Math.round((1 - pin) * height - pout * height + hop);
-      r.text(w.text, f, x, y, WHITE, (gi, ch) => ({ color: o.color?.(gi, ch, t) }));
+      r.text(w.text, f, x, y, WHITE, (gi, ch) => ({ color: o.color?.(gi, ch, t, i) }));
     });
   });
 }

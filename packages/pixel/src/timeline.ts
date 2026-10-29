@@ -71,23 +71,30 @@ export function retime(c: Clip, duration: number): Clip {
 }
 
 /**
- * Renders a clip to straight-RGBA frames at `fps`. The frames are `i / fps` apart and the last is drawn at the clip's
- * `duration` itself, so a clip that ends on an outcome (a slide-out, a wipe) shows it on its final frame.
+ * Renders a clip to straight-RGBA frames at `fps`, frame i drawn at `t = i / fps`, through the clip's end: the last
+ * frame is drawn at `duration` itself, so what a clip ends on (a slide-out, a wipe) shows, and its last step lasts one
+ * frame like every other. A clip so gets one frame more than `duration * fps`. A `loop` stops a frame short instead:
+ * its first frame stands for `t = duration` when it comes round again, so it gets `duration * fps` frames and the seam
+ * is not shown twice.
  */
 export function renderFrames(
   c: Clip,
-  o: { width: number; height: number; fps: number; background?: Color },
+  o: { width: number; height: number; fps: number; background?: Color; loop?: boolean },
 ): Uint8Array[] {
-  const count = Math.max(1, Math.round(c.duration * o.fps));
+  const steps = Math.round(c.duration * o.fps);
+  const count = o.loop ? Math.max(1, steps) : steps + 1;
   const frames: Uint8Array[] = [];
   for (let i = 0; i < count; i++) {
     const r = new Raster(o.width, o.height);
     if (o.background) r.clear(o.background);
-    c.draw(r, i === count - 1 ? c.duration : Math.min(c.duration, i / o.fps));
+    c.draw(r, !o.loop && i === steps ? c.duration : Math.min(c.duration, i / o.fps));
     frames.push(r.toRGBA8());
   }
   return frames;
 }
+
+/** A named section of a `buildAnim`: its clip, and whether the app plays it as a loop (see `renderFrames`). */
+export type AnimPart = [name: string, clip: Clip, options?: { loop?: boolean }];
 
 export interface BuiltAnim {
   data: Uint8Array;
@@ -98,20 +105,21 @@ export interface BuiltAnim {
 
 /**
  * Renders named clips one after another into a single .anim, one section per clip. Each part is rendered on its
- * own, so section boundaries fall exactly on part boundaries.
+ * own, so section boundaries fall exactly on part boundaries; a part marked `loop` is rendered as one (see
+ * `renderFrames`), for the sections the app plays with `loop: true`.
  */
 export function buildAnim(o: {
   width: number;
   height: number;
   fps: number;
   format: AnimColorFormat;
-  parts: [name: string, clip: Clip][];
+  parts: AnimPart[];
   background?: Color;
 }): BuiltAnim {
   const frames: Uint8Array[] = [];
   const sections: AnimSection[] = [];
-  for (const [name, c] of o.parts) {
-    const part = renderFrames(c, o);
+  for (const [name, c, options] of o.parts) {
+    const part = renderFrames(c, { ...o, loop: options?.loop });
     sections.push({ name, start: frames.length, end: frames.length + part.length - 1 });
     frames.push(...part);
   }

@@ -108,10 +108,10 @@ export const CATALOG: CatalogEntry[] = [
     id: "iris",
     name: "Iris",
     group: "Transitions",
-    about: "A circle closes onto a point (any point) and opens again: the cartoon ending.",
-    usage: 'iris({ mode: "cover", x: 36, y: 8 })  // 0.65 s, like the stock oval',
+    about: "A circle closes onto a point (any point) and opens again: the cartoon ending. Closing, it eases in and out; with settle it is the classic iris-out, holding a moment on a circle round the point before it shuts.",
+    usage: 'iris({ mode: "cover", x: 36, y: 8 })  // 0.65 s, like the stock oval  ·  iris({ mode: "cover", settle: { radius: 10, hold: 0.25 } })',
     display: "front",
-    demo: coverThenReveal(fx.iris({ mode: "cover" }), fx.iris({ mode: "reveal" })),
+    demo: coverThenReveal(fx.iris({ mode: "cover", settle: { radius: 10, hold: 0.25 } }), fx.iris({ mode: "reveal" })),
   },
   {
     id: "dissolve",
@@ -346,11 +346,11 @@ export const CATALOG: CatalogEntry[] = [
     id: "speech-bubble",
     name: "Speech bubble",
     group: "HUD",
-    about: "A comic speech bubble beside whoever is talking: tiny text in a rounded box, its tail slanting back to them; it pops out of the tail, holds for readTime, and shrinks away.",
-    usage: 'speechBubble({ x: standX + 9, top: 0, dir: 1, text: "HI!" })  // or drawSpeechBubble(r, { ..., pop })',
+    about: "A comic speech bubble beside whoever is talking: tiny or small text in a rounded box, its tail slanting back to them; it pops out of the tail, holds for readTime, and shrinks away. color recolours letters, a \"?\" in the emphasis colour.",
+    usage: 'speechBubble({ x: standX + 9, top: 1, dir: 1, text: "HI!", font: "small" })  // or drawSpeechBubble(r, { ..., pop })',
     display: "front",
     demo: (() => {
-      const hello = fx.speechBubble({ x: 39, top: 0, dir: 1, text: "HI!" });
+      const hello = fx.speechBubble({ x: 39, top: 1, dir: 1, text: "HI!", font: "small" });
       const arrive = 38 / 24;
       return clip(arrive + hello.duration + 0.5, (r, t) => {
         fx.drawWalker(r, Math.min(30, -8 + t * 24), 1, 1, t < arrive ? fx.walkFrame(t) : "wave", W, t);

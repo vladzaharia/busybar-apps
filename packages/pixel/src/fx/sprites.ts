@@ -171,7 +171,7 @@ export function drawEightBall(r: Raster, cx: number, cy: number, radius: number,
     const edge = Math.min(1, radius + 0.5 - d);
     if (edge <= 0) return null;
     const k = Math.max(0, Math.min(1, 0.45 + (dx + dy) / (radius * 2.4)));
-    let c = mix(hex("#5E6A82"), hex("#2A3242"), k);
+    let c = mix(hex("#5E6A82"), hex("#2E3542"), k);
     if (d > radius - 1.4 && dx + dy > 2) c = mix(c, hex("#3A5A8C"), 0.8);
     return { ...c, a: edge };
   });

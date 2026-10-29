@@ -7,8 +7,10 @@ Build-time toolkit for pre-rendered BUSY Bar animation.
 - `Raster`, the firmware's fonts (`font`, `textWidth`, `inkWidth`), masks, PNG I/O, `fillPolygon`, the Jira mark
   sprites (placed by their optical centre: `jiraMarkIn`, `MARK_OPTICAL_CENTRE`; and the ticket, with or without a
   face), icons (calendar, monograms, a capture ball, a moon).
-- Timeline: `clip`, `seq`, `layer`, `buildAnim` (named parts → sections, with their lengths); a clip's last frame is
-  drawn at its `duration`, so what it ends on shows.
+- Timeline: `clip`, `seq`, `layer`, `buildAnim` (named parts → sections, with their lengths). `renderFrames` draws a
+  frame every `1 / fps` from 0 through the clip's `duration` itself (one frame more than `duration * fps`), so what it
+  ends on shows and its last step lasts a frame like the others. A part marked `{ loop: true }` (a section the app plays
+  with `loop`) stops a frame short instead, so the seam isn't shown twice.
 - Effects (`src/fx/`): transitions, backgrounds, text (including title cards and a split-flap board), HUD (with a
   slot reel), wayfinding (chevrons, arrows, a chevron chase, a scrolling band, a walking figure, a motorway sign, an
   EXIT sign with its pictograms, a treasure map's trail and X), vehicles (a delivery van, a little train, a paper

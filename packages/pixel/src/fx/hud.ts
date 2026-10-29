@@ -6,7 +6,7 @@ import { BALL_GREY, ballIcon, type BallPalette } from "../icons.ts";
 import { hex, Raster, type Color } from "../raster.ts";
 import { MOTION, readTime } from "../motion.ts";
 import { clip, type Clip } from "../timeline.ts";
-import { capCentre } from "./text.ts";
+import { capCentre, type LetterColor } from "./text.ts";
 
 export interface DialogueStyle {
   fill: Color;
@@ -58,15 +58,15 @@ export function drawDialogue(
   }
 }
 
-/** Seconds the empty dialogue box takes to rise. */
-const RISE = 0.18;
+/** Seconds the empty dialogue box takes to rise (`dialogueRise`), and a scene's matching drop. */
+export const DIALOGUE_RISE = 0.18;
 
 /**
  * The dialogue box rising from the bottom edge with nothing in it yet, over 0.18 s: so the box arrives on its own,
  * instead of appearing in one frame, before the first words are typed into it (`dialogue`, `drawDialogue`).
  */
 export function dialogueRise(o: { duration?: number; style?: DialogueStyle } = {}): Clip {
-  const duration = o.duration ?? RISE;
+  const duration = o.duration ?? DIALOGUE_RISE;
   return clip(duration, (r, t) => drawDialogue(r, { lines: [], typed: -1, t, rise: outCubic(t / duration), style: o.style }));
 }
 
@@ -255,25 +255,30 @@ export interface BubbleStyle {
 
 export const BUBBLE_LIGHT: BubbleStyle = { fill: DIALOGUE_LIGHT.fill, ink: DIALOGUE_LIGHT.ink };
 
-/** A speech bubble's size for `text`: the tiny font with 2 px of the box either side of its ink, 9 px tall. */
-export function speechBubbleSize(text: string): { width: number; height: number } {
-  return { width: inkWidth(text, font("tiny")) + 4, height: 9 };
+/** A speech bubble's lettering: the tiny font (capitals 4 rows tall) or the small one (5 rows), which reads further. */
+export type BubbleFont = "tiny" | "small";
+
+/** A speech bubble's size for `text` in `f`: 2 px of the box either side of its ink, 9 px tall. */
+export function speechBubbleSize(text: string, f: BubbleFont = "tiny"): { width: number; height: number } {
+  return { width: inkWidth(text, font(f)) + 4, height: 9 };
 }
 
 /**
- * A comic speech bubble beside whoever is talking: a line of tiny text in a rounded box on side `dir` of the speaker,
- * with a two-pixel tail slanting back down towards them. `x` is the box's edge nearest the speaker (the tail is in the
- * two columns before it), `top` its top row. `pop` 0..1 grows the box out of its tail corner (above 1 it overshoots,
- * as outBack does, a little wider); the words show once it is nearly full size.
+ * A comic speech bubble beside whoever is talking: a line of text in a rounded box on side `dir` of the speaker, with a
+ * two-pixel tail slanting back down towards them. `x` is the box's edge nearest the speaker (the tail is in the two
+ * columns before it), `top` its top row. The capitals start two rows into the box, in the tiny font or (`font`) the
+ * small one. `pop` 0..1 grows the box out of its tail corner (above 1 it overshoots, as outBack does, a little wider);
+ * the words show once it is nearly full size. `color` recolours letters (a "?" in the emphasis colour), at time `t`.
  */
 export function drawSpeechBubble(
   r: Raster,
-  o: { x: number; top: number; dir: 1 | -1; text: string; pop?: number; style?: BubbleStyle },
+  o: { x: number; top: number; dir: 1 | -1; text: string; pop?: number; style?: BubbleStyle; font?: BubbleFont; color?: LetterColor; t?: number },
 ): void {
   const s = o.style ?? BUBBLE_LIGHT;
   const pop = o.pop ?? 1;
   if (pop <= 0.1) return;
-  const full = speechBubbleSize(o.text);
+  const name = o.font ?? "tiny";
+  const full = speechBubbleSize(o.text, name);
   const w = Math.max(3, Math.round(full.width * pop));
   const h = Math.max(3, Math.round(full.height * Math.min(1, pop)));
   // Anchored at the corner by the tail: the box grows up and away from the speaker.
@@ -285,12 +290,13 @@ export function drawSpeechBubble(
   r.fillRect(o.x - 2 * o.dir, tailY + 1, 1, 1, s.fill);
   if (pop < 0.9) return;
   const fullLeft = o.dir > 0 ? o.x : o.x - full.width + 1;
-  r.text(o.text, font("tiny"), fullLeft + 2, o.top + capCentre("tiny", full.height), s.ink);
+  r.text(o.text, font(name), fullLeft + 2, o.top + capCentre(name, full.height), s.ink, (gi, ch) => ({ color: o.color?.(gi, ch, o.t ?? 0) }));
 }
 
 /**
  * A speech bubble that pops out of its tail, holds long enough to read (readTime), and shrinks back: see
- * drawSpeechBubble for `x`, `top` and `dir`. Lasts popIn + hold + popOut.
+ * drawSpeechBubble for `x`, `top`, `dir`, `font` and `color` (called with the bubble's own time). Lasts popIn + hold +
+ * popOut.
  */
 export function speechBubble(o: {
   x: number;
@@ -299,12 +305,14 @@ export function speechBubble(o: {
   text: string;
   hold?: number;
   style?: BubbleStyle;
+  font?: BubbleFont;
+  color?: LetterColor;
 }): Clip {
   const IN = MOTION.quick;
   const OUT = MOTION.quick * 0.6;
   const hold = o.hold ?? readTime(o.text);
   return clip(IN + hold + OUT, (r, t) => {
     const pop = t < IN ? outBack(span(t, 0, IN), 2.2) : 1 - inCubic(span(t, IN + hold, IN + hold + OUT));
-    drawSpeechBubble(r, { ...o, pop });
+    drawSpeechBubble(r, { ...o, pop, t });
   });
 }

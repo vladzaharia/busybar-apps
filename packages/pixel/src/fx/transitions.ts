@@ -117,9 +117,13 @@ export function wipeOut(c: Clip, o: { duration?: number; direction?: 1 | -1; edg
   const duration = o.duration ?? MOTION.quick;
   const soft = o.soft ?? 8;
   const edge = o.edge ?? WHITE;
+  // The frame being wiped, drawn once, when the wipe is first drawn.
+  let src: Raster | null = null;
   return clip(duration, (r, t) => {
-    const src = new Raster(r.width, r.height);
-    c.draw(src, c.duration);
+    if (!src || src.width !== r.width || src.height !== r.height) {
+      src = new Raster(r.width, r.height);
+      c.draw(src, c.duration);
+    }
     // The front travels from just off the start side to just past the far one; behind it nothing is left.
     const front = lerp(-soft, r.width, inCubic(t / duration));
     for (let y = 0; y < r.height; y++) {
@@ -137,15 +141,33 @@ export function wipeOut(c: Clip, o: { duration?: number; direction?: 1 | -1; edg
   });
 }
 
-/** A circle closing on (cover) or opening from (reveal) a point, like the end of an old cartoon. */
-export function iris(o: { duration?: number; mode: CoverMode; x?: number; y?: number; color?: Color }): Clip {
+/**
+ * A circle closing on (cover) or opening from (reveal) a point, like the end of an old cartoon. Closing, it eases in
+ * and out: quick across the edges of the screen, then slowing as it nears the point and shrinks to nothing, so what it
+ * closes on is seen going rather than popping to a dot. `settle` makes it the classic iris-out: it closes to `radius`
+ * round the point, holds there for `hold` s (which the clip lasts longer by), and then closes.
+ */
+export function iris(o: {
+  duration?: number;
+  mode: CoverMode;
+  x?: number;
+  y?: number;
+  color?: Color;
+  settle?: { radius: number; hold: number };
+}): Clip {
   const duration = o.duration ?? MOTION.slow;
-  return clip(duration, (r, t) => {
+  const settle = o.mode === "cover" ? o.settle : undefined;
+  // Settling, it spends most of `duration` closing to the settled circle and the rest closing that.
+  const first = duration * 0.7;
+  return clip(duration + (settle?.hold ?? 0), (r, t) => {
     const cx = o.x ?? r.width / 2;
     const cy = o.y ?? r.height / 2;
     const max = Math.hypot(Math.max(cx, r.width - cx), Math.max(cy, r.height - cy)) + 1;
-    const p = o.mode === "cover" ? inCubic(t / duration) : 1 - outCubic(t / duration);
-    const radius = (1 - p) * max;
+    let radius: number;
+    if (o.mode === "reveal") radius = outCubic(t / duration) * max;
+    else if (!settle) radius = (1 - inOutCubic(t / duration)) * max;
+    else if (t < first) radius = lerp(max, settle.radius, inOutCubic(t / first));
+    else radius = settle.radius * (1 - inOutCubic(span(t, first + settle.hold, duration + settle.hold)));
     r.shade((x, y) => {
       const d = Math.hypot(x + 0.5 - cx, y + 0.5 - cy);
       if (d <= radius - 0.5) return null;
@@ -185,24 +207,26 @@ export function bloom(o: { duration?: number; color?: Color; ring?: Color }): Cl
   });
 }
 
+/** Seconds `collapse` takes to fold its source's last frame onto the centre row. */
+export const COLLAPSE_FOLD = 0.12;
+
 /**
  * Everything pinches into a line, then a point of light that fades out: on an opaque `color` ground. Given the clip it
- * follows as `source`, it first squashes that clip's last frame onto the centre row (0.12 s of `duration`), so the
- * scene folds into the line instead of cutting to it; without one, it starts as the full-width line.
+ * follows as `source`, it first squashes that clip's last frame onto the centre row (COLLAPSE_FOLD s of `duration`), so
+ * the scene folds into the line instead of cutting to it; without one, it starts as the full-width line.
  */
 export function collapse(o: { duration?: number; color?: Color; light?: Color; source?: Clip }): Clip {
   const duration = o.duration ?? MOTION.slow;
-  const SQUASH = 0.12;
   const folded = o.source
-    ? squash(clip(SQUASH, (r) => o.source!.draw(r, o.source!.duration)), { time: SQUASH, at: "end" })
+    ? squash(clip(COLLAPSE_FOLD, (r) => o.source!.draw(r, o.source!.duration)), { time: COLLAPSE_FOLD, at: "end" })
     : null;
-  const squashTime = folded ? Math.min(SQUASH, duration / 2) : 0;
+  const squashTime = folded ? Math.min(COLLAPSE_FOLD, duration / 2) : 0;
   return clip(duration, (r, t) => {
     const light = o.light ?? hex("#579DFF");
     r.fillRect(0, 0, r.width, r.height, o.color ?? BLACK);
     if (folded && t < squashTime) {
       const k = t / squashTime;
-      folded.draw(r, k * SQUASH);
+      folded.draw(r, k * COLLAPSE_FOLD);
       // The line is already there to fold into, fading up as the picture thins.
       r.fillRect(0, r.height / 2 - 0.5, r.width, 1, { ...light, a: inCubic(k) });
       return;

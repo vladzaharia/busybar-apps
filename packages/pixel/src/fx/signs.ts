@@ -4,10 +4,11 @@
 
 import { font, inkWidth } from "../font.ts";
 import { span, outCubic } from "../ease.ts";
-import { stampPalette } from "../jira.ts";
+import { stamp, stampPalette } from "../jira.ts";
 import { hex, inRoundRect, mix, type Color, type Raster } from "../raster.ts";
 import { drawPanel, type PanelStyle } from "./backgrounds.ts";
 import type { Direction } from "./arrows.ts";
+import { mirrorX } from "./text.ts";
 
 // --- Motorway sign -----------------------------------------------------------------------------------------------
 
@@ -43,6 +44,25 @@ export function drawOutline(r: Raster, x: number, y: number, w: number, h: numbe
   });
 }
 
+/**
+ * The tiny font's G is its O with one pixel missing, and from across a room a "GO!" tab read "OO!". Tabs letter G as
+ * this one instead: a top bar out to the right, the side open below it, and a bar in. On the tiny capitals' 4 rows.
+ */
+const TAB_G = [".###", "#...", "#.##", ".###"];
+
+/** A tab's lettering, in the tiny font with TAB_G for G: each letter's pen x from `x`, and the ink width of the whole. */
+function tabLetters(text: string, x = 0): { letters: { ch: string; x: number }[]; ink: number } {
+  const tiny = font("tiny");
+  const letters: { ch: string; x: number }[] = [];
+  let pen = x;
+  for (const ch of text) {
+    letters.push({ ch, x: pen });
+    pen += ch === "G" ? TAB_G[0]!.length + 1 : (tiny.glyph(ch.codePointAt(0)!)?.advance ?? 0);
+  }
+  // TAB_G is a column wider than the font's G, with the same column after it.
+  return { letters, ink: inkWidth(text, tiny) + [...text].filter((ch) => ch === "G").length };
+}
+
 /** Where a road sign's parts go on a `width` x 16 screen, for a sign pointing `dir`. */
 export interface RoadSignLayout {
   /** The lettered tab in the top corner on the `dir` side. */
@@ -56,15 +76,14 @@ export interface RoadSignLayout {
 /** A road sign's layout (see `drawRoadSign`): measure the name against `room` before placing it. */
 export function roadSignLayout(o: { tab: string; dir: Direction; width?: number }): RoadSignLayout {
   const W = o.width ?? 72;
-  const tabW = inkWidth(o.tab, font("tiny")) + 4;
+  const tabW = tabLetters(o.tab).ink + 4;
   const tabR = W - 2 - tabW;
   const arrowR = W - 3 - EXIT_ARROW_SIZE - 2;
-  const mirror = (x: number, w: number) => (o.dir > 0 ? x : W - x - w);
   // The rim is the inset outline at column 1 (and W - 2); a name keeps 3 px clear of it and of the tab.
   const x0 = 1 + 1 + 3;
   const x1 = tabR - 4;
   const room = o.dir > 0 ? { x0, x1 } : { x0: W - 1 - x1, x1: W - 1 - x0 };
-  return { tab: { x: mirror(tabR, tabW), y: 1, width: tabW, height: 6 }, arrow: { x: mirror(arrowR, EXIT_ARROW_SIZE), y: 8 }, room };
+  return { tab: { x: mirrorX(tabR, tabW, o.dir, W), y: 1, width: tabW, height: 6 }, arrow: { x: mirrorX(arrowR, EXIT_ARROW_SIZE, o.dir, W), y: 8 }, room };
 }
 
 /**
@@ -80,7 +99,13 @@ export function drawRoadSign(r: Raster, o: { tab: string; dir: Direction; sheen?
   drawPanel(r, { style, radius: 2, sheen: o.sheen, sheenDir: o.dir });
   drawOutline(r, 1, 1, W - 2, r.height - 2, 2, ink);
   r.fillRect(l.tab.x, l.tab.y, l.tab.width, l.tab.height, ink);
-  r.text(o.tab, font("tiny"), l.tab.x + 2, l.tab.y, style.bottom);
+  const tiny = font("tiny");
+  // TAB_G on the tiny capitals' rows, which start a row below the top of their text element.
+  const capY = l.tab.y + 1;
+  for (const { ch, x } of tabLetters(o.tab, l.tab.x + 2).letters) {
+    if (ch === "G") stamp(r, TAB_G, x, capY, style.bottom);
+    else r.text(ch, tiny, x, l.tab.y, style.bottom);
+  }
   const n = Math.round(o.nudge ?? 0);
   drawExitArrow(r, l.arrow.x + o.dir * n, l.arrow.y - n, o.dir, ink);
 }

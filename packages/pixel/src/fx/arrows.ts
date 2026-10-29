@@ -90,6 +90,12 @@ export function chevronChase(o: {
 }
 
 /**
+ * How opaque dash k (1 nearest the arrow) of a moving arrow's streak is, in the arrow's body colour: fading with each
+ * dash, but never below 0.4, so even the last one is above what an LED shows on black.
+ */
+export const streakAlpha = (k: number): number => Math.max(0.4, 0.6 - k * 0.1);
+
+/**
  * A solid arrow at (x, y) that nudges `distance` px towards `dir` every `every` seconds, like pointing "over there".
  * `streak` is how many dashes trail it while it moves (3 by default, 0 for none): fewer when a name stands close
  * behind it, so the dashes never touch the lettering.
@@ -111,9 +117,8 @@ export function arrowNudge(o: {
     const q = (t % (o.every ?? 1)) / 0.42;
     const dx = q < 1 ? o.dir * (o.distance ?? 3) * Math.sin(q * Math.PI) : 0;
     const ax = Math.round(o.x + dx);
-    // A short streak behind it while it moves: dashes 3 px apart, mirrored exactly about the 13 px arrow, and no dimmer
-    // than 0.3 (below that an LED does not show them).
-    if (Math.abs(dx) > 1.5) for (let k = 1; k <= (o.streak ?? 3); k++) r.fillRect(ax - o.dir * k * 3 + (o.dir > 0 ? 0 : 11), o.y + 5, 2, 1, { ...body, a: Math.max(0.3, 0.5 - k * 0.14) });
+    // A short streak behind it while it moves: dashes 3 px apart, mirrored exactly about the 13 px arrow.
+    if (Math.abs(dx) > 1.5) for (let k = 1; k <= (o.streak ?? 3); k++) r.fillRect(ax - o.dir * k * 3 + (o.dir > 0 ? 0 : 11), o.y + 5, 2, 1, { ...body, a: streakAlpha(k) });
     drawArrow(r, ax, o.y, o.dir, body, light);
   });
 }

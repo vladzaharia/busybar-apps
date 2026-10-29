@@ -15,16 +15,19 @@ import {
   drawJiraMark,
   drawPanel,
   drawJiraTicket,
+  drawSpeechBubble,
   flash,
   font,
   hex,
   inkWidth,
+  iris,
   jiraMarkIn,
   layer,
   mirrorX,
   pause,
   renderFrames,
   rng,
+  roadSignLayout,
   roll,
   scrollBand,
   scrollBandCentreLead,
@@ -81,10 +84,10 @@ test("layer keeps a placed clip on its own last frame despite rounding", () => {
 test("buildAnim makes one section per part, with exact frame ranges", () => {
   const solid = (v: number) => clip(0.5, (r) => r.fillRect(0, 0, r.width, r.height, { r: v, g: v, b: v, a: 1 }));
   const built = buildAnim({ width: 8, height: 4, fps: 30, format: "rgb888", parts: [["one", solid(0.2)], ["two", solid(0.8)]] });
-  assert.deepEqual(built.sections, { default: 30, one: 15, two: 15 });
+  assert.deepEqual(built.sections, { default: 32, one: 16, two: 16 });
   const d = decodeAnim(built.data);
-  assert.deepEqual(d.sections.map((s) => [s.name, s.start, s.end]), [["default", 0, 29], ["one", 0, 14], ["two", 15, 29]]);
-  assert.equal(d.frames[15]![0], Math.round(0.8 * 255));
+  assert.deepEqual(d.sections.map((s) => [s.name, s.start, s.end]), [["default", 0, 31], ["one", 0, 15], ["two", 16, 31]]);
+  assert.equal(d.frames[16]![0], Math.round(0.8 * 255));
 });
 
 test("text effects draw with only their required options (no NaN from unset ones)", async () => {
@@ -131,13 +134,29 @@ test("last frame is drawn at duration", () => {
   // Fills only once the clip has run its whole length: the last rendered frame is the only one that can.
   const c = clip(0.5, (r, t) => t >= 0.5 && r.fillRect(0, 0, r.width, r.height, hex("#FFFFFF")));
   const frames = renderFrames(c, { width: 2, height: 2, fps: 60 });
-  assert.equal(frames.length, 30, "the frame count is unchanged");
+  assert.equal(frames.length, 31, "a frame at every 1/60 s from 0 through 0.5");
   assert.equal(frames[frames.length - 1]![3], 255, "the last frame is lit");
   assert.equal(frames[frames.length - 2]![3], 0, "and only the last");
   // buildAnim renders through the same path, so the shipped section ends on it too.
   const built = buildAnim({ width: 2, height: 2, fps: 60, format: "argb8888", parts: [["a", c]] });
-  assert.equal(built.sections.a, 30);
-  assert.equal(decodeAnim(built.data).frames[29]![3], 255);
+  assert.equal(built.sections.a, 31);
+  assert.equal(decodeAnim(built.data).frames[30]![3], 255);
+});
+
+test("every step of a clip lasts one frame, the last too", () => {
+  // A dot one column further along every 1/60 s: frame i shows it in column i, up to the end.
+  const c = clip(0.5, (r, t) => r.fillRect(Math.round(t * 60), 0, 1, 1, hex("#FFFFFF")));
+  const frames = renderFrames(c, { width: 31, height: 1, fps: 60 });
+  frames.forEach((f, i) => assert.equal((f.findIndex((v, k) => k % 4 === 3 && v > 0) - 3) / 4, i, `frame ${i}`));
+});
+
+test("a loop ends a frame short, so its seam is not drawn twice", () => {
+  const c = clip(0.5, (r, t) => r.fillRect(Math.round(t * 60) % 30, 0, 1, 1, hex("#FFFFFF")));
+  const frames = renderFrames(c, { width: 30, height: 1, fps: 60, loop: true });
+  assert.equal(frames.length, 30);
+  frames.forEach((f, i) => assert.equal((f.findIndex((v, k) => k % 4 === 3 && v > 0) - 3) / 4, i, `frame ${i}`));
+  const built = buildAnim({ width: 30, height: 1, fps: 60, format: "argb8888", parts: [["once", c], ["loop", c, { loop: true }]] });
+  assert.deepEqual(built.sections, { default: 61, once: 31, loop: 30 });
 });
 
 test("inkWidth drops the trailing bearing", () => {
@@ -341,6 +360,52 @@ test("starfield spreads evenly at any speed, and shows in the middle", () => {
 test("speech bubble padding is even around the ink", () => {
   const f = font("tiny");
   assert.equal(speechBubbleSize("HI!").width, inkWidth("HI!", f) + 4);
+  assert.equal(speechBubbleSize("HI!", "small").width, inkWidth("HI!", font("small")) + 4);
+});
+
+test("a speech bubble colours letters one by one", () => {
+  const r = new Raster(20, 12);
+  const RED = hex("#FF0000");
+  drawSpeechBubble(r, { x: 2, top: 1, dir: 1, text: "HI?", font: "small", color: (_i, ch) => (ch === "?" ? RED : DIALOGUE_LIGHT.ink) });
+  const px = r.toRGBA8();
+  const red = (i: number) => px[i]! === 255 && px[i + 1]! === 0 && px[i + 3]! === 255;
+  assert.ok(px.some((_, i) => i % 4 === 0 && red(i)), "the ? is red");
+});
+
+test("an iris can settle round its point before it shuts", () => {
+  const c = iris({ mode: "cover", x: 36, y: 8, duration: 0.6, settle: { radius: 5, hold: 0.3 } });
+  assert.ok(Math.abs(c.duration - 0.9) < 1e-9, "it lasts its duration and the hold");
+  // Holding: clear well inside the circle, covered well outside it.
+  for (const t of [0.45, 0.6]) {
+    const r = new Raster(72, 16);
+    c.draw(r, t);
+    const a = (x: number, y: number) => r.data[(y * 72 + x) * 4 + 3]!;
+    assert.equal(a(36, 8), 0, `${t}: the point shows`);
+    assert.equal(a(33, 8), 0, `${t}: 3 px from it shows`);
+    assert.equal(a(29, 8), 1, `${t}: 7 px from it is covered`);
+  }
+  const end = new Raster(72, 16);
+  c.draw(end, c.duration);
+  assert.equal(end.data[(8 * 72 + 36) * 4 + 3], 1, "and it ends shut");
+});
+
+test("wipeOut draws what it wipes once", () => {
+  let draws = 0;
+  const src = clip(1, (r) => (draws++, r.fillRect(0, 0, r.width, r.height, hex("#FFFFFF"))));
+  renderFrames(wipeOut(src), { width: 8, height: 2, fps: 60 });
+  assert.equal(draws, 1);
+});
+
+test("roll tells its colour which word a letter is in", () => {
+  const words: number[] = [];
+  const c = roll({ words: ["AB", "CD"].map((text) => ({ text, font: "small" as const, hold: 0.5 })), box: { x: 0, width: 30 }, rollTime: 0.2, color: (_i, _ch, _t, word) => (words.push(word), hex("#FFFFFF")) });
+  c.draw(new Raster(30, 16), 0.4);
+  assert.deepEqual([...new Set(words)].sort(), [0, 1], "both words while one rolls into the other");
+});
+
+test("a road sign's tab letters G with a bar, a column wider than the font's", () => {
+  assert.equal(roadSignLayout({ tab: "GO!", dir: 1 }).tab.width, inkWidth("GO!", font("tiny")) + 1 + 4);
+  assert.equal(roadSignLayout({ tab: "OK", dir: 1 }).tab.width, inkWidth("OK", font("tiny")) + 4);
 });
 
 test("the ticket's inner layout is tidy", () => {

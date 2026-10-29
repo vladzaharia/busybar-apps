@@ -1,13 +1,14 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { buildAnim, clip } from "@vladzaharia/bar-pixel";
+import { buildAnim, clip, type AnimPart } from "@vladzaharia/bar-pixel";
 import { Device } from "../src/device.ts";
 
-// Three 10-frame sections at 10 fps; each frame's red channel encodes (section index * 10 + frame). A section's last
-// frame is drawn at t = 1 (the clip's duration), which would read as frame 10, so the frame number is capped at 9.
-const parts: [string, ReturnType<typeof clip>][] = ["a", "b", "c"].map((name, si) => [
+// Three 10-frame sections at 10 fps; each frame's red channel encodes (section index * 10 + frame). They are rendered
+// as loops, so each has exactly frames 0..9 (a section rendered to play once gets one more, at t = 1).
+const parts: AnimPart[] = ["a", "b", "c"].map((name, si) => [
   name,
-  clip(1, (r, t) => r.fillRect(0, 0, r.width, r.height, { r: (si * 10 + Math.min(9, Math.round(t * 10))) / 255, g: 0, b: 0, a: 1 })),
+  clip(1, (r, t) => r.fillRect(0, 0, r.width, r.height, { r: (si * 10 + Math.round(t * 10)) / 255, g: 0, b: 0, a: 1 })),
+  { loop: true },
 ]);
 const anim = buildAnim({ width: 2, height: 2, fps: 10, format: "rgb888", parts }).data;
 
