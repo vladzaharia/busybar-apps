@@ -183,7 +183,6 @@ export const CONCEPTS: Concept[] = [
   {
     id: "jira-pet",
     name: "Hungry pet",
-    group: "Unchosen concepts",
     about: "A tiny ticket pet drops in and paces like a handheld pet while its FOOD bar drains to empty and blinks. It chomps at \"FEED ME\", then rumbles and tears up at \"A TICKET!\".",
     uses: "reuses drawBar, roll, shake, dissolve, fade · new: the ticket pet (a dog-eared page on two feet: step frames, chomp, sad face, tear)",
     clip: hungryPet(),

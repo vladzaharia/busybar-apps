@@ -499,13 +499,11 @@ function bowling(who: Who): Clip {
 
 // --------------------------------------------------------------------------------------------------------------------
 
-const UNCHOSEN = "Unchosen concepts";
 
 export const CONCEPTS: Concept[] = [
   {
     id: "redirect-dog",
     name: "Dog",
-    group: UNCHOSEN,
     about: "A brown pup bounds in and the name pops up behind it as it passes; it stops, wags and barks \"ARF!\" their way, the letters hop towards it, and it bounds off that way.",
     uses: "reuses speechBubble, wipe, fade · new: pup (leap, land, stand, wag, bark)",
     clip: dog(PERSON),
@@ -513,7 +511,6 @@ export const CONCEPTS: Concept[] = [
   {
     id: "redirect-ufo",
     name: "UFO",
-    group: UNCHOSEN,
     about: "Under the stars a saucer beams up the little walker, flies their way dropping the name's letters as it goes, beams the walker down beside the name and zips off; the walker waves.",
     uses: "reuses drawWalker, starfield, fade · new: saucer with chasing lights and a passenger in the dome, tractor beam",
     clip: ufo(PERSON),
@@ -521,7 +518,6 @@ export const CONCEPTS: Concept[] = [
   {
     id: "redirect-bowling",
     name: "Bowling",
-    group: UNCHOSEN,
     about: "The name stands like pins on a lane; a ball rolls in from the far side and knocks the letters down their way (STRIKE!), rolls off, and the letters spring back up.",
     uses: "reuses squash, shake · new: bowling ball with turning finger holes, lane, letters that tip over",
     clip: bowling(PERSON),

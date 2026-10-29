@@ -1,5 +1,6 @@
-// Front redirects: "go see ALEX" (someone to the right) or "go see SAM" (to the left), in six looks. Each plays over
-// the live clock: its opening covers the clock (a wipe, an arrow's sweep, a sign sliding over, a fade, stripes, the
+// Front redirects: "go see ALEX" (someone to the right) or "go see SAM" (to the left). This file holds the six original
+// looks (runway, nudge, sign, walker, trainer, scroller); the other nine are in scenes/redirects/. Each plays over the
+// live clock: its opening covers the clock (a wipe, an arrow's sweep, a sign sliding over, a fade, stripes, the
 // band's front) and its ending uncovers it again, so the clip is transparent at both ends.
 //
 // Directions are as someone facing the front display sees them; every look mirrors for the other side.

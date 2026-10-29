@@ -462,7 +462,6 @@ export function redirectA(p: Who): Concept[] {
     {
       id: "redirect-exit-sign",
       name: "Exit sign",
-      group: "Unchosen concepts",
       about: "The clock fades and a lit green EXIT sign flickers on like a fluorescent tube: the name, the ISO running figure dashing into a doorway on their side, and chevrons pulsing their way. The figure runs on the spot, then bolts through the door and off the sign, and the sign stutters off.",
       uses: "reuses drawChevron + chase (the pulsing chevrons), fade, MOTION · new: ISO running figure (4 frames, 12 x 13, with a green knock-out ring), doorway, fluorescent flicker on and off",
       clip: exitSign(p),
@@ -470,7 +469,6 @@ export function redirectA(p: Who): Concept[] {
     {
       id: "redirect-satnav",
       name: "Sat-nav",
-      group: "Unchosen concepts",
       about: "A sat-nav instruction: the name as the street, the distance rolling down 3 m, 2 m, 1 m beside a green turn tile pointing their way. At 0 the arrow rolls away for a waving chequered flag, the green floods the screen and the name rolls over to ARRIVED, then back.",
       uses: "reuses roll (the countdown and the ARRIVED swap), fade, readTime, MOTION · new: sat-nav turn arrow, waving chequered flag, turn tile, green flood",
       clip: satnav(p),
@@ -478,7 +476,6 @@ export function redirectA(p: Who): Concept[] {
     {
       id: "redirect-transfer",
       name: "Call transfer",
-      group: "Unchosen concepts",
       about: "A phone display types \"Transferring you to...\" beside a desk phone, then rolls on to the name. A hold bar fills their way with hold-music notes drifting up, the phone on their side rings (the handset jumping on its cradle), and the handset is picked up.",
       uses: "reuses typewriter, drawBar (the progress bar; mirrored fill for the left), fade, MOTION · new: desk phone with liftable handset, ring marks, music notes",
       clip: transfer(p),

@@ -315,7 +315,6 @@ export function variants(p: Who): Concept[] {
     {
       id: "redirect-exit-cube",
       name: "Exit sign (cube)",
-      group: "Unchosen concepts",
       about: "The EXIT sign flickers on with the name, the running figure and chevrons pulsing their way, but on their side there is an office cubicle instead of a doorway. The figure dashes behind its partition and ducks down out of sight; the monitor inside lights up and its head bobs back up over the wall. The sign stutters off.",
       uses: "as redirect-exit-sign (drawChevron + chase, the runner and its knock-out ring, the flicker) · new: cubicle in perspective (shaded back wall with a monitor, side wall, fabric front partition with a sticky note, which hides the figure), the figure ducking in and its head bobbing up",
       clip: exitCube(p),

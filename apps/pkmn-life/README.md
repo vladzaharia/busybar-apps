@@ -68,9 +68,8 @@ person with the side they sit on: `"< Name"` on the left, `"Name >"` on the righ
 Without the file, the build uses `redirects.example.json` (the two above). `pnpm assets` (part of `pnpm build`,
 `pnpm sim` and `pnpm typecheck`) renders each person's animations and the back menu from it, so change the file and
 build again. A name can be up to 46 px wide on the front in the large font (about five letters; DAMIAN is exactly
-46, WWWWW is 45), and the build says so if it is wider. Up to six people fit the back menu. Each entry's id, which
-the Mac remote uses,
-is its name in lower case without spaces or punctuation: `alex`. Give the [Mac app](../../mac) the same list.
+46, WWWWW is 45), and the build says so if it is wider. Up to six people fit the back menu. Each entry's id, which the
+Mac remote uses, is its name in lower case without spaces or punctuation: `alex`. Give the [Mac app](../../mac) the same list.
 
 ## Controls
 
@@ -79,7 +78,7 @@ is its name in lower case without spaces or punctuation: `alex`. Give the [Mac a
 | Wheel | Choose an entry | |
 | START | Play it on the front | |
 | Hold START | The Majora's Mask title card for now: dawn, meal or dusk (when that is the clock animation) | |
-| OK (press the wheel) | Change how the selected entry plays: a style, or random | |
+| OK (press the wheel) | Change how the selected entry plays: a style, or random (FILE A TICKET also has Each in turn) | |
 | BACK | Leave the app | Stop it |
 
 The back header shows how the next START will play: the style's name (ENCOUNTER, 404, GROWLITHE ...), RANDOM, or

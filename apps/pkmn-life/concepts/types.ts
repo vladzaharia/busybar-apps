@@ -9,8 +9,6 @@ export interface Concept {
   id: string;
   /** Short title for the card: "Departure board". */
   name: string;
-  /** Gallery section, e.g. "Jira · Plain", "Redirect · Cute". */
-  group: string;
   /** One or two sentences: what plays, beat by beat. */
   about: string;
   /** What it reuses from bar-pixel and what is new art: "reuses roll, crt · new: checkbox sprite". */

@@ -138,7 +138,6 @@ function terminal(): Concept {
   return {
     id: "jira-terminal",
     name: "Terminal",
-    group: "Jira · Plain",
     about:
       "The clock goes dark and a green terminal switches on. Someone types $ jira create; it asks ticket? [y/N] and the cursor blinks, waiting. Nobody answers, and the screen switches off like an old CRT.",
     uses: "reuses typewriter, crt (on and off), fade · new: block cursor",
@@ -189,7 +188,6 @@ function notification(): Concept {
   return {
     id: "jira-notification",
     name: "Notification",
-    group: "Jira · Plain",
     about:
       "The clock dims and a macOS-style banner slides down from the top: the Jira app icon, a red 1 popping on its corner, and \"1 ticket missing\". A shine crosses it, then it slides back up.",
     uses: "reuses slide, drawPanel (a dark notification style), drawJiraMark · new: the app icon square and badge",
@@ -281,7 +279,6 @@ function checkbox(): Concept {
   return {
     id: "jira-checkbox",
     name: "Checkbox",
-    group: "Jira · Clever",
     about:
       "\"[ ] I filed a ticket\". A pointer glides in and clicks the box, which fills blue with a tick; the pointer leaves. A pause, then the tick quietly fades back out, and a ? pops onto the end of the line.",
     uses: "reuses fade, motion tokens · new: checkbox and pointer sprites, click ring",
