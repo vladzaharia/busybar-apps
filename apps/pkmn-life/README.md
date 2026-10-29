@@ -113,7 +113,8 @@ Over Wi-Fi: `pnpm app:install --addr <bar-ip> --password <http-api-password>`.
 | --- | --- |
 | `src/main.ts` | The app: clock, menu, input, which animation section plays when |
 | `src/presets.ts` | The entries and their styles |
-| `assets/scenes/encounter.ts`, `ticker.ts` | Front: the two nag styles |
+| `assets/scenes/encounter.ts`, `ticker.ts`, `nags/` | Front: the nag styles (one file each under `nags/`) |
+| `assets/scenes/look.ts` | What the nags share: the lettering white, the amber "?" pulse, soft box fills |
 | `assets/scenes/redirect.ts` | Front: the six redirect looks |
 | `assets/scenes/registry.ts` | Every front style by id (`NAG_SCENES`, `REDIRECT_SCENES`): what the build renders and the guard test checks |
 | `test/styles.test.ts`, `frames.ts` | The guard test: every style, in every name and direction, against the visual audit (`pnpm test`) |

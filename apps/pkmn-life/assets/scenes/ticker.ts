@@ -23,7 +23,6 @@ import {
   jiraFlyIn,
   jiraMarkIn,
   layer,
-  mix,
   paginate,
   particles,
   popChars,
@@ -34,6 +33,7 @@ import {
   type Clip,
 } from "@vladzaharia/bar-pixel";
 import type { Nag } from "../../src/presets.ts";
+import { ask } from "./look.ts";
 
 const WHITE = hex("#FFFFFF");
 const BLUE = hex("#579DFF");
@@ -79,7 +79,7 @@ export function ticker(preset: Nag): Clip {
   const SWITCH_ON = 0.3;
 
   const color = (i: number, ch: string, t: number) =>
-    ch === "?" && t > TRAVEL ? hex(Math.sin(t * 16 + i) > 0 ? "#FFFFFF" : "#579DFF") : accentWords(text, preset.accent, WHITE, BLUE)(i, ch, t);
+    ch === "?" && t > TRAVEL ? ask(WHITE, t) : accentWords(text, preset.accent, WHITE, BLUE)(i, ch, t);
   const line = glide({
     text,
     font: "extra_large",
@@ -135,7 +135,7 @@ export function ticker(preset: Nag): Clip {
             const x = Math.round((72 - textWidth(l, small)) / 2);
             const accent = accentWords(l.toUpperCase(), preset.accent, WHITE, BLUE);
             r.text(l, small, x, (li === 0 ? (page.lines.length === 1 ? 4 : 0) : 7) + dy, WHITE, (gi, ch) => ({
-              color: ch === "?" ? mix(WHITE, BLUE, 0.5 + 0.5 * Math.sin(t * 12 + gi)) : accent(gi, ch, t),
+              color: ch === "?" ? ask(WHITE, t) : accent(gi, ch, t),
             }));
           });
         });

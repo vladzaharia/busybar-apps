@@ -6,7 +6,7 @@
 import { PEOPLE } from "./generated/redirects.ts";
 
 /** The styles a nag can be shown in. */
-export const NAG_STYLES = ["encounter", "ticker"] as const;
+export const NAG_STYLES = ["encounter", "ticker", "board", "progress", "notfound", "squash", "buddy", "slots", "eightball", "invaders", "forecast"] as const;
 export type NagStyle = (typeof NAG_STYLES)[number];
 
 /** The styles a redirect can be shown in. */

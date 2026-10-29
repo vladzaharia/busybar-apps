@@ -22,7 +22,6 @@ import {
   inQuad,
   layer,
   lerp,
-  mix,
   MOTION,
   outCubic,
   paginate,
@@ -35,10 +34,10 @@ import {
   type Raster,
 } from "@vladzaharia/bar-pixel";
 import type { Nag } from "../../src/presets.ts";
+import { ask } from "./look.ts";
 
 const BLACK = hex("#000000");
 const INK = hex("#141820");
-const BLUE = hex("#1D7AFC");
 const GRASS = hex("#2F6B45");
 /** The hit's sparks: a light Jira blue that stays bright on black. */
 const SPARK = hex("#85B8FF");
@@ -92,9 +91,8 @@ function dialogueRaise(hp: number): Clip {
   return layer(clip(0.18, (r, t) => battle(r, { issueX: ISSUE.x, hud: 1, hp, t })), dialogueRise());
 }
 
-/** "???" and other question marks pulse blue on the dark ink. */
-const emphasis = (_i: number, ch: string, t: number): Color | undefined =>
-  ch === "?" ? mix(INK, BLUE, 0.5 + 0.5 * Math.sin(t * 12)) : undefined;
+/** "???" and other question marks pulse from the ink to amber, as every nag's "?" does. */
+const emphasis = (_i: number, ch: string, t: number): Color | undefined => (ch === "?" ? ask(INK, t) : undefined);
 
 export function encounter(preset: Nag): Clip {
   // 1. The encounter: three flashes over the clock, then the stripes close.
