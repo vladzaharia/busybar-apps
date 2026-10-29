@@ -1,11 +1,12 @@
 // HUD pieces: dialogue boxes, bars and indicators in the style of handheld games and the stock screens.
 
-import { lerp, outCubic } from "../ease.ts";
+import { inCubic, lerp, outBack, outCubic, span } from "../ease.ts";
 import { font, textWidth } from "../font.ts";
 import { BALL_GREY, ballIcon, type BallPalette } from "../icons.ts";
 import { hex, Raster, type Color } from "../raster.ts";
-import { MOTION } from "../motion.ts";
+import { MOTION, readTime } from "../motion.ts";
 import { clip, type Clip } from "../timeline.ts";
+import { capCentre } from "./text.ts";
 
 export interface DialogueStyle {
   fill: Color;
@@ -228,5 +229,67 @@ export function ballShake(o: {
     const alpha = o.fadeIn ? Math.min(1, t / o.fadeIn) : 1;
     drawBall(r, o.x, o.y, size, { angle, palette: o.palette, alpha });
     if (p < 1 && Math.floor(p * 4) % 2 === 1) r.glow(o.x, o.y, 1.6, 1.6, { ...hex("#FFFFFF"), a: alpha }, 1);
+  });
+}
+
+/** A speech bubble's look: the dialogue box's soft fill (a box of white LEDs glares) and dark lettering. */
+export interface BubbleStyle {
+  fill: Color;
+  ink: Color;
+}
+
+export const BUBBLE_LIGHT: BubbleStyle = { fill: DIALOGUE_LIGHT.fill, ink: DIALOGUE_LIGHT.ink };
+
+/** A speech bubble's size for `text`: the tiny font with 2 px either side, 9 px tall. */
+export function speechBubbleSize(text: string): { width: number; height: number } {
+  return { width: textWidth(text, font("tiny")) + 4, height: 9 };
+}
+
+/**
+ * A comic speech bubble beside whoever is talking: a line of tiny text in a rounded box on side `dir` of the speaker,
+ * with a two-pixel tail slanting back down towards them. `x` is the box's edge nearest the speaker (the tail is in the
+ * two columns before it), `top` its top row. `pop` 0..1 grows the box out of its tail corner (above 1 it overshoots,
+ * as outBack does, a little wider); the words show once it is nearly full size.
+ */
+export function drawSpeechBubble(
+  r: Raster,
+  o: { x: number; top: number; dir: 1 | -1; text: string; pop?: number; style?: BubbleStyle },
+): void {
+  const s = o.style ?? BUBBLE_LIGHT;
+  const pop = o.pop ?? 1;
+  if (pop <= 0.1) return;
+  const full = speechBubbleSize(o.text);
+  const w = Math.max(3, Math.round(full.width * pop));
+  const h = Math.max(3, Math.round(full.height * Math.min(1, pop)));
+  // Anchored at the corner by the tail: the box grows up and away from the speaker.
+  const left = o.dir > 0 ? o.x : o.x - w + 1;
+  const top = o.top + full.height - h;
+  r.roundRect(left, top, w, h, 2, () => s.fill);
+  const tailY = o.top + full.height - 4;
+  r.fillRect(o.x - o.dir, tailY, 1, 1, s.fill);
+  r.fillRect(o.x - 2 * o.dir, tailY + 1, 1, 1, s.fill);
+  if (pop < 0.9) return;
+  const fullLeft = o.dir > 0 ? o.x : o.x - full.width + 1;
+  r.text(o.text, font("tiny"), fullLeft + 2, o.top + capCentre("tiny", full.height), s.ink);
+}
+
+/**
+ * A speech bubble that pops out of its tail, holds long enough to read (readTime), and shrinks back: see
+ * drawSpeechBubble for `x`, `top` and `dir`. Lasts popIn + hold + popOut.
+ */
+export function speechBubble(o: {
+  x: number;
+  top: number;
+  dir: 1 | -1;
+  text: string;
+  hold?: number;
+  style?: BubbleStyle;
+}): Clip {
+  const IN = MOTION.quick;
+  const OUT = MOTION.quick * 0.6;
+  const hold = o.hold ?? readTime(o.text);
+  return clip(IN + hold + OUT, (r, t) => {
+    const pop = t < IN ? outBack(span(t, 0, IN), 2.2) : 1 - inCubic(span(t, IN + hold, IN + hold + OUT));
+    drawSpeechBubble(r, { ...o, pop });
   });
 }

@@ -294,6 +294,22 @@ export const CATALOG: CatalogEntry[] = [
     demo: fx.dialogue({ pages: [{ lines: ["A wild ISSUE", "appeared!"], hold: 1 }, { lines: ["What will", "you do?"], hold: 1 }] }),
   },
   {
+    id: "speech-bubble",
+    name: "Speech bubble",
+    group: "HUD",
+    about: "A comic speech bubble beside whoever is talking: tiny text in a rounded box, its tail slanting back to them; it pops out of the tail, holds for readTime, and shrinks away.",
+    usage: 'speechBubble({ x: standX + 9, top: 0, dir: 1, text: "HI!" })  // or drawSpeechBubble(r, { ..., pop })',
+    display: "front",
+    demo: (() => {
+      const hello = fx.speechBubble({ x: 39, top: 0, dir: 1, text: "HI!" });
+      const arrive = 38 / 24;
+      return clip(arrive + hello.duration + 0.5, (r, t) => {
+        fx.drawWalker(r, Math.min(30, -8 + t * 24), 1, 1, t < arrive ? fx.walkFrame(t) : "wave", W, t);
+        if (t >= arrive) hello.draw(r, t - arrive);
+      });
+    })(),
+  },
+  {
     id: "hp-box",
     name: "HP box",
     group: "HUD",
