@@ -51,9 +51,6 @@ const WALK_PX = 12;
 /** Walking pace, px/s, and a step every STEP s. */
 const SPEED = 10;
 const STEP = 0.22;
-/** At most this many columns of the desk's near end may stand behind the visitor: the widest names bring them a column
- *  or two past where its monitor starts (5 in). */
-const MAX_OVERLAP = 7;
 
 /** The chevrons, roomiest first: how many, how tall, the clear column before the rim, and the gap before the desk. */
 const CHEVRONS = [
@@ -75,7 +72,9 @@ function layout(inkW: number) {
     const stopX = Math.max(besideX, nameEnd + CLEAR - PICTO_STAND_INK.x0);
     return { ...c, chevW, chevX, deskX, stopX, overlap: stopX - besideX };
   });
-  const l = fit.find((f) => f.overlap <= 0) ?? fit.find((f) => f.overlap <= MAX_OVERLAP) ?? fit[fit.length - 1]!;
+  // The roomiest chevrons that leave the visitor beside the desk; else the smallest, which brings them least in front
+  // of it (the widest names: up to 7 columns, past where the monitor starts).
+  const l = fit.find((f) => f.overlap <= 0) ?? fit[fit.length - 1]!;
   // The name is centred on its ink in the room left of where the visitor stops, two columns clear of it.
   const roomEnd = l.stopX + PICTO_STAND_INK.x0 - CLEAR;
   const nameX = NAME_MIN + Math.max(0, Math.round((roomEnd - NAME_MIN + 1 - inkW) / 2));
