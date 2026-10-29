@@ -9,9 +9,10 @@ import { fileURLToPath } from "node:url";
 import { font, textWidth } from "@vladzaharia/bar-pixel";
 
 /**
- * Widest name on the front in the large font: 46 px, about five letters (DAMIAN is exactly 46). Every redirect
- * style lays itself out from the name's ink width and drops decorations before they would touch it (chevrons, the
- * walker's "!", the exit sign's visitor's stopping place). What cannot shrink sets the limit: with a 46 px name the paper plane keeps its nose 2 px off the
+ * Widest name on the front in the large font: 46 px, about five letters (DAMIAN is exactly 46). The redirect styles
+ * lay themselves out from the name's ink width (the train, one flatcar per letter, from its letters) and give way
+ * before anything would touch it: fewer chevrons, the walker's "HI" for "HI!", the exit visitor stopping in front
+ * of the table. What cannot give way sets the limit: with a 46 px name the paper plane keeps its nose 2 px off the
  * edge, the motorway sign has 3 px to spare, and the parcel van is 65 of the 72 px long (its cargo box is the name
  * plus 4 px either side).
  */
