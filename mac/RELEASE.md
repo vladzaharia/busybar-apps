@@ -126,31 +126,18 @@ repository it also has required reviewers (the owner), so each release run waits
 
 By the owner, in order:
 
-1. **GitHub Actions billing.** The only run in this repository so far was refused before any job started: "recent
-   account payments have failed or your spending limit needs to be increased". Fix the payment method or the Actions
-   spending limit in the account's Settings › Billing and plans. Nothing runs until then, CI included.
-2. **Public or private.** What GitHub allows depends on it:
+The repository is public (since 2026-10-28), so Actions' standard runners, `xcode-27` included, cost nothing, the
+`release` environment can require a reviewer, and the release attests build provenance.
 
-   | | Public (as Daybook) | Private, GitHub Pro or Team | Private, GitHub Free |
-   | --- | --- | --- | --- |
-   | Environment secrets and branch and tag policies | yes | yes | no: no `release` environment |
-   | Required reviewers on the environment | yes | no (Enterprise only) | no |
-   | Build provenance attestation | yes | no (Enterprise Cloud only): the step is skipped | no |
-   | Tag ruleset (`--protect-tags`) | yes | yes | no |
-   | macOS runner minutes | free | billed (a macOS minute costs about ten Linux ones) | billed |
-
-   On a private repository the release still works (with Pro or Team): the branch and tag policies keep the secrets to
-   runs from the default branch and `remote-v*` tags, and `prepare` refuses a tag that isn't on the default branch.
-   The `xcode-27` image is a preview; whether private repositories get it is unverified.
-3. **The App Store Connect API key.** App Store Connect › Users and Access › Integrations › App Store Connect API ›
+1. **The App Store Connect API key.** App Store Connect › Users and Access › Integrations › App Store Connect API ›
    Team Keys: generate a key named e.g. "busybar-apps notarization" with **Developer** access (enough to notarize; a
    key of its own, so revoking Daybook's doesn't stop this one). Download `AuthKey_<KeyID>.p8` (only once) and note
    the Key ID and the Issuer ID.
-4. **The Developer ID `.p12`.** In Keychain Access on this Mac, under My Certificates, select **Developer ID
+2. **The Developer ID `.p12`.** In Keychain Access on this Mac, under My Certificates, select **Developer ID
    Application: Vlad Zaharia (48H7CLBV8Y)** (the certificate row, with its key under it) › Export, as `.p12`, with a
    strong password. The file is about 3 KB. On 2026-10-28 that Mac had one such certificate, issued through Apple's
    G2 intermediate and valid until June 2031, which is likely the one Daybook's `.p12` holds too.
-5. **GitHub.** From the repository root, with `gh` logged in as the owner:
+3. **GitHub.** From the repository root, with `gh` logged in as the owner:
 
    ```sh
    mac/PkmnLifeRemote/Tools/ci/setup-github.sh --asc-key ~/Downloads/AuthKey_ABC123DEFG.p8 \
@@ -250,11 +237,11 @@ macOS may ask once whether codesign can use the key in your keychain; choose Alw
 
 | Symptom | Cause and fix |
 | --- | --- |
-| No job starts; "recent account payments have failed or your spending limit needs to be increased" | Account billing (One-time setup, step 1). |
+| No job starts; "recent account payments have failed or your spending limit needs to be increased" | Account billing: Settings › Billing and plans. Public repositories' standard runners are free, so this means a payment problem on the account. |
 | Jobs on `xcode-27` wait in the queue for a long time | The image is a preview with limited capacity. Wait, or re-run later. |
 | `Xcode_27.1.app isn't installed on this runner`, or `expected Xcode 27.1` | The image changed. Update the default in `select-xcode.sh`. |
 | Release: "Xcode 27.1 … is build 27A…, not 27A9275" | The image moved to another build. Once CI has passed with it, set `MAC_RELEASE_XCODE_BUILD`, and re-run. |
-| "Set the … secret in the release environment" or "Set the MAC_TEAM_ID repository variable" | Run `setup-github.sh` (One-time setup, step 5). On a private repository on GitHub Free there are no environment secrets (step 2). |
+| "Set the … secret in the release environment" or "Set the MAC_TEAM_ID repository variable" | Run `setup-github.sh` (One-time setup, step 3). |
 | `secrets.sh`: "the .p12 has no valid Developer ID Application identity", or "isn't team …'s" | The `.p12` lacks the certificate or its key, or is another team's. Export the certificate row from My Certificates (about 3 KB). |
 | `secrets.sh`: "couldn't import the .p12" | `DEVELOPER_ID_P12_PASSWORD` isn't its password. |
 | `build-app.sh`: "more than one Developer ID Application identity" | Pick one with `--team-id` or `--identity <SHA-1>`. |
@@ -263,7 +250,7 @@ macOS may ask once whether codesign can use the key in your keychain; choose Alw
 | "Notarization still in progress" | Apple took longer than 45 minutes. Re-run the failed job ([Re-running](#re-running)). |
 | `prepare`: "remote-v… points at …, which isn't on <branch>" | The tag is on a commit that isn't on the default branch (not merged, or not pushed). Delete the tag, merge and push, tag the merged commit. |
 | `release`: "… is already published" | See [Re-running](#re-running). |
-| "Attest build provenance" skipped | The repository is private (One-time setup, step 2). |
+| "Attest build provenance" skipped | The repository is private: attestations need a public repository (or GitHub Enterprise Cloud). |
 
 ## Checking the pipeline locally
 
