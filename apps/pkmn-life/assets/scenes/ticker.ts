@@ -141,9 +141,6 @@ export function ticker(preset: Nag): Clip {
         });
       }),
       at: recapAt,
-      // The last page stays up to the end of the body, which is what the collapse takes as its picture (`outroAt -
-      // recapAt` can come out a rounding error longer than `recapLen`, and the page would be missing).
-      hold: true,
     },
   );
 

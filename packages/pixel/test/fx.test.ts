@@ -58,6 +58,26 @@ test("seq and layer place clips in time", () => {
   assert.deepEqual(seen, ["b@0.75", "c@0.25"]);
 });
 
+test("layer keeps a placed clip on its own last frame despite rounding", () => {
+  // `t - at` can come out a hair past the clip's duration (1.1 - 0.8 > 0.3); the clip must still draw there.
+  let dropped = 0;
+  for (const at of [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]) {
+    for (const d of [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]) {
+      let drawnAt = -1;
+      const c = layer({ clip: clip(d, (_r, t) => (drawnAt = t)), at });
+      c.draw(new Raster(1, 1), c.duration);
+      if (Math.abs(drawnAt - d) > 1e-9) dropped++;
+    }
+  }
+  assert.equal(dropped, 0);
+  // Still nothing outside its window.
+  let drawn = false;
+  const c = layer(pause(1), { clip: clip(0.3, () => (drawn = true)), at: 0.2 });
+  c.draw(new Raster(1, 1), 0.6);
+  c.draw(new Raster(1, 1), 0.1);
+  assert.equal(drawn, false);
+});
+
 test("buildAnim makes one section per part, with exact frame ranges", () => {
   const solid = (v: number) => clip(0.5, (r) => r.fillRect(0, 0, r.width, r.height, { r: v, g: v, b: v, a: 1 }));
   const built = buildAnim({ width: 8, height: 4, fps: 30, format: "rgb888", parts: [["one", solid(0.2)], ["two", solid(0.8)]] });

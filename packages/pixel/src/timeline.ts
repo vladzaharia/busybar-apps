@@ -45,6 +45,12 @@ export interface Placed {
   hold?: boolean;
 }
 
+/**
+ * How far past either end of its window (seconds) a placed clip still counts as playing. `t - at` can come out a
+ * rounding error beyond `duration` (0.3 - 0.2 > 0.1), which would drop a clip from the layer's own last frame.
+ */
+const EDGE = 1e-9;
+
 /** Clips drawn on top of each other, in order, each from its own start time. */
 export function layer(...items: (Clip | Placed)[]): Clip {
   const placed = items.map((i) => ("draw" in i ? { clip: i } : i));
@@ -52,8 +58,8 @@ export function layer(...items: (Clip | Placed)[]): Clip {
   return clip(duration, (r, t) => {
     for (const p of placed) {
       const local = t - (p.at ?? 0);
-      if (local < 0 && !p.hold) continue;
-      if (local > p.clip.duration && !p.hold) continue;
+      if (local < -EDGE && !p.hold) continue;
+      if (local > p.clip.duration + EDGE && !p.hold) continue;
       p.clip.draw(r, Math.min(p.clip.duration, Math.max(0, local)));
     }
   });
