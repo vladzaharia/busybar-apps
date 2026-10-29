@@ -97,9 +97,17 @@ export const EXIT_SIGN = {
   screen: hex("#8FE3FF"),
 } as const;
 
+/** Below this much light the tubes are going out: the sign darkens towards black with them (see `exitInk`). */
+const EXIT_OUT = 0.25;
+const BLACK = hex("#000000");
+
+/** `c` on a sign whose tubes give `power` light: itself from EXIT_OUT up, darkening to black below it. */
+const powered = (c: Color, power: number): Color => (power >= EXIT_OUT ? c : mix(BLACK, c, Math.max(0, power) / EXIT_OUT));
+
 /**
  * The EXIT sign's lit box over (x, y, width, height), at `light` 0..1 (0 draws nothing): green with a slow shimmer
- * moving through it at time `t`, and a dark rim.
+ * moving through it at time `t`, and a dark rim. Down to EXIT_OUT it is the unlit sign's green; below that it darkens
+ * to black with the light, so a sign going out fades over its last frames instead of dropping from green to black.
  */
 export function drawExitPanel(r: Raster, light: number, t: number, o: { x?: number; y?: number; width?: number; height?: number } = {}): void {
   if (light <= 0) return;
@@ -108,20 +116,24 @@ export function drawExitPanel(r: Raster, light: number, t: number, o: { x?: numb
   const w = o.width ?? r.width;
   const h = o.height ?? r.height;
   const { lit, deep, shade } = EXIT_SIGN;
-  r.roundRect(x, y, w, h, 2, (px, py) => mix(deep, lit, light * (0.85 + 0.15 * Math.sin((px + py * 2) * 0.2 + t * 3))));
-  drawOutline(r, x, y, w, h, 2, mix(deep, shade, 0.5));
+  r.roundRect(x, y, w, h, 2, (px, py) => powered(mix(deep, lit, light * (0.85 + 0.15 * Math.sin((px + py * 2) * 0.2 + t * 3))), light));
+  drawOutline(r, x, y, w, h, 2, powered(mix(deep, shade, 0.5), light));
 }
 
-/** A colour on the EXIT sign at `light`: `c` lit, fading back to the unlit green as the tubes go. */
-export const exitInk = (light: number, c: Color = EXIT_SIGN.ink) => mix(EXIT_SIGN.deep, c, light);
+/**
+ * A colour on the EXIT sign: `c` at `level` 0..1, back to the unlit green at 0, on a sign whose tubes give `power`
+ * light (by default `level`; pass the sign's light when `level` is a part of it, a dim chair or a resting chevron).
+ * Like the panel, it darkens to black as the power goes out.
+ */
+export const exitInk = (level: number, c: Color = EXIT_SIGN.ink, power = level) => powered(mix(EXIT_SIGN.deep, c, level), power);
 
 /**
  * A fluorescent tube coming on over `duration` s: a couple of stutters, then up. 0..1 at time `t`. Between stutters
- * the tube glows faintly (0.12) rather than going out: the sign never drops from lit to nothing in one frame.
+ * the sign is unlit (EXIT_OUT: its unlit green) rather than out: it never drops from lit to nothing in one frame.
  */
 export function exitFlickerOn(t: number, duration = 0.7): number {
   const k = t / duration;
-  const glow = 0.12;
+  const glow = EXIT_OUT;
   if (k < 0.11) return 0.7;
   if (k < 0.26) return glow;
   if (k < 0.34) return 0.5;

@@ -298,8 +298,9 @@ export function drawRain(
 
 // --- Pointing hand -----------------------------------------------------------------------------------------------
 
-// A cartoon hand pointing right out of a blue cuff: the index finger out, the others curled under the thumb. The
-// finger's middle (columns 20..26, on its rows only) is what `pointingHand` shortens.
+// A cartoon hand pointing right out of a blue cuff: the index finger out (rows 3..7, from the palm at column 15 to its
+// tip at 28), the other fingers curled under the thumb (out to column 19). The finger's middle (columns 20..26, on its
+// rows only) is what `pointingHand` shortens.
 const HAND = [
   "..............................",
   ".........oooo.................",
@@ -323,18 +324,26 @@ export const HAND_SLEEVE = HAND_PALETTE.C!;
 
 /** The pointing hand is 15 rows tall (its first row empty) and `handWidth(finger)` wide. */
 export const HAND_HEIGHT = 15;
-/** The hand's width with the index finger reaching `finger` px past the knuckles (7..14). */
-export const handWidth = (finger = 14) => 30 - (14 - Math.max(7, Math.min(14, Math.round(finger))));
+/**
+ * The shortest index finger the hand is drawn with: 10 px out of the palm, so it still reaches 5 px past the curled
+ * fingers and reads as pointing (shorter, it reads as a fist).
+ */
+export const HAND_MIN_FINGER = 10;
+const fingerOf = (finger: number) => Math.max(HAND_MIN_FINGER, Math.min(14, Math.round(finger)));
+/** The hand's width, cuff to fingertip and a clear column, with the index finger `finger` px out of the palm (10..14). */
+export const handWidth = (finger = 14) => 30 - (14 - fingerOf(finger));
 
 /** The hand's rows with the index finger `finger` px long: a wide name leaves a shorter finger, not a cropped hand. */
 function pointingHand(finger = 14): string[] {
-  const cut = 14 - Math.max(7, Math.min(14, Math.round(finger)));
+  const cut = 14 - fingerOf(finger);
   return HAND.map((row) => row.slice(0, 20) + row.slice(20 + cut));
 }
 
 /**
  * A big cartoon hand pointing towards `dir` out of a blue cuff, top-left at (x, y); its cuff is the 5 columns on the
- * side away from `dir` (rows y + 4..y + 12). `finger` (7..14) is how far the index finger reaches past the knuckles.
+ * side away from `dir` (rows y + 4..y + 12) and its fingertip the column `handWidth(finger) - 2` in from there.
+ * `finger` (10..14, clamped) is the index finger's length out of the palm; it reaches `finger - 5` px past the curled
+ * fingers.
  */
 export function drawPointingHand(r: Raster, x: number, y: number, dir: Direction, o: { finger?: number; alpha?: number } = {}): void {
   stampPalette(r, pointingHand(o.finger), Math.round(x), Math.round(y), HAND_PALETTE, o.alpha ?? 1, dir < 0);

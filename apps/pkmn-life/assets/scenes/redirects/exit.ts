@@ -29,7 +29,6 @@ import {
   fade,
   lerp,
   mirrorX,
-  mix,
   pictoStep,
   readTime,
   seq,
@@ -105,17 +104,17 @@ export function exit(e: Redirect): Clip {
     drawExitPanel(r, light, t);
     // The name's tube glows faintly until it comes on.
     const own = t < tArrive ? 0.12 : exitFlickerOn(Math.min(t - tArrive, NAME_FLICK), NAME_FLICK);
-    r.text(e.name, f, nameX, BIG_Y, exitInk(light * own));
+    r.text(e.name, f, nameX, BIG_Y, exitInk(light * own, EXIT_SIGN.ink, light));
     // The pictograms stay inside the rim, their knock-out rings included.
     r.clip = { x0: 0, y0: 1, x1: W, y1: H - 1 };
-    drawPersonAtDesk(r, deskX, 3, e.dir > 0 ? -1 : 1, { ink: exitInk(light), dim: exitInk(0.55 * light), screen: exitInk(light, EXIT_SIGN.screen) });
+    drawPersonAtDesk(r, deskX, 3, e.dir > 0 ? -1 : 1, { ink: exitInk(light), dim: exitInk(0.55 * light, EXIT_SIGN.ink, light), screen: exitInk(light, EXIT_SIGN.screen) });
     const v = visitor(t);
-    drawPictogram(r, v.x, 2, e.dir, v.pose, { ink: exitInk(light), halo: mix(EXIT_SIGN.deep, EXIT_SIGN.lit, 0.92 * light) });
+    drawPictogram(r, v.x, 2, e.dir, v.pose, { ink: exitInk(light), halo: exitInk(0.92 * light, EXIT_SIGN.lit, light) });
     r.clip = null;
     // Chevrons pulsing their way; at rest they stay light enough to see on the green.
     for (let k = 0; k < l.n; k++) {
       const b = chase(t, k, { period: 0.8, step: 0.18, decay: 0.25, floor: 0.55 });
-      drawChevron(r, chevX + (e.dir > 0 ? k : l.n - 1 - k) * 5, chevY, l.h, e.dir, exitInk(light * b));
+      drawChevron(r, chevX + (e.dir > 0 ? k : l.n - 1 - k) * 5, chevY, l.h, e.dir, exitInk(light * b, EXIT_SIGN.ink, light));
     }
   };
   return seq(

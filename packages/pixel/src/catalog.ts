@@ -543,13 +543,13 @@ export const CATALOG: CatalogEntry[] = [
       const light = fx.exitFlickerOn(Math.min(t, 0.7));
       fx.drawExitPanel(r, light, t);
       const ink = fx.exitInk(light);
-      const halo = mix(fx.EXIT_SIGN.deep, fx.EXIT_SIGN.lit, 0.92 * light);
-      fx.drawPersonAtDesk(r, 40, 3, -1, { ink, dim: fx.exitInk(0.55 * light), screen: fx.exitInk(light, fx.EXIT_SIGN.screen) });
+      const halo = fx.exitInk(0.92 * light, fx.EXIT_SIGN.lit, light);
+      fx.drawPersonAtDesk(r, 40, 3, -1, { ink, dim: fx.exitInk(0.55 * light, fx.EXIT_SIGN.ink, light), screen: fx.exitInk(light, fx.EXIT_SIGN.screen) });
       const walk = span(t, 1.0, 2.6);
       r.clip = { x0: 0, y0: 1, x1: r.width, y1: r.height - 1 };
       fx.drawPictogram(r, Math.round(lerp(18, 30, walk)), 2, 1, walk > 0 && walk < 1 ? fx.pictoStep(t) : "stand", { ink, halo });
       r.clip = null;
-      fx.drawChevron(r, 63, 4, 9, 1, mix(fx.EXIT_SIGN.deep, ink, fx.chase(t, 0, { period: 0.8, floor: 0.45 })));
+      fx.drawChevron(r, 63, 4, 9, 1, fx.exitInk(light * fx.chase(t, 0, { period: 0.8, floor: 0.55 }), fx.EXIT_SIGN.ink, light));
     }),
   },
   {
@@ -704,17 +704,19 @@ export const CATALOG: CatalogEntry[] = [
     id: "pointing-hand",
     name: "Pointing hand",
     group: "Sprites",
-    about: "A big cartoon hand pointing out of a blue cuff. Its index finger is 7 to 14 px past the knuckles, so a wide word leaves a shorter finger rather than a cropped hand; run the cuff off the edge with HAND_SLEEVE.",
+    about: "A big cartoon hand pointing out of a blue cuff. Its index finger is 10 to 14 px out of the palm (5 to 9 past the curled fingers, so it always points), so a wide word leaves a shorter finger and the cuff off the edge rather than a cropped hand; run the cuff on off the edge with HAND_SLEEVE.",
     usage: "drawPointingHand(r, x, 0, dir, { finger: 14 })  // handWidth(finger) wide, rows 1..14",
     display: "front",
     demo: clip(3, (r, t) => {
       const f = font("extra_large");
-      // A short word leaves the whole finger; a wide one a shorter finger, the hand 4 px short of it either way.
+      // A short word leaves the whole finger; a wide one a shorter finger and the cuff off the edge. The fingertip
+      // rests 4 px short of the word.
       const word = t < 1.5 ? "SAM" : "WWWWW";
       const nx = 72 - 3 - inkWidth(word, f);
-      const finger = Math.min(14, Math.max(7, nx - 4 - 3 - 16));
+      let finger = 14;
+      while (finger > fx.HAND_MIN_FINGER && nx - 4 - (fx.handWidth(finger) - 2) < -5) finger--;
       const poke = (t % 1.5) > 0.6 && (t % 1.5) < 0.9 ? 2 : 0;
-      const x = nx - 4 - fx.handWidth(finger) + 1 - 2 + poke;
+      const x = Math.min(0, nx - 4 - (fx.handWidth(finger) - 2)) + poke;
       fx.drawPointingHand(r, x, 0, 1, { finger });
       if (x > 0) r.fillRect(0, 4, x, 9, fx.HAND_SLEEVE);
       r.text(word, f, nx, capCentre("extra_large"), hex("#FFB020"));

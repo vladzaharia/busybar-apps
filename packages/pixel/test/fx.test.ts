@@ -601,18 +601,22 @@ test("the van's cargo side is where its lettering goes, either way it faces", as
   }
 });
 
-test("the pointing hand's finger shortens instead of the hand", async () => {
-  const { drawPointingHand, handWidth } = await import("../src/index.ts");
+test("the pointing hand's finger shortens instead of the hand, and always points", async () => {
+  const { drawPointingHand, handWidth, HAND_MIN_FINGER } = await import("../src/index.ts");
   assert.equal(handWidth(14), 30);
-  assert.equal(handWidth(7), 23);
-  assert.equal(handWidth(3), 23, "no shorter than 7");
-  for (const finger of [14, 7]) {
+  assert.equal(handWidth(HAND_MIN_FINGER), 26);
+  assert.equal(handWidth(3), 26, "no shorter than HAND_MIN_FINGER");
+  for (const finger of [14, 12, HAND_MIN_FINGER]) {
     const r = new Raster(72, 16);
     drawPointingHand(r, 0, 0, 1, { finger });
     const xs = lit(r).map(([x]) => x);
     const ys = lit(r).map(([, y]) => y);
     assert.equal(Math.max(...xs), handWidth(finger) - 2, "the fingertip");
     assert.ok(Math.min(...ys) >= 1 && Math.max(...ys) <= 14, "rows 1..14, clear of the edges");
+    // The curled fingers (rows 8..12) end at column 19; the index finger reaches finger - 5 past them, 5 at the least.
+    const curled = Math.max(...lit(r).filter(([, y]) => y >= 8 && y <= 12).map(([x]) => x));
+    assert.equal(curled, 19);
+    assert.ok(Math.max(...xs) - curled >= 5, `finger ${finger}: ${Math.max(...xs) - curled} px past the curled fingers`);
   }
 });
 
@@ -655,15 +659,39 @@ test("a trail's dashes are even along a winding path, and the X lands where aske
   assert.deepEqual([Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)], [27, 34, 4, 11], "7 x 7 and its shadow");
 });
 
-test("the exit sign never flickers from lit to nothing", async () => {
-  const { exitFlickerOn, exitFlickerOff } = await import("../src/index.ts");
-  for (let t = 0; t <= 0.7; t += 1 / 60) assert.ok(exitFlickerOn(t, 0.7) >= 0.12, `on at ${t}`);
-  assert.equal(exitFlickerOn(0.7, 0.7), 1);
-  let prev = exitFlickerOff(0, 0.45);
-  for (let t = 1 / 60; t <= 0.45; t += 1 / 60) {
-    const l = exitFlickerOff(t, 0.45);
-    if (t > 0.17) assert.ok(prev - l < 0.25, `off drops ${(prev - l).toFixed(2)} at ${t}`);
-    prev = l;
+test("the exit sign never drops from lit to black in one frame, coming on or going off", async () => {
+  const { drawExitPanel, drawPictogram, exitFlickerOn, exitFlickerOff, exitInk, EXIT_SIGN } = await import("../src/index.ts");
+  const ON = 0.7;
+  const OFF = 0.45;
+  /** The sign as a scene draws it at `light`, over black: the panel, a figure in its ink and ring, a dim part. */
+  const frame = (light: number, t: number) => {
+    const r = new Raster(72, 16).clear(hex("#000000"));
+    drawExitPanel(r, light, t);
+    drawPictogram(r, 30, 2, 1, "stand", { ink: exitInk(light), halo: exitInk(0.92 * light, EXIT_SIGN.lit, light) });
+    r.fillRect(50, 4, 6, 8, exitInk(0.55 * light, EXIT_SIGN.ink, light));
+    return r;
+  };
+  const lum = (r: Raster, i: number) => 0.2126 * r.data[i]! + 0.7152 * r.data[i + 1]! + 0.0722 * r.data[i + 2]!;
+  // Coming on, held lit, going off: frame by frame at 60 fps.
+  const lights: number[] = [];
+  for (let k = 0; k <= Math.round(ON * 60); k++) lights.push(exitFlickerOn(k / 60, ON));
+  for (let k = 0; k < 10; k++) lights.push(1);
+  for (let k = 0; k <= Math.round(OFF * 60); k++) lights.push(exitFlickerOff(k / 60, OFF));
+  assert.equal(lights[lights.length - 1], 0, "it ends off");
+  let prev = frame(lights[0]!, 0);
+  for (let k = 1; k < lights.length; k++) {
+    const cur = frame(lights[k]!, k / 60);
+    let gone = 0;
+    let before = 0;
+    let after = 0;
+    for (let i = 0; i < cur.data.length; i += 4) {
+      if (lum(prev, i) > 0.1 && lum(cur, i) < 0.02) gone++;
+      before += lum(prev, i);
+      after += lum(cur, i);
+    }
+    const pixels = 72 * 16;
+    assert.ok(gone < pixels * 0.05, `frame ${k}: ${gone} pixels went from lit to black (light ${lights[k - 1]!.toFixed(2)} -> ${lights[k]!.toFixed(2)})`);
+    assert.ok((before - after) / pixels < 0.2, `frame ${k}: the screen dims by ${((before - after) / pixels).toFixed(2)} at once`);
+    prev = cur;
   }
-  assert.ok(exitFlickerOff(0.45, 0.45) < 1e-9);
 });

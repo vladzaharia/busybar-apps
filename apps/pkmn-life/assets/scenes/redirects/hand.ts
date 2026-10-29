@@ -2,13 +2,15 @@
 // points, at the edge on their side, glinting. The hand pokes at it twice (the name hops at each poke), then a last
 // big jab knocks the name off their way.
 //
-// The name is NAME_EDGE from their edge on its ink; the fingertip rests 4 px short of it, so a poke never touches it,
-// and the cuff runs on off the far edge. A wide name leaves a shorter finger rather than a cropped hand.
+// The name is NAME_EDGE from their edge on its ink; the fingertip rests a poke and 2 px short of it, so a poke never
+// touches it, and the cuff runs on off the far edge. A wide name takes the cuff off the screen, then pokes 2 px instead
+// of 4, then shortens the finger (never so far it stops pointing), rather than cropping the hand.
 
 import {
   MOTION,
   NAME_EDGE,
   Raster,
+  HAND_MIN_FINGER,
   HAND_SLEEVE,
   clip,
   drawPointingHand,
@@ -33,10 +35,27 @@ import type { Redirect } from "../../../src/presets.ts";
 import { AMBER } from "../look.ts";
 import { BIG_Y, BLACK, H, W, big, nameInk } from "./kit.ts";
 
-/** How far a poke reaches, px; the fingertip rests this far plus 2 short of the name, so its ring stays clear. */
-const POKE = 4;
-/** The hand may start this far off the far edge (its cuff); any further and it shortens its finger instead. */
-const CUFF_OFF = 3;
+/** The hand may start this far off the far edge: its 5-column cuff, no further. */
+const CUFF_OFF = 5;
+
+/**
+ * How far the hand pokes and how long its finger is, for a name whose ink starts at `nameR` (rightward): the fingertip
+ * rests poke + 2 short of the name. The longest finger wins; a 4 px poke is kept unless a 2 px one buys a longer finger
+ * (and it is under 12).
+ */
+function reach(nameR: number): { poke: number; finger: number } {
+  const fits = (poke: number, finger: number) => nameR - (poke + 2) - (handWidth(finger) - 2) >= -CUFF_OFF;
+  /** The longest finger that fits with this poke, or 0 if not even the shortest does. */
+  const longest = (poke: number) => {
+    for (let finger = 14; finger >= HAND_MIN_FINGER; finger--) if (fits(poke, finger)) return finger;
+    return 0;
+  };
+  const four = longest(4);
+  const two = longest(2);
+  if (four >= 12 || (four > 0 && four >= two)) return { poke: 4, finger: four };
+  // Wider than any name can be (46 px): the shortest finger, the hand further off the edge.
+  return { poke: 2, finger: two || HAND_MIN_FINGER };
+}
 
 export function hand(e: Redirect): Clip {
   const IN = 0.5;
@@ -46,19 +65,17 @@ export function hand(e: Redirect): Clip {
   const inkW = nameInk(e);
   // Rightward layout: the name at their edge, the hand pointing at it from the far side.
   const nameR = W - NAME_EDGE - inkW;
-  // The fingertip (the hand's last column but one) rests POKE + 2 short of the name's ink.
-  const tipGap = POKE + 2;
-  let finger = 14;
-  while (finger > 7 && nameR - tipGap - (handWidth(finger) - 2) < -CUFF_OFF) finger--;
+  // The fingertip (the hand's last column but one) rests a poke and 2 px short of the name's ink.
+  const { poke: pokeBy, finger } = reach(nameR);
   const hw = handWidth(finger);
-  const restX = Math.min(0, nameR - tipGap - (hw - 2));
+  const restX = Math.min(0, nameR - (pokeBy + 2) - (hw - 2));
   const POKES = [0.45, 1.35, 2.25];
   const poke = (t: number) => {
     let d = 0;
     for (const p of POKES) {
       const k = t - IN - p;
-      if (k >= 0 && k < 0.1) d = Math.max(d, POKE * outQuad(k / 0.1));
-      else if (k >= 0.1 && k < 0.45) d = Math.max(d, POKE * (1 - inOutCubic((k - 0.1) / 0.35)));
+      if (k >= 0 && k < 0.1) d = Math.max(d, pokeBy * outQuad(k / 0.1));
+      else if (k >= 0.1 && k < 0.45) d = Math.max(d, pokeBy * (1 - inOutCubic((k - 0.1) / 0.35)));
     }
     return d;
   };
@@ -95,7 +112,7 @@ export function hand(e: Redirect): Clip {
       const s = new Raster(W, H);
       shine.draw(s, t);
       r.draw(s, 0, 0, Math.min(land, alpha));
-      const hop = poke(t) >= POKE - 0.5 ? -1 : 0;
+      const hop = poke(t) >= pokeBy - 0.5 ? -1 : 0;
       r.text(e.name, big(), mirrorX(Math.round(nx), inkW, e.dir), BIG_Y + Math.round(lerp(-9, 0, outBounce(land))) + hop, AMBER, () => ({ alpha }));
     }
     const x = Math.round(hx);

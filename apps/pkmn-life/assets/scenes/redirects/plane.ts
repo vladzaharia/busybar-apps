@@ -1,6 +1,7 @@
 // Paper plane: a paper plane flies in from the far side and loops the loop, its contrail drawing the circle, then
 // glides their way unfurling the name behind it on an amber banner. It tows the banner into place and holds there,
-// bobbing, the banner and the name still while they are read, then pulls it off-screen their way.
+// bobbing, the banner and the name still while they are read, then pulls the banner, name and all, off-screen their
+// way.
 //
 // The banner is the name's ink with room for its swallow-tail and its pole; the banner, the rope and the plane are
 // centred together, so DAMIAN's plane keeps its nose 2 px off the edge.
@@ -85,8 +86,6 @@ export function plane(e: Redirect): Clip {
     const [x1, y1] = pos(t + 0.02);
     return Math.max(-0.35, Math.min(0.35, Math.atan2(y1 - y0, x1 - x0)));
   };
-  const nameX = mirrorX(LEFT + 4, inkW, e.dir);
-  const letters = letterSpans(e.name, big(), nameX);
   /** A point's x in the rightward layout, on the screen. */
   const sx = (x: number) => (e.dir > 0 ? x : W - x);
 
@@ -108,7 +107,11 @@ export function plane(e: Redirect): Clip {
       // The rope, from the plane's tail to the middle of the banner's leading edge.
       drawLine(r, sx(x - 4.5 * Math.cos(a)), y - 4.5 * Math.sin(a), sx(right), TOP + BH / 2, ROPE);
       drawBanner(r, { left, right, top: TOP, height: BH, dir: e.dir, t });
-      // The name shows letter by letter as the banner unrolls under it (on the screen, so it holds both ways round).
+      // The name is lettered on the cloth, 4 px from its tail: still while the banner unrolls (its tail stays at LEFT)
+      // and holds, and pulled off with it at the end. It shows letter by letter as the banner unrolls under it (worked
+      // out on the screen, so it holds both ways round).
+      const nameX = mirrorX(Math.floor(left) + 4, inkW, e.dir);
+      const letters = letterSpans(e.name, big(), nameX);
       const [open0, open1] = e.dir > 0 ? [left, right - 1] : [W - right + 1, W - left];
       r.text(e.name, big(), nameX, BIG_Y, INK, (i) => {
         const s = letters[i]!;
