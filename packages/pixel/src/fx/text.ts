@@ -39,6 +39,12 @@ export function capCentre(name: FontName, height = 16): number {
   return Math.floor((height - cap) / 2) - (f.ascent - cap);
 }
 
+/** Where to put the top of a text element so its capitals start on row `cap` (two small lines: caps on 2 and 9). */
+export function capTop(name: FontName, cap: number): number {
+  const f = font(name);
+  return cap - (f.ascent - (f.glyph(0x48)?.height ?? f.ascent - 2));
+}
+
 /** Letters dropping in from above, one after another, landing with a bounce; optionally falling away at the end. */
 export function dropIn(o: {
   text: string;

@@ -2,7 +2,7 @@
 // composite that layer transformed.
 
 import { inCubic, outCubic, rng, span } from "../ease.ts";
-import { Raster } from "../raster.ts";
+import { hex, Raster, type Color } from "../raster.ts";
 import { MOTION } from "../motion.ts";
 import { clip, type Clip } from "../timeline.ts";
 
@@ -77,6 +77,35 @@ export function glitch(c: Clip, o: { seed?: number; intensity?: number; every?: 
         r.blend(x, y, { r: R / A, g: G / A, b: B / A, a: A });
       }
     }
+  });
+}
+
+/**
+ * Screen tearing: everything above a line slips `amount` px sideways and everything below it slips a third of that
+ * back, as when a picture loses sync. The line jumps to a new row `rate` times a second, and while the tear is more
+ * than a pixel a faint seam lights along it. `amount` is a number or a function of time (a tear that grows or settles).
+ */
+export function tear(c: Clip, o: { amount: number | ((t: number) => number); rate?: number; seed?: number; seam?: Color }): Clip {
+  return clip(c.duration, (r, t) => {
+    const amount = typeof o.amount === "number" ? o.amount : o.amount(t);
+    const src = layerOf(r, c, t);
+    if (Math.abs(amount) < 0.5) {
+      r.draw(src, 0, 0);
+      return;
+    }
+    // The line stays a couple of rows clear of the top and bottom edges, so both parts show.
+    const cut = Math.floor(rng((o.seed ?? 77) * 7919 + Math.floor(t * (o.rate ?? 20)))() * (r.height - 4)) + 2;
+    for (let y = 0; y < r.height; y++) {
+      const dx = y < cut ? Math.round(amount) : -Math.round(amount / 3);
+      for (let x = 0; x < r.width; x++) {
+        const sx = x - dx;
+        if (sx < 0 || sx >= r.width) continue;
+        const i = (y * r.width + sx) * 4;
+        const a = src.data[i + 3]!;
+        if (a > 0) r.blend(x, y, { r: src.data[i]! / a, g: src.data[i + 1]! / a, b: src.data[i + 2]! / a, a });
+      }
+    }
+    if (Math.abs(amount) > 1) r.fillRect(0, cut, r.width, 1, o.seam ?? { ...hex("#FFFFFF"), a: 0.35 });
   });
 }
 

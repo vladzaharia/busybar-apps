@@ -5,3 +5,5 @@ export * from "./text.ts";
 export * from "./transitions.ts";
 export * from "./arrows.ts";
 export * from "./sprites.ts";
+export * from "./flap.ts";
+export * from "./reel.ts";

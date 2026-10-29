@@ -4,17 +4,18 @@
 
 import * as fx from "./fx/index.ts";
 import { capCentre } from "./fx/text.ts";
-import { drawJiraMark, drawJiraTicket, jiraFlyIn, JIRA_TONES_WHITE, TICKET_SIZE } from "./jira.ts";
+import { drawJiraMark, drawJiraTicket, drawTicketFace, jiraFlyIn, jiraMarkIn, JIRA_TONES_WHITE, TICKET_SIZE, ticketFace } from "./jira.ts";
 import { moonIcon } from "./icons.ts";
 import { font, inkWidth, textWidth } from "./font.ts";
-import { hex, mix, type Raster } from "./raster.ts";
+import { hex, mix, Raster } from "./raster.ts";
 import { MOTION, readTime } from "./motion.ts";
+import { lerp, outBack, outCubic, span } from "./ease.ts";
 import { clip, layer, pause, seq, type Clip } from "./timeline.ts";
 
 export interface CatalogEntry {
   id: string;
   name: string;
-  group: "Transitions" | "Backgrounds" | "Text" | "HUD" | "Wayfinding" | "Logo" | "Modifiers";
+  group: "Transitions" | "Backgrounds" | "Text" | "HUD" | "Wayfinding" | "Sprites" | "Logo" | "Modifiers";
   /** What it does and how to use it, one or two sentences. */
   about: string;
   /** The call that makes it, as you would write it in a scene. */
@@ -235,6 +236,18 @@ export const CATALOG: CatalogEntry[] = [
     display: "front",
     demo: fx.gradient({ duration: 3, from: hex("#0C66E4"), to: hex("#7F5FFF"), drift: 0.3 }),
   },
+  {
+    id: "sparks",
+    name: "Spark burst",
+    group: "Backgrounds",
+    about: "Sparks flying out from a point and fading: a hit, a pop, something filed. Draw it with the burst's progress, 0 to 1.",
+    usage: 'drawSparks(r, cx, cy, span(t, hit, hit + 0.35), { color: hex("#FFB020"), reach: 7 })',
+    display: "front",
+    demo: clip(2.4, (r, t) => {
+      const k = Math.floor(t / 0.8);
+      fx.drawSparks(r, [18, 36, 54][k] ?? 54, 8, ((t % 0.8) / 0.5), { color: [hex("#FFB020"), hex("#62C7FF"), hex("#3DDC84")][k] });
+    }),
+  },
 
   // Text ----------------------------------------------------------------------------------------------------------
   {
@@ -299,6 +312,15 @@ export const CATALOG: CatalogEntry[] = [
     usage: "wave({ text, font, x, y, duration, amplitude: 1.5 })",
     display: "front",
     demo: fx.wave({ text: "HELLO!", font: "extra_large", x: 13, y: capCentre("extra_large"), duration: 3, color: (i) => mix(W, BLUE, (i % 2) * 0.6) }),
+  },
+  {
+    id: "flap-board",
+    name: "Split-flap board",
+    group: "Text",
+    about: "A departure board: dark tiles split by their hinge come on left to right, then every flap clatters through the drum and stops, letter by letter, in reading order; blanks stop at random. `settled` says when the last one has.",
+    usage: 'flapBoard({ lines: ["FILE A", "TICKET?"], x: 18, rows: [0, 8], cols: 9 })  // .settled',
+    display: "front",
+    demo: fx.flapBoard({ lines: ["DID YOU", "FILE ONE?"], x: 4, rows: [0, 8], cols: 11, duration: 3.6 }),
   },
 
   // HUD -----------------------------------------------------------------------------------------------------------
@@ -426,6 +448,31 @@ export const CATALOG: CatalogEntry[] = [
     display: "back",
     demo: layer(fx.ballShake({ duration: 3.2, x: 10, y: 5 }), clip(3.2, (r) => r.text("NOW ON FRONT", font("small"), 17, 1, hex("#E6E6E6")))),
   },
+  {
+    id: "slot-reel",
+    name: "Slot reel",
+    group: "HUD",
+    about: "A slot machine's reel: a window onto a strip of symbols (any drawings) that spins past, blurring at speed, and lands with a small overshoot on a whole symbol. reelSteps() finds a spin that lands where you want.",
+    usage: "drawReel(r, { x, y: 1, width: 16, height: 14, strip, offset: reelOffset(t, { at, stop, steps, gap: 15 }), gap: 15, speed })",
+    display: "front",
+    demo: (() => {
+      const seven: fx.ReelSymbol = (r, cx, top, alpha) => {
+        const f = font("extra_large");
+        r.text("7", f, Math.round(cx - inkWidth("7", f) / 2), fx.capTop("extra_large", top + 1), hex("#FF7A33"), () => ({ alpha }));
+      };
+      const bug: fx.ReelSymbol = (r, cx, top, alpha) => fx.drawBug(r, cx - 5, top, { alpha });
+      const mark: fx.ReelSymbol = (r, cx, top, alpha) => drawJiraMark(r, cx - 6, top + 1, 11, { poses: [0, 1, 2].map(() => ({ alpha })) });
+      const strip = [seven, bug, mark, bug, seven, mark];
+      const steps = [0, 1, 2].map((i) => fx.reelSteps(strip, i, (s) => s === mark, 12 + i * 4));
+      const offset = (i: number, t: number) => fx.reelOffset(t, { at: 0.3, stop: 1.1 + i * 0.45, steps: steps[i]!, gap: 15 });
+      return clip(3, (r, t) => {
+        [10, 28, 46].forEach((x, i) => {
+          const o = offset(i, t);
+          fx.drawReel(r, { x, y: 1, width: 16, height: 14, strip, start: i, offset: o, gap: 15, speed: (offset(i, t + 1 / 60) - o) * 60 });
+        });
+      });
+    })(),
+  },
 
   // Wayfinding ----------------------------------------------------------------------------------------------------
   {
@@ -470,6 +517,68 @@ export const CATALOG: CatalogEntry[] = [
     }),
   },
 
+
+  // Sprites -------------------------------------------------------------------------------------------------------
+  {
+    id: "hop",
+    name: "Hop",
+    group: "Sprites",
+    about: "Squash and stretch for any sprite: hopPose() gives the lift and scale at a time in a run of hops (tall in the air, wide as it lands) and drawStretched() draws a raster scaled about its bottom centre.",
+    usage: "const p = hopPose(t, hops); drawStretched(r, sprite, cx, ground - p.lift, p.sx, p.sy)",
+    display: "front",
+    demo: (() => {
+      const bug = new Raster(fx.BUG_SIZE.width, fx.BUG_SIZE.height);
+      fx.drawBug(bug, 0, 0);
+      const hops = [0, 1, 2, 3].map((k) => ({ at: 0.2 + k * 0.5, air: 0.32, height: 4 }));
+      return clip(2.8, (r, t) => {
+        const p = fx.hopPose(t, hops);
+        const k = Math.max(0, Math.min(4, (t - 0.2) / 0.5));
+        const air = Math.min(1, ((t - 0.2) % 0.5) / 0.32);
+        const cx = lerp(10, 62, (t < 0.2 ? 0 : k >= 4 ? 4 : Math.floor(k) + air) / 4);
+        fx.drawStretched(r, bug, cx, 16 - Math.round(p.lift), p.sx, p.sy);
+      });
+    })(),
+  },
+  {
+    id: "eight-ball",
+    name: "Magic 8-ball",
+    group: "Sprites",
+    about: "A magic 8-ball, lit from the top left with a rim of blue light; even its dark side stays bright enough to show. face 0 shows the 8, face 1 the window with the answer die's tip. Shake it before it answers.",
+    usage: "drawEightBall(r, cx, cy, radius, face)  // radius 7.6 fills the height",
+    display: "front",
+    demo: clip(3, (r, t) => {
+      const radius = 7.6 * outBack(span(t, 0, 0.35), 2);
+      const shake = t > 0.9 && t < 1.7 ? Math.round(Math.sin(t * 56) * 2 * (1.7 - t)) : 0;
+      if (radius > 0.5) fx.drawEightBall(r, 36 + shake, 8, radius, t > 1.8 ? 1 : 0);
+    }),
+  },
+  {
+    id: "invader",
+    name: "Ticket invader",
+    group: "Sprites",
+    about: "A 10 × 6 invader made of a little Jira card, arms up and down as it marches (invaderFrame), and the 7 × 4 cannon that files them.",
+    usage: "drawInvader(r, x, y, invaderFrame(t))  ·  drawCannon(r, x, 12)",
+    display: "front",
+    demo: clip(3, (r, t) => {
+      const march = [0, 2, 4, 2, 0, -2, -4, -2][Math.floor(t / 0.22) % 8]!;
+      for (let k = 0; k < 5; k++) fx.drawInvader(r, 7 + march + k * 12, 1, fx.invaderFrame(t));
+      fx.drawCannon(r, Math.round(lerp(4, 61, 0.5 - 0.5 * Math.cos(t * 2.1))), 12);
+    }),
+  },
+  {
+    id: "rain-cloud",
+    name: "Rain cloud",
+    group: "Sprites",
+    about: "A 20 × 8 cloud lit from above, raining from under it in lanes, out of step; flash lights it up for lightning. The drops can be any pixel art (tiny tickets, say).",
+    usage: "drawRain(r, { x, y: y + 6, t, start }); drawCloud(r, x, y, { flash })",
+    display: "front",
+    demo: clip(3.2, (r, t) => {
+      const x = Math.round(lerp(-21, 26, outCubic(span(t, 0, 0.6))));
+      fx.drawRain(r, { x, y: 7, t, start: 0.4 });
+      const bolt = t > 2 ? Math.max(0, 1 - (t - 2) / 0.25) * (Math.floor((t - 2) * 30) % 2 === 0 ? 1 : 0.4) : 0;
+      fx.drawCloud(r, x, 1, { flash: bolt });
+    }),
+  },
   // Logo ----------------------------------------------------------------------------------------------------------
   {
     id: "jira-fly-in",
@@ -488,6 +597,43 @@ export const CATALOG: CatalogEntry[] = [
     usage: "drawJiraTicket(r, x, y, { sheen })  // sheen 0..1",
     display: "front",
     demo: clip(3, (r, t) => drawJiraTicket(r, Math.round((r.width - TICKET_SIZE.width) / 2), 1, { sheen: (t % 1.5) / MOTION.slow })),
+  },
+  {
+    id: "flap-faces",
+    name: "Split-flap logo",
+    group: "Logo",
+    about: "A picture flap from a departure board: a tile that turns through faces (each a drawing on its own raster), the old one leaving upward as the next rises, and stops on the last, an airline's logo. `landed` says when.",
+    usage: "flapFaces({ x: 1, y: 0, width: 15, height: 15, faces, at, duration })  // .landed",
+    display: "front",
+    demo: (() => {
+      const mark = jiraMarkIn({ x: 0, y: 0, width: 15, height: 15 }, 12);
+      const faces: ((r: Raster) => void)[] = [
+        () => {},
+        (r) => r.shade((x, y) => (Math.hypot(x - 7, y - 7) < 4.6 ? hex("#E5493A") : null)),
+        (r) => r.shade((x, y) => (Math.abs(Math.hypot(x - 7, y - 7) - 4) < 1 ? hex("#9F8FEF") : null)),
+        (r) => r.shade((x, y) => (y >= 3 && y <= 11 && Math.abs(x - 7) <= (y - 3) * 0.6 ? hex("#FF7A33") : null)),
+        (r) => drawJiraMark(r, mark.x, mark.y, 12),
+      ];
+      return fx.flapFaces({ x: 28, y: 0, width: 15, height: 15, faces, at: 0.9, flip: 0.12, duration: 2.6 });
+    })(),
+  },
+  {
+    id: "ticket-buddy",
+    name: "Ticket buddy",
+    group: "Logo",
+    about: "The Jira ticket as a character: a face where its summary lines and checkbox were. Eyes open, shut, big (puppy eyes) or happy, a smile or an open mouth, and blush. ticketFace() gives it as a sprite, to hop with hopPose().",
+    usage: 'drawTicketFace(r, x, y, { eyes: "big", mouth: "open" })  ·  ticketFace({ eyes, mouth })',
+    display: "front",
+    demo: (() => {
+      const hops = [{ at: 2.0, air: 0.24, height: 3 }, { at: 2.36, air: 0.24, height: 3 }];
+      return clip(3, (r, t) => {
+        const eyes = t >= 2 ? "happy" : (t > 0.6 && t < 0.7) || (t > 1.1 && t < 1.2) ? "shut" : t >= 1.3 ? "big" : "open";
+        const mouth = t > 0.2 && t < 1 && Math.floor(t / 0.13) % 2 === 0 ? "open" : "smile";
+        const p = fx.hopPose(t, hops);
+        if (p.sx === 1 && p.sy === 1 && p.lift === 0) drawTicketFace(r, 25, 2, { eyes, mouth });
+        else fx.drawStretched(r, ticketFace({ eyes, mouth }), 36, 15 - Math.round(p.lift), p.sx, p.sy);
+      });
+    })(),
   },
 
   // Modifiers -----------------------------------------------------------------------------------------------------
@@ -526,5 +672,16 @@ export const CATALOG: CatalogEntry[] = [
     usage: 'squash(clip, { time: 0.22, at: "end" })',
     display: "front",
     demo: seq(fx.squash(clip(1.5, (r) => screen(r)), { time: MOTION.quick }), pause(MOTION.rest)),
+  },
+  {
+    id: "tear",
+    name: "Tear",
+    group: "Modifiers",
+    about: "Screen tearing: everything above a jumping line slips sideways, everything below slips back a third as far, with a faint seam along the line. The amount can follow time, so a picture tears in, settles, and tears apart.",
+    usage: "tear(clip, { amount: (t) => (t < 0.5 ? (1 - t / 0.5) * 10 : 0) })",
+    display: "front",
+    demo: fx.tear(layer(fx.panel({ duration: 3 }), clip(3, (r) => r.text("ERROR", font("extra_large"), 15, capCentre("extra_large"), W))), {
+      amount: (t) => (t < 0.6 ? (1 - t / 0.6) * 10 : t > 2.2 ? span(t, 2.2, 3) * 18 : 0),
+    }),
   },
 ];

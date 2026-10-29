@@ -440,3 +440,101 @@ test("scrollBand mirrors exactly, and its first name is centred at scrollBandCen
     }
   }
 });
+
+// --- Pieces from the Jira nags (flap board, tear, slot reel, sprites) ----------------------------------------------
+
+test("capTop puts the capitals' top on the row asked for", async () => {
+  const { capTop } = await import("../src/index.ts");
+  for (const name of ["tiny", "small", "normal", "extra_large"] as const) {
+    const r = new Raster(72, 16);
+    r.text("H", font(name), 0, capTop(name, 3), hex("#FFFFFF"));
+    assert.equal(Math.min(...lit(r).map(([, y]) => y)), 3, name);
+  }
+});
+
+test("a flap board comes on left to right and stops on its letters", async () => {
+  const { flapBoard, capTop: top } = await import("../src/index.ts");
+  const board = flapBoard({ lines: ["AB"], x: 10, rows: [4], cols: 3 });
+  const blank = new Raster(72, 16);
+  board.draw(blank, 0);
+  assert.equal(lit(blank).length, 0, "nothing before the tiles come on");
+  const done = new Raster(72, 16);
+  board.draw(done, board.settled + 0.05);
+  // Each letter rests centred on its ink in its 5 x 7 tile, its caps centred in the tile's height.
+  for (const [col, ch] of [[0, "A"], [1, "B"]] as const) {
+    const want = new Raster(72, 16);
+    const f = font("small");
+    want.text(ch, f, 10 + col * 6 + Math.round((5 - inkWidth(ch, f)) / 2), 4 + top("small", 1), hex("#FFFFFF"));
+    const amber = (r: Raster, x: number, y: number) => r.data[(y * 72 + x) * 4]! > 0.9 && r.data[(y * 72 + x) * 4 + 2]! < 0.3;
+    for (const [x, y] of lit(want)) assert.ok(amber(done, x, y), `${ch}: (${x},${y}) is lit`);
+  }
+});
+
+test("tear leaves a clip alone at no amount, and slips the parts either side of its line", async () => {
+  const { tear } = await import("../src/index.ts");
+  const column = clip(1, (r) => r.fillRect(30, 0, 1, 16, hex("#FFFFFF")));
+  const still = new Raster(72, 16);
+  tear(column, { amount: 0 }).draw(still, 0.5);
+  assert.deepEqual(lit(still).map(([x]) => x), Array(16).fill(30));
+  const torn = new Raster(72, 16);
+  tear(column, { amount: 6, seam: hex("#000000", 0) }).draw(torn, 0.5);
+  const xs = new Set(lit(torn).map(([x]) => x));
+  assert.deepEqual([...xs].sort((a, b) => a - b), [28, 36], "above the line 6 px one way, below it 2 px back");
+});
+
+test("a reel spun reelSteps symbols lands on the wanted one, centred in its window", async () => {
+  const { drawReel, reelOffset, reelSteps } = await import("../src/index.ts");
+  const strip = ["a", "b", "c", "b", "a"];
+  const steps = reelSteps(strip, 1, (s) => s === "c", 7);
+  assert.ok(steps >= 7);
+  assert.equal(strip[(1 + steps) % strip.length], "c");
+  const at = { at: 0, stop: 1, steps, gap: 15 };
+  assert.equal(reelOffset(1, at), steps * 15);
+  assert.ok(Math.abs(reelOffset(0, at)) < 1e-9);
+  // At rest the landed symbol is the only one in the window, its top a row below the window's.
+  const drawn: [string, number][] = [];
+  const symbols = strip.map((s) => (_r: Raster, _cx: number, top: number) => void drawn.push([s, top]));
+  drawReel(new Raster(72, 16), { x: 0, y: 1, width: 16, height: 14, strip: symbols, start: 1, offset: reelOffset(1, at), gap: 15 });
+  assert.deepEqual(drawn.filter(([, top]) => top > -13 && top < 15), [["c", 2]]);
+});
+
+test("the 8-ball's body stays bright enough to light, and the ticket's face covers its lines", async () => {
+  const { drawEightBall, ticketFace } = await import("../src/index.ts");
+  const lum = (r: Raster, i: number) => 0.2126 * r.data[i]! + 0.7152 * r.data[i + 1]! + 0.0722 * r.data[i + 2]!;
+  const floor = 0.2126 * 0x26 / 255 + 0.7152 * 0x2c / 255 + 0.0722 * 0x38 / 255;
+  const ball = new Raster(24, 16);
+  drawEightBall(ball, 11.5, 8, 7.6, 0);
+  let body = 0;
+  for (const [x, y] of lit(ball, 0.99)) {
+    // The window (with its dark 8) is a circle of radius 4 about (11.5, 7.5); the rest is the ball's body.
+    if (Math.hypot(x + 0.5 - 11.5, y + 0.5 - 7.5) <= 4.2) continue;
+    body++;
+    assert.ok(lum(ball, (y * 24 + x) * 4) >= floor, `(${x},${y}) is below what an LED shows`);
+  }
+  assert.ok(body > 100);
+  const face = ticketFace({ eyes: "open" });
+  const grey = hex("#6B778C");
+  for (let y = 1; y <= 11; y++) {
+    for (let x = 13; x <= 20; x++) {
+      const i = (y * 22 + x) * 4;
+      assert.ok(Math.abs(face.data[i]! - grey.r) > 0.02 || Math.abs(face.data[i + 2]! - grey.b) > 0.02, `summary line left at (${x},${y})`);
+    }
+  }
+});
+
+test("rain starts when asked and falls from under the cloud", async () => {
+  const { drawRain } = await import("../src/index.ts");
+  const before = new Raster(72, 16);
+  drawRain(before, { x: 10, y: 6, t: 0.3, start: 0.4 });
+  assert.equal(lit(before).length, 0);
+  const rows = new Set<number>();
+  for (let t = 0.4; t < 2; t += 0.05) {
+    const r = new Raster(72, 16);
+    drawRain(r, { x: 10, y: 6, t, start: 0.4 });
+    for (const [x, y] of lit(r)) {
+      assert.ok(x >= 10 && x < 30, `x ${x} under the cloud`);
+      rows.add(y);
+    }
+  }
+  assert.ok(Math.min(...rows) >= 6 && Math.max(...rows) === 15, "from the cloud's base to the bottom edge");
+});

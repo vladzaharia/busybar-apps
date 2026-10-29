@@ -1,8 +1,8 @@
 // Tiny characters for the LED matrix.
 
-import { lerp } from "../ease.ts";
+import { lerp, span } from "../ease.ts";
 import { stampPalette } from "../jira.ts";
-import { hex, type Color, type Raster } from "../raster.ts";
+import { hex, mix, type Color, type Raster } from "../raster.ts";
 import type { Direction } from "./arrows.ts";
 
 /** The bug is 11 px wide and 12 tall. */
@@ -102,4 +102,196 @@ export function drawWalker(r: Raster, x: number, y: number, dir: Direction, pose
     line(3, 4, 2, 7);
     line(3, 4, 4, 7);
   }
+}
+
+// --- Hops: squash and stretch for any sprite ---------------------------------------------------------------------
+
+/** A sprite's pose in a hop: how high it is, and how it squashes or stretches (1 is its own size). */
+export interface HopPose {
+  lift: number;
+  sx: number;
+  sy: number;
+}
+
+/** One hop: it leaves the ground at `at`, is in the air for `air` seconds, `height` px at the top, then lands. */
+export interface Hop {
+  at: number;
+  air: number;
+  height: number;
+  /** Seconds of landing squash (default 0.12). */
+  land?: number;
+}
+
+/** The pose at `t` in a run of hops: stretched tall in the air, squashed wide as it lands, itself in between. */
+export function hopPose(t: number, hops: Hop[]): HopPose {
+  for (const h of hops) {
+    const land = h.land ?? 0.12;
+    if (t < h.at || t > h.at + h.air + land) continue;
+    const local = t - h.at;
+    if (local < h.air) {
+      const s = Math.sin((local / h.air) * Math.PI);
+      return { lift: s * h.height, sx: 1 - 0.06 * s, sy: 1 + 0.08 * s };
+    }
+    const q = Math.sin(span(local, h.air, h.air + land) * Math.PI);
+    return { lift: 0, sx: 1 + 0.14 * q, sy: 1 - 0.2 * q };
+  }
+  return { lift: 0, sx: 1, sy: 1 };
+}
+
+/** Draws `src` scaled by (sx, sy) about its bottom centre at (cx, bottom): a sprite squashing and stretching. */
+export function drawStretched(r: Raster, src: Raster, cx: number, bottom: number, sx: number, sy: number, alpha = 1): void {
+  const x0 = Math.round(cx - (src.width * sx) / 2);
+  const x1 = Math.round(cx + (src.width * sx) / 2);
+  const y0 = Math.round(bottom - src.height * sy);
+  const y1 = Math.round(bottom);
+  for (let y = y0; y < y1; y++) {
+    for (let x = x0; x < x1; x++) {
+      const u = Math.min(src.width - 1, Math.floor(((x - x0 + 0.5) / (x1 - x0)) * src.width));
+      const v = Math.min(src.height - 1, Math.floor(((y - y0 + 0.5) / (y1 - y0)) * src.height));
+      const i = (v * src.width + u) * 4;
+      const a = src.data[i + 3]!;
+      if (a > 0) r.blend(x, y, { r: src.data[i]! / a, g: src.data[i + 1]! / a, b: src.data[i + 2]! / a, a }, alpha);
+    }
+  }
+}
+
+// --- Magic 8-ball ------------------------------------------------------------------------------------------------
+
+/**
+ * A magic 8-ball centred on (cx, cy): slate lit from the top left with a blue rim of light on the lower right (black
+ * LEDs are off, so even its darkest side stays above what an LED shows), and a glint. `face` below 0.5 shows the
+ * white 8; from 0.5 its window: dark ink with the answer die's tip. Below a 5 px radius it is a plain ball.
+ */
+export function drawEightBall(r: Raster, cx: number, cy: number, radius: number, face = 0): void {
+  r.shade((x, y) => {
+    const dx = x + 0.5 - cx;
+    const dy = y + 0.5 - cy;
+    const d = Math.hypot(dx, dy);
+    // A soft edge, so the circle reads round on the grid.
+    const edge = Math.min(1, radius + 0.5 - d);
+    if (edge <= 0) return null;
+    const k = Math.max(0, Math.min(1, 0.45 + (dx + dy) / (radius * 2.4)));
+    let c = mix(hex("#5E6A82"), hex("#2A3242"), k);
+    if (d > radius - 1.4 && dx + dy > 2) c = mix(c, hex("#3A5A8C"), 0.8);
+    return { ...c, a: edge };
+  });
+  r.blend(Math.round(cx - radius * 0.5), Math.round(cy - radius * 0.62), hex("#B8C4D6"));
+  if (radius < 5) return;
+  const fx = cx;
+  const fy = cy - 0.5;
+  const fr = 3.6;
+  r.shade((x, y) => {
+    const d = Math.hypot(x + 0.5 - fx, y + 0.5 - fy);
+    const edge = Math.min(1, fr + 0.5 - d);
+    if (edge <= 0) return null;
+    return { ...(face < 0.5 ? hex("#CFD8E6") : d > fr - 1 ? hex("#1D3A6A") : hex("#08142C")), a: edge };
+  });
+  if (face < 0.5) stampPalette(r, EIGHT, Math.round(fx - 1.5), Math.round(fy - 2.5), { "#": hex("#141820") });
+  else {
+    r.fillRect(Math.round(fx - 1.5), Math.round(fy - 1), 3, 1, hex("#1D7AFC"));
+    r.blend(Math.round(fx - 0.5), Math.round(fy), hex("#1D7AFC"));
+  }
+}
+
+const EIGHT = ["###", "#.#", "###", "#.#", "###"];
+
+// --- Ticket invaders ---------------------------------------------------------------------------------------------
+
+/** A ticket invader is 10 px wide and 6 tall; the cannon that files them 7 × 4. */
+export const INVADER_SIZE = { width: 10, height: 6 } as const;
+export const CANNON_SIZE = { width: 7, height: 4 } as const;
+
+// A little Jira card (the mark's diagonal, a summary line) with eyes; arms up, then down.
+const INVADER = [
+  ["a........a", "aWWWWWWWWa", ".WbBWeWWe.", ".WBWWeWWe.", ".WWWWggggW", "..l....l.."],
+  ["..........", ".WWWWWWWW.", "aWbBWeWWea", "aWBWWeWWea", ".WWWWggggW", ".l......l."],
+];
+const INVADER_PALETTE: Record<string, Color> = {
+  a: hex("#85B8FF"),
+  B: hex("#1D7AFC"),
+  b: hex("#579DFF"),
+  // The card is soft, not white: a row of them would glare.
+  W: hex("#CFD8E6"),
+  e: hex("#141820"),
+  g: hex("#6B778C"),
+  l: hex("#85B8FF"),
+};
+const CANNON = ["...#...", "..###..", "#######", "#######"];
+
+/** The invader's frame at time `t`: it steps (arms up, arms down) every `step` seconds, as the formation marches. */
+export const invaderFrame = (t: number, step = 0.22) => (Math.floor(t / step) % 2) as 0 | 1;
+
+/** A ticket invader, top-left at (x, y), on frame 0 or 1. */
+export function drawInvader(r: Raster, x: number, y: number, frame: 0 | 1 = 0, alpha = 1): void {
+  stampPalette(r, INVADER[frame]!, Math.round(x), Math.round(y), INVADER_PALETTE, alpha);
+}
+
+/** The cannon at the bottom of an invaders screen, top-left at (x, y); its muzzle is at x + 3. */
+export function drawCannon(r: Raster, x: number, y: number, color: Color = hex("#62C7FF")): void {
+  stampPalette(r, CANNON, Math.round(x), Math.round(y), { "#": color });
+}
+
+// --- Rain cloud --------------------------------------------------------------------------------------------------
+
+/** The cloud is 20 px wide and 8 tall. */
+export const CLOUD_SIZE = { width: 20, height: 8 } as const;
+
+/** A cloud of three overlapping puffs on a flat base, top-left at (x, y), lit from above. `flash` 0..1 lights it up. */
+export function drawCloud(r: Raster, x: number, y: number, o: { flash?: number; alpha?: number } = {}): void {
+  const puffs = [
+    [5, 5.2, 3.3],
+    [10, 3.9, 4.1],
+    [15, 5.1, 3.3],
+  ] as const;
+  for (let py = 0; py < CLOUD_SIZE.height; py++) {
+    for (let px = 0; px < CLOUD_SIZE.width; px++) {
+      const round = puffs.some(([cx, cy, rad]) => Math.hypot(px + 0.5 - cx, (py + 0.5 - cy) * 1.1) <= rad);
+      const base = py >= 5 && px >= 2 && px <= 17;
+      if (!round && !base) continue;
+      const c = mix(mix(hex("#B4BFD0"), hex("#5E6B82"), py / 7), hex("#FFFFFF"), (o.flash ?? 0) * 0.8);
+      r.blend(Math.round(x) + px, Math.round(y) + py, c, o.alpha ?? 1);
+    }
+  }
+}
+
+/** A raindrop; pass your own drops (tiny tickets, say, with a frame for each way up) to `drawRain`. */
+const RAINDROP = [["#", "#"]];
+const RAINDROP_PALETTE: Record<string, Color> = { "#": hex("#62C7FF") };
+
+/**
+ * Rain from under a cloud whose left edge is at `x` and base at row `y`: one lane per entry of `lanes` (px from the
+ * cloud's left), each dropping one every `period` seconds, out of step with the others, from `start` (seconds). Drops
+ * fall `speed` px/s, fading in as they leave the cloud, and tumble between the frames of `drop`.
+ */
+export function drawRain(
+  r: Raster,
+  o: {
+    x: number;
+    y: number;
+    t: number;
+    start?: number;
+    lanes?: number[];
+    period?: number;
+    speed?: number;
+    drop?: { frames: string[][]; palette: Record<string, Color> };
+  },
+): void {
+  const lanes = o.lanes ?? [1, 6, 11, 16];
+  const period = o.period ?? 0.6;
+  const speed = o.speed ?? 15;
+  const start = o.start ?? 0;
+  const drop = o.drop ?? { frames: RAINDROP, palette: RAINDROP_PALETTE };
+  if (o.t < start) return;
+  lanes.forEach((lx, i) => {
+    // Each lane has its own phase; the drops of the last few periods are the ones still falling.
+    const phase = ((i * 0.37) % 1) * period;
+    for (let n = -Math.ceil(r.height / (speed * period)) - 1; n <= 0; n++) {
+      const born = start + phase + (Math.floor((o.t - start) / period) + n) * period;
+      if (born < start || o.t < born) continue;
+      const dy = (o.t - born) * speed;
+      if (o.y + dy > r.height) continue;
+      const tip = Math.floor((o.t - born) / 0.18 + i) % drop.frames.length;
+      stampPalette(r, drop.frames[tip]!, Math.round(o.x) + lx + tip, Math.round(o.y + dy), drop.palette, Math.min(1, dy / 2));
+    }
+  });
 }

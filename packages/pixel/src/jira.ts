@@ -5,7 +5,7 @@
 import { fileURLToPath } from "node:url";
 import { lerp, outCubic, span } from "./ease.ts";
 import { Mask } from "./mask.ts";
-import { hex, type BlendMode, type Color, type Raster } from "./raster.ts";
+import { hex, Raster, type BlendMode, type Color } from "./raster.ts";
 import { clip, type Clip } from "./timeline.ts";
 
 export interface MarkSprite {
@@ -245,6 +245,55 @@ export function drawJiraTicket(r: Raster, x: number, y: number, o: { alpha?: num
       if (c !== "." && d < 2.5) r.blend(x + rx, y + ry, hex("#FFFFFF"), (1 - d / 2.5) * 0.7 * alpha);
     }),
   );
+}
+
+// --- The ticket with a face ---------------------------------------------------------------------------------------
+
+export type TicketEyes = "open" | "shut" | "big" | "happy";
+export type TicketMouth = "smile" | "open";
+
+const FACE = { card: hex("#DCE3EE"), ink: hex("#141820"), blush: hex("#FF8FA3"), glint: hex("#FFFFFF") };
+
+/**
+ * The Jira ticket as a character, as a 22 × 13 sprite: its mark, and a face where the summary lines and checkbox
+ * were. Eyes open, shut (a blink), big (puppy eyes, with a glint) or happy (^ ^); a smile or an open mouth (talking);
+ * blush either side. Draw it with `drawTicketFace`, or squash and stretch it with `drawStretched`.
+ */
+export function ticketFace(o: { eyes?: TicketEyes; mouth?: TicketMouth } = {}): Raster {
+  const r = new Raster(TICKET_SIZE.width, TICKET_SIZE.height);
+  drawJiraTicket(r, 0, 0);
+  // The face covers the lines and checkbox: columns 13 to 20, rows 1 to 11 (inside the card's edge and shadow).
+  r.fillRect(13, 1, 8, 11, FACE.card);
+  const eyes = o.eyes ?? "open";
+  for (const ex of [14, 18]) {
+    if (eyes === "open") r.fillRect(ex, 3, 2, 3, FACE.ink);
+    else if (eyes === "shut") r.fillRect(ex, 5, 2, 1, FACE.ink);
+    else if (eyes === "big") {
+      r.fillRect(ex, 2, 2, 4, FACE.ink);
+      r.blend(ex, 3, FACE.glint);
+    } else {
+      const x = ex === 14 ? 13 : 18;
+      r.blend(x, 5, FACE.ink);
+      r.blend(x + 1, 4, FACE.ink);
+      r.blend(x + 2, 5, FACE.ink);
+    }
+  }
+  r.fillRect(13, 7, 2, 1, FACE.blush);
+  r.fillRect(19, 7, 2, 1, FACE.blush);
+  if ((o.mouth ?? "smile") === "smile") {
+    r.blend(15, 8, FACE.ink);
+    r.fillRect(16, 9, 2, 1, FACE.ink);
+    r.blend(18, 8, FACE.ink);
+  } else {
+    r.fillRect(16, 8, 2, 1, FACE.ink);
+    r.fillRect(16, 9, 2, 1, FACE.blush);
+  }
+  return r;
+}
+
+/** The ticket with a face (`ticketFace`), top-left at (x, y). */
+export function drawTicketFace(r: Raster, x: number, y: number, o: { eyes?: TicketEyes; mouth?: TicketMouth; alpha?: number } = {}): void {
+  r.draw(ticketFace(o), Math.round(x), Math.round(y), o.alpha ?? 1);
 }
 
 /** Stamps string pixel art ("#" lit, anything else empty) in one colour. */

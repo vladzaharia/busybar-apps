@@ -121,6 +121,23 @@ export function confetti(o: { duration: number; seed?: number; pieces?: number; 
   });
 }
 
+/**
+ * Sparks flying out from (cx, cy) at `p` 0..1 of their life (none at 0 or 1): `count` glowing points with white cores,
+ * `reach` px out sideways and 0.6 of that up and down, fading as they go. A hit, a pop, something filed.
+ */
+export function drawSparks(r: Raster, cx: number, cy: number, p: number, o: { color?: Color; reach?: number; count?: number } = {}): void {
+  if (p <= 0 || p >= 1) return;
+  const count = o.count ?? 6;
+  const reach = o.reach ?? 7;
+  for (let k = 0; k < count; k++) {
+    const ang = (k / count) * Math.PI * 2 + 0.4;
+    const x = cx + Math.cos(ang) * p * reach;
+    const y = cy + Math.sin(ang) * p * reach * 0.6;
+    r.glow(x, y, 1.8, 1.8, { ...(o.color ?? hex("#FFB020")), a: 1 - p }, 1.4);
+    r.blend(x, y, WHITE, 1 - p);
+  }
+}
+
 /** Twinkling four-point sparkles scattered over the screen (or a box). */
 export function sparkles(o: { duration: number; seed?: number; count?: number; color?: Color; box?: { x: number; y: number; width: number; height: number } }): Clip {
   const rand = rng(o.seed ?? 13);
