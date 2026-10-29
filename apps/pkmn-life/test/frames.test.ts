@@ -56,6 +56,21 @@ test("findName does not find a name that is not whole, not clear, or not there",
   assert.equal(findName(lowered, "ALEX", BIG), null, "letters out of line");
 });
 
+test("findName does not count a name that is faint, still fading, or too dim", () => {
+  // Over a clear ground the straight RGB of a faded name stays white; it is the alpha that fades.
+  for (const alpha of [0.02, 0.05, 0.1, 0.25, 0.5, 0.8]) {
+    assert.equal(findName(frame("ALEX", BIG, 3, 1, hex("#FFFFFF", alpha)), "ALEX", BIG), null, `white at alpha ${alpha} on a clear ground`);
+  }
+  assert.deepEqual(findName(frame("ALEX", BIG, 3, 1, hex("#FFFFFF", 0.95)), "ALEX", BIG), { x: 3, y: 1 }, "alpha 0.95 is as good as lit");
+  assert.deepEqual(findName(frame("ALEX", BIG, 3, 1, WHITE), "ALEX", BIG), { x: 3, y: 1 }, "opaque white on a clear ground");
+  // On a lit ground it is the colour that fades: a quarter-bright name is too dim, a half-bright one is not.
+  assert.equal(findName(frame("ALEX", BIG, 3, 1, hex("#404040"), BLACK), "ALEX", BIG), null, "#404040 on black");
+  assert.equal(findName(frame("ALEX", BIG, 3, 1, hex("#FFFFFF", 0.25), BLACK), "ALEX", BIG), null, "a quarter-faded name on black");
+  assert.deepEqual(findName(frame("ALEX", BIG, 3, 1, hex("#808080"), BLACK), "ALEX", BIG), { x: 3, y: 1 }, "#808080 on black");
+  // Black lettering on a clear ground is no lettering at all (the clock shows through, and it is dark on the LEDs).
+  assert.equal(findName(frame("ALEX", BIG, 3, 1, BLACK), "ALEX", BIG), null, "black on a clear ground");
+});
+
 test("findName needs a clear pixel of ground around the name, not more", () => {
   const at = { x: 3, y: 1 };
   const box = inkBox("ALEX", BIG, at);

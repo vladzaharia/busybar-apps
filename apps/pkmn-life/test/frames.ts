@@ -9,8 +9,14 @@ const SAME = 12;
 /** A smooth ground (the sign's gradient) is one colour too, within this much of its first pixel. A chevron, a bubble, a
  *  neighbouring letter or a sprite on the ground is far beyond it. */
 const GROUND = 48;
-/** The lettering must differ from the ground by at least this much, or there is nothing to read. */
-const CONTRAST = 64;
+/**
+ * The lettering must differ from the ground by at least this much (largest difference on R, G, B, 0..255), both
+ * composited on black as the LEDs show them: a transparent ground is dark, and a faint or fading name is not "shown".
+ * A #404040 name on black (64) is too dim to read from across a room; white on black, blue or yellow is far above.
+ */
+const CONTRAST = 96;
+/** Lettering is opaque (alpha 0.9 and up, 0..255): a name still fading in or out over a clear ground is not shown whole. */
+const OPAQUE = 230;
 
 /** The lit pixels of some text: its ink box (so `ox`, `oy` are the box's offset from where the text is drawn). */
 interface Mask {
@@ -65,7 +71,14 @@ const distance = (frame: Uint8Array, i: number, ref: Uint8Array, j: number): num
   return d;
 };
 
-/** Is the whole of `m`, with its ink box at (bx, by), on the screen as lettering: one colour, on one other colour? */
+/** Largest difference between two pixels' R, G and B once each is composited on black. */
+const contrast = (frame: Uint8Array, i: number, j: number): number => {
+  const a = frame[i + 3]! / 255;
+  const b = frame[j + 3]! / 255;
+  return Math.max(Math.abs(frame[i]! * a - frame[j]! * b), Math.abs(frame[i + 1]! * a - frame[j + 1]! * b), Math.abs(frame[i + 2]! * a - frame[j + 2]! * b));
+};
+
+/** Is the whole of `m`, with its ink box at (bx, by), on the screen as lettering: one opaque colour, on one other colour? */
 function matches(frame: Uint8Array, m: Mask, bx: number, by: number): boolean {
   const { width, height } = SCREEN;
   const x0 = Math.max(0, bx - 1);
@@ -78,11 +91,11 @@ function matches(frame: Uint8Array, m: Mask, bx: number, by: number): boolean {
   const glyph = ((by + Math.floor(m.first / m.w)) * width + bx + (m.first % m.w)) * 4;
   let ground = -1;
   for (let y = y0; y <= y1 && ground < 0; y++) for (let x = x0; x <= x1; x++) if (!isLit(x, y)) { ground = (y * width + x) * 4; break; }
-  if (ground < 0 || distance(frame, glyph, frame, ground) < CONTRAST) return false;
+  if (ground < 0 || frame[glyph + 3]! < OPAQUE || contrast(frame, glyph, ground) < CONTRAST) return false;
   for (let y = y0; y <= y1; y++) {
     for (let x = x0; x <= x1; x++) {
       const i = (y * width + x) * 4;
-      if (isLit(x, y) ? distance(frame, i, frame, glyph) > SAME : distance(frame, i, frame, ground) > GROUND) return false;
+      if (isLit(x, y) ? frame[i + 3]! < OPAQUE || distance(frame, i, frame, glyph) > SAME : distance(frame, i, frame, ground) > GROUND) return false;
     }
   }
   return true;
@@ -90,10 +103,11 @@ function matches(frame: Uint8Array, m: Mask, bx: number, by: number): boolean {
 
 /**
  * Where `name` is shown whole in `frame`, as the (x, y) a scene would draw it at, or null. The name's glyph mask is lit
- * in one colour, and every other pixel of its ink box (plus 1 px each way, up to the screen's edge) is one other
- * colour (a smooth gradient counts as one): so a letter missing, a letter out of place, or a chevron, bubble, sprite
- * or neighbouring text touching the name all make it "not found". `spaced` matches the letters one at a time, left to
- * right, each on its own (a name carried on separate train cars).
+ * in one colour, opaque, and clearly brighter or darker than its ground (both as the LEDs show them, composited on
+ * black), and every other pixel of its ink box (plus 1 px each way, up to the screen's edge) is one other colour (a
+ * smooth gradient counts as one): so a letter missing, a letter out of place, a name still fading in or out, or a
+ * chevron, bubble, sprite or neighbouring text touching the name all make it "not found". `spaced` matches the letters
+ * one at a time, left to right, each on its own (a name carried on separate train cars).
  */
 export function findName(frame: Uint8Array, name: string, f: Font, spaced = false): { x: number; y: number } | null {
   const { width, height } = SCREEN;
