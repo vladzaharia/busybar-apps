@@ -97,8 +97,9 @@ export function arrowNudge(o: { duration: number; x: number; y: number; dir: Dir
     const q = (t % (o.every ?? 1)) / 0.42;
     const dx = q < 1 ? o.dir * (o.distance ?? 3) * Math.sin(q * Math.PI) : 0;
     const ax = Math.round(o.x + dx);
-    // A short streak behind it while it moves.
-    if (Math.abs(dx) > 1.5) for (let k = 1; k <= 3; k++) r.fillRect(ax - o.dir * k * 3 + (o.dir > 0 ? 0 : 12), o.y + 5, 2, 1, { ...body, a: 0.5 - k * 0.14 });
+    // A short streak behind it while it moves: dashes 3 px apart, mirrored exactly about the 13 px arrow, and no dimmer
+    // than 0.3 (below that an LED does not show them).
+    if (Math.abs(dx) > 1.5) for (let k = 1; k <= 3; k++) r.fillRect(ax - o.dir * k * 3 + (o.dir > 0 ? 0 : 11), o.y + 5, 2, 1, { ...body, a: Math.max(0.3, 0.5 - k * 0.14) });
     drawArrow(r, ax, o.y, o.dir, body, light);
   });
 }

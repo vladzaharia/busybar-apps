@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { font, textWidth as deviceWidth } from "@vladzaharia/bar-pixel";
+import { Raster, font, hex, inkWidth as deviceInkWidth, textWidth as deviceWidth } from "@vladzaharia/bar-pixel";
 
 // device.ts reads the build-time address when it loads.
 (globalThis as { __BUSY_ADDR__?: string }).__BUSY_ADDR__ = "localhost";
@@ -18,7 +18,39 @@ test("label centres on the capitals", () => {
   const l = core.label({ id: "t", text: "DID YOU", font: "extra_large" });
   // extra_large capitals are 10 px tall: rows 3..12 of 16, so the element's top is 1.
   assert.equal(l.y, 1);
-  assert.equal(l.x, Math.floor((72 - core.textWidth("DID YOU", "extra_large")) / 2));
+  assert.equal(l.x, Math.floor((72 - core.inkWidth("DID YOU", "extra_large")) / 2));
+});
+
+test("inkWidth matches the pixel toolkit's", () => {
+  for (const name of ["tiny", "small", "bold", "extra_large"] as const) {
+    for (const s of ["DID YOU", "Oct, Tue", "PR.", "A ", "27", ""]) {
+      assert.equal(core.inkWidth(s, name), deviceInkWidth(s, font(name)), `${name}: ${JSON.stringify(s)}`);
+    }
+  }
+});
+
+test("label centres on ink", () => {
+  // Draws the label as the device would and reads the ink margins off the pixels.
+  const margins = (l: ReturnType<typeof core.label>, width = 72) => {
+    const r = new Raster(width, 16);
+    r.text(l.text, font(l.font), l.x, l.y, hex("#FFFFFF"));
+    const cols = new Set<number>();
+    for (let y = 0; y < 16; y++) for (let x = 0; x < width; x++) if (r.data[(y * width + x) * 4 + 3]! > 0) cols.add(x);
+    return { left: Math.min(...cols), right: width - 1 - Math.max(...cols) };
+  };
+  // Words whose ink is an even number of columns wide, which the advance width (ink + 1) used to leave 2 px off.
+  const words = ["HI", "DID YOU", "NO", "WAIT", "OK", "DONE"];
+  const even = words.filter((w) => core.inkWidth(w, "extra_large") % 2 === 0);
+  assert.ok(even.length >= 2, "the sample has even-width words");
+  for (const w of words) {
+    for (const font of ["extra_large", "small", "bold"] as const) {
+      const m = margins(core.label({ id: "t", text: w, font, box: { x: 0, y: 0, width: 72, height: 16 } }));
+      assert.ok(Math.abs(m.left - m.right) <= 1, `${font} ${w}: margins ${m.left} / ${m.right}`);
+    }
+  }
+  // Right-aligned, the ink ends at the box's edge.
+  const right = margins(core.label({ id: "t", text: "HI", font: "small", align: "right" }));
+  assert.equal(right.right, 0);
 });
 
 test("clock face follows the stock clock layout, with a wider gap after the icon", () => {

@@ -3,23 +3,27 @@
 // "cover"/"close" modes end fully covered; "reveal"/"open" modes start fully covered and end clear.
 
 import { inCubic, inExpo, inOutCubic, lerp, outCubic, outExpo, outQuad, rng, span } from "../ease.ts";
-import { hex, mix, type Color } from "../raster.ts";
+import { hex, mix, Raster, type Color } from "../raster.ts";
 import { MOTION } from "../motion.ts";
 import { clip, type Clip } from "../timeline.ts";
+import { squash } from "./modifiers.ts";
 
 const BLACK = hex("#000000");
 const WHITE = hex("#FFFFFF");
 
 export type CoverMode = "cover" | "reveal";
 
-/** Whole-screen flashes: `count` pulses of `color`, as in a handheld RPG's encounter. */
+/**
+ * Whole-screen flashes: `count` pulses of `color`, as in a handheld RPG's encounter. `peak` (0..1, default 0.6) is how
+ * opaque each pulse gets: nearer 1, a white flash is glare on the LEDs.
+ */
 export function flash(o: { duration?: number; count?: number; color?: Color; peak?: number }): Clip {
   const duration = o.duration ?? MOTION.base * 1.5;
   const count = o.count ?? 3;
   return clip(duration, (r, t) => {
     // `count` separate flashes: each takes an equal slot, lit for its first 60%, then dark before the next.
     const local = ((t / duration) * count) % 1;
-    const a = local < 0.6 ? Math.sin((local / 0.6) * Math.PI) * (o.peak ?? 0.95) : 0;
+    const a = local < 0.6 ? Math.sin((local / 0.6) * Math.PI) * (o.peak ?? 0.6) : 0;
     if (a > 0) r.fillRect(0, 0, r.width, r.height, { ...(o.color ?? WHITE), a });
   });
 }
@@ -104,6 +108,35 @@ export function wipe(o: { duration?: number; mode: CoverMode; direction?: 1 | -1
   });
 }
 
+/**
+ * Wipes `c`'s last frame away to transparency: it starts as that frame, and a soft edge sweeps across (towards the
+ * right for `direction` 1) taking it out, leaving the screen clear. Follows a clip that ends on content, so the content
+ * leaves in a sweep rather than cutting out; the pixels at the edge are tinted towards `edge` as they go.
+ */
+export function wipeOut(c: Clip, o: { duration?: number; direction?: 1 | -1; edge?: Color; soft?: number } = {}): Clip {
+  const duration = o.duration ?? MOTION.quick;
+  const soft = o.soft ?? 8;
+  const edge = o.edge ?? WHITE;
+  return clip(duration, (r, t) => {
+    const src = new Raster(r.width, r.height);
+    c.draw(src, c.duration);
+    // The front travels from just off the start side to just past the far one; behind it nothing is left.
+    const front = lerp(-soft, r.width, inCubic(t / duration));
+    for (let y = 0; y < r.height; y++) {
+      for (let x = 0; x < r.width; x++) {
+        const i = (y * r.width + x) * 4;
+        const a = src.data[i + 3]!;
+        if (a <= 0) continue;
+        const xx = (o.direction ?? 1) === 1 ? x + 0.5 : r.width - x - 0.5;
+        const keep = Math.max(0, Math.min(1, (xx - front) / soft));
+        if (keep <= 0) continue;
+        const colour = mix({ r: src.data[i]! / a, g: src.data[i + 1]! / a, b: src.data[i + 2]! / a, a: 1 }, edge, (1 - keep) * 0.6);
+        r.blend(x, y, colour, a * keep);
+      }
+    }
+  });
+}
+
 /** A circle closing on (cover) or opening from (reveal) a point, like the end of an old cartoon. */
 export function iris(o: { duration?: number; mode: CoverMode; x?: number; y?: number; color?: Color }): Clip {
   const duration = o.duration ?? MOTION.slow;
@@ -152,13 +185,29 @@ export function bloom(o: { duration?: number; color?: Color; ring?: Color }): Cl
   });
 }
 
-/** Everything pinches into a line, then a point of light that fades out: on an opaque `color` ground. */
-export function collapse(o: { duration?: number; color?: Color; light?: Color }): Clip {
+/**
+ * Everything pinches into a line, then a point of light that fades out: on an opaque `color` ground. Given the clip it
+ * follows as `source`, it first squashes that clip's last frame onto the centre row (0.12 s of `duration`), so the
+ * scene folds into the line instead of cutting to it; without one, it starts as the full-width line.
+ */
+export function collapse(o: { duration?: number; color?: Color; light?: Color; source?: Clip }): Clip {
   const duration = o.duration ?? MOTION.slow;
+  const SQUASH = 0.12;
+  const folded = o.source
+    ? squash(clip(SQUASH, (r) => o.source!.draw(r, o.source!.duration)), { time: SQUASH, at: "end" })
+    : null;
+  const squashTime = folded ? Math.min(SQUASH, duration / 2) : 0;
   return clip(duration, (r, t) => {
-    const p = t / duration;
-    r.fillRect(0, 0, r.width, r.height, o.color ?? BLACK);
     const light = o.light ?? hex("#579DFF");
+    r.fillRect(0, 0, r.width, r.height, o.color ?? BLACK);
+    if (folded && t < squashTime) {
+      const k = t / squashTime;
+      folded.draw(r, k * SQUASH);
+      // The line is already there to fold into, fading up as the picture thins.
+      r.fillRect(0, r.height / 2 - 0.5, r.width, 1, { ...light, a: inCubic(k) });
+      return;
+    }
+    const p = (t - squashTime) / (duration - squashTime);
     const w = lerp(r.width, 0, inExpo(span(p, 0.1, 0.6)));
     if (w > 0.5) r.fillRect((r.width - w) / 2, r.height / 2 - 0.5, w, 1, mix(light, WHITE, p));
     r.glow(r.width / 2, r.height / 2, lerp(30, 3, p), lerp(3, 1, p), { ...light, a: Math.sin(Math.PI * Math.min(1, p * 1.3)) }, 1.4);

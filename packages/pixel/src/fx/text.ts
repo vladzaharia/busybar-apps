@@ -21,6 +21,17 @@ export function accentWords(text: string, words: string[], base: Color, accent: 
   return (i, _ch, t) => (marked.has(i) ? mix(base, accent, 0.55 + 0.45 * Math.sin(t * 6 - i * 0.7)) : base);
 }
 
+/** Screen px between a name's ink and the edge it is set against (the mirrored scenes' margin). */
+export const NAME_EDGE = 3;
+
+/**
+ * Where to put the left edge of something `width` px wide so that it is the mirror image of one at `x` when `dir` is
+ * -1 (the same distance from the right edge as `x` is from the left). For text, pass its `inkWidth`.
+ */
+export function mirrorX(x: number, width: number, dir: 1 | -1, screen = 72): number {
+  return dir > 0 ? x : screen - x - width;
+}
+
 /** Where to put the top of a text element so its capitals are centred in `height` (the stock signs' centring). */
 export function capCentre(name: FontName, height = 16): number {
   const f = font(name);

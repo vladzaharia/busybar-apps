@@ -180,3 +180,24 @@ export function textWidth(text: string, f: Font): number {
   for (const ch of text) w += f.glyph(ch.codePointAt(0)!)?.advance ?? 0;
   return w;
 }
+
+/**
+ * Blank columns between a glyph's last lit pixel and its advance: 1 for nearly every glyph (2 for the period). A
+ * glyph with nothing lit (a space) has none: it is all gap, and counts in full.
+ */
+export function trailingBearing(g: Glyph): number {
+  for (let col = g.width - 1; col >= 0; col--) {
+    for (let row = 0; row < g.height; row++) if (g.bits[row * g.width + col]) return Math.max(0, g.advance - (g.x + col + 1));
+  }
+  return 0;
+}
+
+/**
+ * Width of `text` from its first pen position to the end of its last lit pixel: `textWidth` less the last glyph's
+ * trailing bearing. Centre, mirror and right-align on this, not on `textWidth`, which sits a pixel wider than the ink.
+ */
+export function inkWidth(text: string, f: Font): number {
+  const glyphs = [...text].map((ch) => f.glyph(ch.codePointAt(0)!)).filter((g) => g !== undefined);
+  const last = glyphs[glyphs.length - 1];
+  return textWidth(text, f) - (last ? trailingBearing(last) : 0);
+}

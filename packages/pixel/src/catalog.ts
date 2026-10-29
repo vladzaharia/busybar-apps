@@ -6,7 +6,7 @@ import * as fx from "./fx/index.ts";
 import { capCentre } from "./fx/text.ts";
 import { drawJiraMark, drawJiraTicket, jiraFlyIn, JIRA_TONES_WHITE, TICKET_SIZE } from "./jira.ts";
 import { moonIcon } from "./icons.ts";
-import { font, textWidth } from "./font.ts";
+import { font, inkWidth, textWidth } from "./font.ts";
 import { hex, mix, type Raster } from "./raster.ts";
 import { MOTION, readTime } from "./motion.ts";
 import { clip, layer, pause, seq, type Clip } from "./timeline.ts";
@@ -37,6 +37,15 @@ const under = (c: Clip, label?: string): Clip => layer(clip(c.duration, (r) => s
 /** Screen at rest, cover, hold covered, reveal, rest: so the loop shows before, during and after. */
 const coverThenReveal = (cover: Clip, reveal: Clip) =>
   under(seq(pause(MOTION.rest), fx.holdEnd(cover, MOTION.rest), reveal, pause(MOTION.rest)));
+
+/** A stand-in for a front sign: the panel with a word centred on its ink, for the transitions that take one away. */
+const SIGN = layer(
+  fx.panel({ duration: 1.2 }),
+  clip(1.2, (r) => {
+    const f = font("extra_large");
+    r.text("MEETING", f, Math.floor((r.width - inkWidth("MEETING", f)) / 2), capCentre("extra_large"), W);
+  }),
+);
 
 export const CATALOG: CatalogEntry[] = [
   // Transitions ---------------------------------------------------------------------------------------------------
@@ -86,6 +95,15 @@ export const CATALOG: CatalogEntry[] = [
     demo: coverThenReveal(fx.wipe({ mode: "cover" }), fx.wipe({ mode: "reveal" })),
   },
   {
+    id: "wipe-out",
+    name: "Wipe away",
+    group: "Transitions",
+    about: "Takes the last frame of a clip away to transparency with a soft edge sweeping across, so a sign leaves in a sweep instead of cutting out. Follow a clip with it, over whatever should show through.",
+    usage: 'wipeOut(sign, { direction: 1, edge: hex("#FFFFFF") })  // 0.25 s',
+    display: "front",
+    demo: under(seq(SIGN, fx.wipeOut(SIGN, { direction: 1 }), pause(MOTION.rest * 2))),
+  },
+  {
     id: "iris",
     name: "Iris",
     group: "Transitions",
@@ -116,10 +134,10 @@ export const CATALOG: CatalogEntry[] = [
     id: "collapse",
     name: "Collapse",
     group: "Transitions",
-    about: "Everything pinches into a line, then a point of light that fades. A good way to end a scene.",
-    usage: "collapse({})  // 0.65 s",
+    about: "Everything pinches into a line, then a point of light that fades. A good way to end a scene: give it the clip it follows as `source` and that clip's last frame squashes onto the line first, instead of cutting to it.",
+    usage: "collapse({ source: scene })  // 0.65 s",
     display: "front",
-    demo: seq(fx.panel({ duration: 1 }), fx.collapse({}), pause(MOTION.rest)),
+    demo: seq(SIGN, fx.collapse({ source: SIGN }), pause(MOTION.rest)),
   },
   {
     id: "fade",
@@ -137,10 +155,10 @@ export const CATALOG: CatalogEntry[] = [
     name: "Sign panel",
     group: "Backgrounds",
     about: "A bevelled panel like the stock MEETING and CODING signs, with a sheen sweeping across. Content centres on it.",
-    usage: "panel({ duration, style: PANEL_BLUE })  ·  drawPanel(r, { sheen })",
+    usage: "panel({ duration, style: PANEL_BLUE, sheenDir: 1 })  ·  drawPanel(r, { sheen, sheenDir })",
     display: "front",
     demo: layer(fx.panel({ duration: 3, period: 1.5 }), clip(3, (r) => {
-      drawJiraMark(r, 2, 2, 12, { tones: JIRA_TONES_WHITE });
+      drawJiraMark(r, 2, 3, 12, { tones: JIRA_TONES_WHITE });
       const f = font("extra_large");
       r.text("MEETING", f, 18, capCentre("extra_large"), W);
     })),
@@ -292,6 +310,15 @@ export const CATALOG: CatalogEntry[] = [
     usage: 'dialogue({ pages: paginate("A wild ISSUE appeared!"), cps: 26 })',
     display: "front",
     demo: fx.dialogue({ pages: [{ lines: ["A wild ISSUE", "appeared!"], hold: 1 }, { lines: ["What will", "you do?"], hold: 1 }] }),
+  },
+  {
+    id: "dialogue-rise",
+    name: "Dialogue box rising",
+    group: "HUD",
+    about: "The empty dialogue box rising from the bottom edge in 0.18 s, so it arrives on its own before the first words are typed into it.",
+    usage: "seq(dialogueRise({}), dialogue({ pages }))",
+    display: "front",
+    demo: seq(pause(MOTION.rest), fx.dialogueRise({}), fx.dialogue({ pages: [{ lines: ["A wild ISSUE", "appeared!"], hold: 1 }] })),
   },
   {
     id: "speech-bubble",
@@ -448,10 +475,10 @@ export const CATALOG: CatalogEntry[] = [
     id: "jira-fly-in",
     name: "Jira fly-in",
     group: "Logo",
-    about: "The Jira chevrons fly in from huge, one after another, each landing with a flash. Sprites at 16, 12 and 11 px.",
-    usage: "jiraFlyIn({ x: 1, y: 2, size: 12, duration })  ·  drawJiraMark(r, x, y, 12)",
+    about: "The Jira chevrons fly in from huge, one after another, each landing with a flash. Sprites at 16, 12 and 11 px. The mark's weight sits up and to the right of its box, so jiraMarkIn() places it by its optical centre (y 3 on the 16 px display).",
+    usage: "jiraFlyIn({ x: 1, y: 3, size: 12, duration })  ·  drawJiraMark(r, x, y, 12)  ·  jiraMarkIn(box, 12) for x, y",
     display: "front",
-    demo: layer(seq(fx.burst({ duration: 0.7 }), pause(1.6)), { clip: jiraFlyIn({ x: 30, y: 2, size: 12, duration: 2.3 }), at: 0 }),
+    demo: layer(seq(fx.burst({ duration: 0.7 }), pause(1.6)), { clip: jiraFlyIn({ x: 30, y: 3, size: 12, duration: 2.3 }), at: 0 }),
   },
   {
     id: "jira-ticket",

@@ -73,19 +73,23 @@ export function burst(o: { duration: number; seed?: number; color?: Color; strea
   });
 }
 
-/** A starfield rushing towards the viewer. */
+/**
+ * A starfield streaming out from the centre. Stars are spread evenly over the screen at every moment and at every
+ * speed: each one's travel `u` (0..1, wrapping) is its share of the field's area, so its radius is `√u` (equal areas
+ * per step), not a power of a depth that crowds the centre.
+ */
 export function starfield(o: { duration: number; seed?: number; stars?: number; speed?: number; color?: Color }): Clip {
   const rand = rng(o.seed ?? 21);
-  const stars = Array.from({ length: o.stars ?? 60 }, () => ({ a: rand() * Math.PI * 2, z: rand(), s: 0.5 + rand() }));
+  const stars = Array.from({ length: o.stars ?? 60 }, () => ({ a: rand() * Math.PI * 2, u: rand(), s: 0.5 + rand() }));
   return clip(o.duration, (r, t) => {
     const cx = r.width / 2;
     const cy = r.height / 2;
     for (const s of stars) {
-      const z = (s.z + t * (o.speed ?? 0.35) * s.s) % 1;
-      const d = Math.pow(z, 2.2) * r.width * 0.75;
+      const u = (s.u + t * (o.speed ?? 0.35) * s.s) % 1;
+      const d = Math.sqrt(u) * r.width * 0.75;
       const x = cx + Math.cos(s.a) * d;
       const y = cy + Math.sin(s.a) * d * (r.height / r.width) * 2.4;
-      r.blend(x, y, o.color ?? WHITE, Math.min(1, z * 1.6), "add");
+      r.blend(x, y, o.color ?? WHITE, Math.min(1, u * 1.6), "add");
     }
   });
 }
@@ -181,11 +185,23 @@ export const PANEL_BLUE: PanelStyle = {
 
 /**
  * A bevelled sign panel: border, a light top inner row and a dark bottom one (so content centres on the panel's
- * middle, as on the stock signs), a vertical gradient, and an optional diagonal sheen at `sheen` (x position).
+ * middle, as on the stock signs), a vertical gradient, and an optional diagonal sheen at `sheen` (x position). The
+ * sheen leans and travels left to right (`sheenDir` 1); with `sheenDir` -1 it is the mirror image: `sheen` is then
+ * measured from the screen's right edge, and the diagonal leans the other way.
  */
 export function drawPanel(
   r: Raster,
-  o: { x?: number; y?: number; width?: number; height?: number; radius?: number; style?: PanelStyle; sheen?: number; alpha?: number },
+  o: {
+    x?: number;
+    y?: number;
+    width?: number;
+    height?: number;
+    radius?: number;
+    style?: PanelStyle;
+    sheen?: number;
+    sheenDir?: 1 | -1;
+    alpha?: number;
+  },
 ): void {
   const w = Math.max(2, Math.round(o.width ?? r.width));
   const h = Math.max(2, Math.round(o.height ?? r.height));
@@ -200,7 +216,7 @@ export function drawPanel(
       !inRoundRect(lx - 1, ly, w, h, rad) || !inRoundRect(lx + 1, ly, w, h, rad) || !inRoundRect(lx, ly - 1, w, h, rad) || !inRoundRect(lx, ly + 1, w, h, rad);
     let c = border ? s.border : ly === 1 ? s.highlight : ly === h - 2 ? s.shadow : mix(s.top, s.bottom, v);
     if (!border && o.sheen !== undefined) {
-      const d = Math.abs(x + y * 0.9 - o.sheen);
+      const d = Math.abs((o.sheenDir === -1 ? r.width - 1 - x : x) + y * 0.9 - o.sheen);
       if (d < 5) c = mix(c, WHITE, 0.32 * (1 - d / 5));
     }
     return { ...c, a: o.alpha ?? 1 };
@@ -208,11 +224,11 @@ export function drawPanel(
 }
 
 /** The panel as a clip, with its sheen sweeping across every `period` seconds. */
-export function panel(o: { duration: number; style?: PanelStyle; period?: number; width?: number; height?: number }): Clip {
+export function panel(o: { duration: number; style?: PanelStyle; period?: number; width?: number; height?: number; sheenDir?: 1 | -1 }): Clip {
   return clip(o.duration, (r, t) => {
     const period = o.period ?? MOTION.ambient * 1.8;
     const sheen = ((t % period) / period) * (r.width + 40) - 20;
-    drawPanel(r, { style: o.style, sheen, width: o.width, height: o.height });
+    drawPanel(r, { style: o.style, sheen, sheenDir: o.sheenDir, width: o.width, height: o.height });
   });
 }
 

@@ -1,7 +1,7 @@
 // HUD pieces: dialogue boxes, bars and indicators in the style of handheld games and the stock screens.
 
 import { inCubic, lerp, outBack, outCubic, span } from "../ease.ts";
-import { font, textWidth } from "../font.ts";
+import { font, inkWidth, textWidth } from "../font.ts";
 import { BALL_GREY, ballIcon, type BallPalette } from "../icons.ts";
 import { hex, Raster, type Color } from "../raster.ts";
 import { MOTION, readTime } from "../motion.ts";
@@ -17,8 +17,8 @@ export interface DialogueStyle {
 
 /** Light box, Jira-blue frame, dark ink. */
 export const DIALOGUE_LIGHT: DialogueStyle = {
-  // Softer than white: a full screen of white LEDs is glaring.
-  fill: hex("#CFD8E6"),
+  // Softer than white: a full screen of white LEDs is glaring, and at #CFD8E6 most of them still read as white.
+  fill: hex("#9DA9BC"),
   border: hex("#1D7AFC"),
   ink: hex("#141820"),
   arrow: hex("#0C66E4"),
@@ -56,6 +56,18 @@ export function drawDialogue(
     r.fillRect(r.width - 5, r.height - 4, 3, 1, s.arrow);
     r.fillRect(r.width - 4, r.height - 3, 1, 1, s.arrow);
   }
+}
+
+/** Seconds the empty dialogue box takes to rise. */
+const RISE = 0.18;
+
+/**
+ * The dialogue box rising from the bottom edge with nothing in it yet, over 0.18 s: so the box arrives on its own,
+ * instead of appearing in one frame, before the first words are typed into it (`dialogue`, `drawDialogue`).
+ */
+export function dialogueRise(o: { duration?: number; style?: DialogueStyle } = {}): Clip {
+  const duration = o.duration ?? RISE;
+  return clip(duration, (r, t) => drawDialogue(r, { lines: [], typed: -1, t, rise: outCubic(t / duration), style: o.style }));
 }
 
 /** Pages of a dialogue, typed one after another; each page holds for its `hold` once typed. */
@@ -137,16 +149,19 @@ export function barFill(o: { duration: number; x: number; y: number; width: numb
   return clip(o.duration, (r, t) => drawBar(r, { ...o, value: (o.to ?? 1) * outCubic(t / o.duration) }));
 }
 
-/** A ring of dots chasing round: the "working on it" spinner. */
+/** A ring of dots chasing round: the "working on it" spinner. Dots sit on whole pixels, mirrored about the centre. */
 export function spinner(o: { duration: number; x: number; y: number; radius?: number; dots?: number; color?: Color; period?: number }): Clip {
   return clip(o.duration, (r, t) => {
     const dots = o.dots ?? 8;
     const radius = o.radius ?? 3;
     const head = (t / (o.period ?? MOTION.spin)) * dots;
+    // Rounded away from zero both ways, so a dot and the one opposite are the same distance from the centre.
+    const off = (v: number) => Math.sign(v) * Math.round(Math.abs(v));
     for (let i = 0; i < dots; i++) {
       const ang = (i / dots) * Math.PI * 2 - Math.PI / 2;
       const age = (((head - i) % dots) + dots) % dots;
-      r.blend(o.x + Math.cos(ang) * radius, o.y + Math.sin(ang) * radius, o.color ?? hex("#FFFFFF"), Math.max(0.12, 1 - age / dots));
+      // The tail stops at 0.3: any dimmer and an LED does not show it.
+      r.blend(o.x + off(Math.cos(ang) * radius), o.y + off(Math.sin(ang) * radius), o.color ?? hex("#FFFFFF"), Math.max(0.3, 1 - age / dots));
     }
   });
 }
@@ -240,9 +255,9 @@ export interface BubbleStyle {
 
 export const BUBBLE_LIGHT: BubbleStyle = { fill: DIALOGUE_LIGHT.fill, ink: DIALOGUE_LIGHT.ink };
 
-/** A speech bubble's size for `text`: the tiny font with 2 px either side, 9 px tall. */
+/** A speech bubble's size for `text`: the tiny font with 2 px of the box either side of its ink, 9 px tall. */
 export function speechBubbleSize(text: string): { width: number; height: number } {
-  return { width: textWidth(text, font("tiny")) + 4, height: 9 };
+  return { width: inkWidth(text, font("tiny")) + 4, height: 9 };
 }
 
 /**

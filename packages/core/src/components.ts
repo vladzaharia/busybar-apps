@@ -3,7 +3,7 @@
 // do on their own, pre-render it with @vladzaharia/bar-pixel's effects and play it with `AnimPlayer`.
 
 import type { Device } from "./device.ts";
-import { METRICS, sanitize, textWidth } from "./metrics.ts";
+import { METRICS, inkWidth, sanitize, textWidth } from "./metrics.ts";
 import type { AnimationElement, Color, Display, DisplayElement, Font, RectangleElement, TextElement } from "./types.ts";
 
 const SIZE: Record<Display, { width: number; height: number }> = {
@@ -22,7 +22,8 @@ export function capHeight(font: Font): number {
 
 /**
  * Text centred in a box (the whole display by default), vertically on its capitals, which is how the stock screens
- * centre lettering.
+ * centre lettering, and horizontally on its ink, so the margins either side match to within a pixel (the advance
+ * width is a pixel wider than the ink). Right-aligned text ends its ink at the box's edge.
  */
 export function label(o: {
   id: string;
@@ -36,7 +37,7 @@ export function label(o: {
   const display = o.display ?? "front";
   const box = o.box ?? { x: 0, y: 0, ...SIZE[display] };
   const text = sanitize(o.text);
-  const w = textWidth(text, o.font);
+  const w = inkWidth(text, o.font);
   const x =
     o.align === "left" ? box.x : o.align === "right" ? box.x + box.width - w : box.x + Math.floor((box.width - w) / 2);
   const y = box.y + Math.floor((box.height - capHeight(o.font)) / 2) - CAP_TOP;

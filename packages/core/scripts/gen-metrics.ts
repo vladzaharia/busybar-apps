@@ -1,10 +1,11 @@
 // Generates src/metrics.generated.ts: advance widths of printable ASCII in every device font, read from the
-// firmware's own font files, so apps can lay text out exactly as the device will draw it.
+// firmware's own font files (and the blank column after each glyph's ink), so apps can lay text out exactly as the
+// device will draw it.
 // Usage: pnpm --filter @vladzaharia/bar-core metrics
 
 import { writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { font, type FontName } from "@vladzaharia/bar-pixel";
+import { font, trailingBearing, type FontName } from "@vladzaharia/bar-pixel";
 
 const FONTS: FontName[] = ["tiny", "small", "normal", "condensed", "bold", "large", "extra_large", "superscript"];
 
@@ -20,6 +21,8 @@ const lines = [
   "  descent: number;",
   "  /** Advance widths of characters 0x20..0x7E, in order. */",
   "  advances: readonly number[];",
+  "  /** Blank columns after each character's ink within its advance (1 for nearly all; 0 for a space), same order. */",
+  "  trailing: readonly number[];",
   "}",
   "",
   "export const METRICS: Record<Font, FontMetrics> = {",
@@ -27,8 +30,15 @@ const lines = [
 for (const name of FONTS) {
   const f = font(name);
   const advances: number[] = [];
-  for (let c = 0x20; c <= 0x7e; c++) advances.push(f.glyph(c)?.advance ?? 0);
-  lines.push(`  ${name}: { ascent: ${f.ascent}, descent: ${f.descent}, advances: [${advances.join(", ")}] },`);
+  const trailing: number[] = [];
+  for (let c = 0x20; c <= 0x7e; c++) {
+    const g = f.glyph(c);
+    advances.push(g?.advance ?? 0);
+    trailing.push(g ? trailingBearing(g) : 0);
+  }
+  lines.push(
+    `  ${name}: { ascent: ${f.ascent}, descent: ${f.descent}, advances: [${advances.join(", ")}], trailing: [${trailing.join(", ")}] },`,
+  );
 }
 lines.push("};", "");
 

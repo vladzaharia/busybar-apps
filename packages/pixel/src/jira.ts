@@ -70,8 +70,49 @@ export const MARK_SPRITES: Record<number, MarkSprite> = {
   },
 };
 
-// --- Drawing -----------------------------------------------------------------------------------------------------
+// --- Optical centre ----------------------------------------------------------------------------------------------
 
+/**
+ * Where the mark's weight sits, in px from its top-left (a pixel's centre is at +0.5): the centroid of its lit pixels.
+ * It is right of and above the box centre (each chevron has its bar on top and its column on the right), so a mark
+ * centred by its box looks pushed up and to the right. Computed from `MARK_SPRITES`, so it follows any edit to them.
+ */
+export const MARK_OPTICAL_CENTRE: Record<11 | 12 | 16, { x: number; y: number }> = Object.fromEntries(
+  ([11, 12, 16] as const).map((size) => {
+    const sprite = MARK_SPRITES[size]!;
+    let n = 0;
+    let sx = 0;
+    let sy = 0;
+    for (const [ox, oy] of sprite.offsets) {
+      sprite.chevron.forEach((row, ry) =>
+        [...row].forEach((c, rx) => {
+          if (c !== "#") return;
+          n++;
+          sx += ox + rx + 0.5;
+          sy += oy + ry + 0.5;
+        }),
+      );
+    }
+    return [size, { x: sx / n, y: sy / n }];
+  }),
+) as Record<11 | 12 | 16, { x: number; y: number }>;
+
+/**
+ * Where to put the top-left of a `size` mark so that its optical centre is the centre of `box`, on whole pixels and at
+ * least `pad` px from the box's edges (if the box is too small for that, the left and top padding win).
+ */
+export function jiraMarkIn(
+  box: { x: number; y: number; width: number; height: number },
+  size: 11 | 12 | 16,
+  pad = 1,
+): { x: number; y: number } {
+  const at = MARK_OPTICAL_CENTRE[size];
+  const fit = (start: number, extent: number, centre: number) =>
+    Math.max(start + pad, Math.min(start + extent - size - pad, Math.round(start + extent / 2 - centre)));
+  return { x: fit(box.x, box.width, at.x), y: fit(box.y, box.height, at.y) };
+}
+
+// --- Drawing -----------------------------------------------------------------------------------------------------
 
 /** Jira's blues, one per chevron (top, middle, bottom). */
 export const JIRA_TONES: Color[] = [hex("#4C9AFF"), hex("#2684FF"), hex("#0065FF")];
@@ -146,9 +187,11 @@ export function jiraFlyIn(o: {
       return { dx: lerp(from.x - (o.x + o.size / 2), 0, e), dy, scale: p >= 1 ? 1 : lerp(5, 1, e), alpha: p > 0 ? Math.min(1, p * 3) : 0 };
     });
     drawJiraMark(r, o.x, o.y, o.size, { poses, tones: o.tones });
+    // The landing flash is centred on the mark's weight, not on its box.
+    const centre = MARK_OPTICAL_CENTRE[o.size as 11 | 12 | 16] ?? { x: o.size / 2, y: o.size / 2 };
     for (let i = 0; i < 3; i++) {
       const land = span(t, 0.85 + i * 0.1, 1.1 + i * 0.1);
-      if (land > 0 && land < 1) r.glow(o.x + o.size / 2, o.y + o.size / 2, 9, 7, { ...(o.flash ?? hex("#85B8FF")), a: 0.8 * (1 - land) }, 2);
+      if (land > 0 && land < 1) r.glow(o.x + centre.x, o.y + centre.y, 9, 7, { ...(o.flash ?? hex("#85B8FF")), a: 0.8 * (1 - land) }, 2);
     }
   });
 }
@@ -156,21 +199,22 @@ export function jiraFlyIn(o: {
 /** The Jira ticket is 22 px wide and 13 tall. */
 export const TICKET_SIZE = { width: 22, height: 13 } as const;
 
-// An issue card as on a Jira board: room for the 11 px mark on the left, two summary lines, the Task type's
-// checkbox under them, and a shadow along the bottom.
+// An issue card as on a Jira board: room for the 11 px mark on the left, two summary lines level with the mark's top
+// (rows 1 and 3, starting two columns clear of it), the Task type's checkbox under them with a row to spare above the
+// shadow, and a shadow along the bottom. The tick stays inside the checkbox's frame.
 const TICKET = [
   ".WWWWWWWWWWWWWWWWWWWW.",
+  "WWWWWWWWWWWWWWgggggggW",
   "WWWWWWWWWWWWWWWWWWWWWW",
-  "WWWWWWWWWWWWWggggggggW",
-  "WWWWWWWWWWWWWWWWWWWWWW",
-  "WWWWWWWWWWWWWggggggWWW",
+  "WWWWWWWWWWWWWWgggggWWW",
   "WWWWWWWWWWWWWWWWWWWWWW",
   "WWWWWWWWWWWWWWWWWWWWWW",
-  "WWWWWWWWWWWWWbbbbbWWWW",
-  "WWWWWWWWWWWWWbbbbwWWWW",
-  "WWWWWWWWWWWWWbwbwbWWWW",
-  "WWWWWWWWWWWWWbbwbbWWWW",
-  "WWWWWWWWWWWWWbbbbbWWWW",
+  "WWWWWWWWWWWWWWbbbbbWWW",
+  "WWWWWWWWWWWWWWbbbwbWWW",
+  "WWWWWWWWWWWWWWbwbwbWWW",
+  "WWWWWWWWWWWWWWbbwbbWWW",
+  "WWWWWWWWWWWWWWbbbbbWWW",
+  "WWWWWWWWWWWWWWWWWWWWWW",
   ".ssssssssssssssssssss.",
 ];
 

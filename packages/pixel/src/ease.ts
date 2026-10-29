@@ -36,9 +36,20 @@ export const outBounce = (t: number) => {
   return n * (t -= 2.625 / d) * t + 0.984375;
 };
 
-/** Deterministic pseudo-random numbers, so renders are reproducible. */
+/** splitmix32's output function: scrambles every bit of a 32-bit integer, so nearby inputs come out unrelated. */
+function mix32(a: number): number {
+  let t = (a + 0x9e3779b9) | 0;
+  t = Math.imul(t ^ (t >>> 16), 0x21f0aaad);
+  t = Math.imul(t ^ (t >>> 15), 0x735a2d97);
+  return (t ^ (t >>> 15)) >>> 0;
+}
+
+/**
+ * Deterministic pseudo-random numbers, so renders are reproducible. The seed is mixed first (splitmix32), so small
+ * seeds (1, 2, 3) start as far apart as any others, not near zero as a bare xorshift does.
+ */
 export function rng(seed: number) {
-  let s = seed >>> 0 || 1;
+  let s = mix32(seed >>> 0) || 1;
   return () => {
     s ^= s << 13;
     s ^= s >>> 17;

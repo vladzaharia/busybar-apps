@@ -21,6 +21,7 @@ import {
   inBack,
   inOutCubic,
   jiraFlyIn,
+  jiraMarkIn,
   layer,
   mix,
   paginate,
@@ -37,7 +38,8 @@ import type { Nag } from "../../src/presets.ts";
 const WHITE = hex("#FFFFFF");
 const BLUE = hex("#579DFF");
 const TEXT_X0 = 16;
-const MARK = { x: 1, y: 2, size: 12 };
+// The 12 px mark in the 16 px square beside the text, by its optical centre: (1, 3).
+const MARK = { ...jiraMarkIn({ x: 0, y: 0, width: TEXT_X0, height: 16 }, 12), size: 12 as const };
 const ROLL = 0.26;
 
 export function ticker(preset: Nag): Clip {

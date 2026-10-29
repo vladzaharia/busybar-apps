@@ -67,7 +67,8 @@ function cursor(r: Raster, x: number, y: number): void {
 function menu(r: Raster, o: { sel: number; k: number; typed: number; nudge: boolean }): void {
   r.clear(hex("#000000"));
   const small = font("small");
-  drawJiraMark(r, 2, 0, 11, { tones: GREY_TONES });
+  // Level with the LIFE capitals below: its optical centre on theirs (rows 3-7), not its box.
+  drawJiraMark(r, 2, 1, 11, { tones: GREY_TONES });
   // "PKMN LIFE", with the handheld games' PKMN symbol.
   drawPkmn(r, 15, 1, grey(0.9));
   r.text("LIFE", small, 15 + PKMN_SIZE.width + 3, 1, grey(0.9));

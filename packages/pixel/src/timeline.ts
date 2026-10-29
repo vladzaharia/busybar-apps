@@ -64,7 +64,10 @@ export function retime(c: Clip, duration: number): Clip {
   return clip(duration, (r, t) => c.draw(r, (t / duration) * c.duration));
 }
 
-/** Renders a clip to straight-RGBA frames at `fps`. */
+/**
+ * Renders a clip to straight-RGBA frames at `fps`. The frames are `i / fps` apart and the last is drawn at the clip's
+ * `duration` itself, so a clip that ends on an outcome (a slide-out, a wipe) shows it on its final frame.
+ */
 export function renderFrames(
   c: Clip,
   o: { width: number; height: number; fps: number; background?: Color },
@@ -74,7 +77,7 @@ export function renderFrames(
   for (let i = 0; i < count; i++) {
     const r = new Raster(o.width, o.height);
     if (o.background) r.clear(o.background);
-    c.draw(r, Math.min(c.duration, i / o.fps));
+    c.draw(r, i === count - 1 ? c.duration : Math.min(c.duration, i / o.fps));
     frames.push(r.toRGBA8());
   }
   return frames;
