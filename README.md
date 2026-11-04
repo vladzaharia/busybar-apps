@@ -26,17 +26,31 @@ run the simulator and run the Mac app's Swift tests straight away.
 
 ## Run an app
 
+One command does it, from the repository's root. It finds the apps under `apps/` and what each one can do (its
+`package.json` scripts), so a new app or a new script needs no setup:
+
 ```sh
-cd apps/pkmn-life
-pnpm sim                  # simulator: open dist/sim/index.html through any local web server
-pnpm build                # dist/app.vlad.pkmn_life.tgz
-pnpm app:install          # install on a bar connected over USB (10.0.4.20)
-pnpm app:run              # launch it
+pnpm bar                            # choose what to do, step by step
+pnpm bar list                       # the apps, and what each can do
+pnpm bar serve pkmn-life            # the simulator, at http://127.0.0.1:2879 (with the bar's HTTP API)
+pnpm bar install pkmn-life --run    # build, install on a bar connected over USB (10.0.4.20), and launch it
+pnpm bar install --all              # build and install every app
+pnpm bar sim pkmn-life other-app    # an action for several apps, one after the other
+pnpm bar help                       # every action, command and option
 ```
 
-Over Wi-Fi, add the bar's address and its HTTP API password:
-`pnpm app:install --addr 192.168.1.42 --password <password>`. Enable Wi-Fi access first in the bar's web UI
-(Network → HTTP API). The app also appears in the bar's **Apps** menu.
+Over Wi-Fi, enable access first in the bar's web UI (Network → HTTP API), then give its address once, in a git-ignored
+`.env` (see [`.env.example`](.env.example)):
+
+```sh
+BUSY_BAR_ADDR=192.168.1.42
+BUSY_BAR_PASSWORD=...       # only with password protection on
+```
+
+or on the command line: `pnpm bar install pkmn-life --addr 192.168.1.42 --password <password>` (pnpm prints the
+command line, so the password is better kept in `.env`). The app also appears
+in the bar's **Apps** menu. Each action is the app's own script, so `cd apps/pkmn-life && pnpm sim` (or `pnpm build`,
+`pnpm app:install`, ...) still works the same.
 
 ## Releases
 
@@ -48,8 +62,8 @@ and the simulators and the effects gallery on [GitHub Pages](https://vladzaharia
 ## Make a new app
 
 ```sh
-pnpm new-app my-screen --name "My Screen"
-cd apps/my-screen && pnpm sim
+pnpm bar new                        # asks for its folder and name; or: pnpm bar new my-screen --name "My Screen"
+pnpm bar serve my-screen
 ```
 
 The template shows the clock, plays a pre-rendered scene on START and a toast on OK. Build from there with the

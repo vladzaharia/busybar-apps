@@ -8,6 +8,7 @@
     "node": ">=22.18 <27"
   },
   "scripts": {
+    "bar": "node scripts/bar/src/main.ts",
     "build": "pnpm -r --filter \"./apps/*\" build",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",

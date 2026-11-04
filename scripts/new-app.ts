@@ -67,7 +67,5 @@ console.log(`Created ${relative(ROOT, dest)} (${id}).`);
 execFileSync("pnpm", ["install"], { cwd: ROOT, stdio: "inherit" });
 console.log(`
 Next:
-  cd apps/${slug}
-  pnpm sim        # build and open dist/sim/index.html in the simulator
-  pnpm build      # dist/${id}.tgz, ready to install
-  pnpm app:install && pnpm app:run   # with the bar on USB`);
+  pnpm bar serve ${slug}            # the simulator, at http://127.0.0.1:2879
+  pnpm bar install ${slug} --run    # build, install and launch it on the bar (USB; see pnpm bar help for Wi-Fi)`);
