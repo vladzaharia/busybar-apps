@@ -11,7 +11,7 @@ built on shared libraries that grow with every app.
 | `packages/core` | `@vladzaharia/bar-core`: everything that wraps the bar's APIs. Device client, app lifecycle, timers, settings, font metrics, the stock-style clock face, sprints and sprint clock faces, random choice (`shuffleBag`), runtime components (label, marquee, progress bar, toast, `AnimPlayer`, `LiveFace`). | On the bar |
 | `packages/pixel` | `@vladzaharia/bar-pixel`: build-time pixel toolkit. Raster, device fonts, the `.anim` encoder/decoder, the timeline (`seq`, `layer`, `buildAnim`), the effects library, the component catalog, previews, motion tokens. | Node, at build time |
 | `packages/sim` | `@vladzaharia/bar-sim`: the simulator. Runs an app's real build in the browser against an emulated bar. | Browser |
-| `scripts/` | `setup.sh` (sets up a machine or session; the SessionStart hook runs it), `new-app.ts` and the app template, and `release/`: the release's scripts ([`RELEASE.md`](RELEASE.md)). | Node |
+| `scripts/` | `bar/`: `pnpm bar`, one command for every app (it reads `apps/*` and their scripts; see the README), `setup.sh` (sets up a machine or session; the SessionStart hook runs it), `new-app.ts` and the app template, and `release/`: the release's scripts ([`RELEASE.md`](RELEASE.md)). | Node |
 | `mac/` | Pkmn Life Remote, a SwiftUI panel (macOS 26) that sends Pkmn Life requests and settings through the bar's HTTP API (`remoteInbox`). `PkmnLifeRemoteKit` holds the testable part; its tests check the Mac's copy of the entries and settings against `apps/pkmn-life`. Built by CI on macOS. | macOS |
 
 ## Ground rules
@@ -32,7 +32,7 @@ built on shared libraries that grow with every app.
 ## Build screens from components
 
 1. **Look in the catalog first.** `packages/pixel/src/catalog.ts` lists every pre-rendered effect with a demo; the
-   gallery (`pnpm --filter @vladzaharia/bar-pixel gallery <out>`) plays them all. Runtime pieces are in
+   gallery (`pnpm bar gallery`) plays them all. Runtime pieces are in
    `packages/core/src/components.ts`.
 2. **Compose scenes** in the app's `assets/` from those clips with `seq` and `layer`, render with `buildAnim`, and
    generate the section lengths into `src/generated/clips.ts` (see `apps/pkmn-life/assets/build.ts`).
@@ -69,10 +69,13 @@ built on shared libraries that grow with every app.
 A fresh machine needs `scripts/setup.sh` first (cloud sessions run it automatically).
 
 ```sh
+pnpm bar help             # every app action (sim, serve, build, install, ...) and repo command, from the apps there are
+pnpm bar check            # typecheck and test, as below
 pnpm typecheck            # every package and app (apps render their assets first)
-pnpm test                 # encoder, timeline, catalog, core, simulator rules, and Pkmn Life's guard test (renders every style)
-cd apps/<slug> && pnpm sim    # the app in the simulator: dist/sim/index.html
-cd apps/<slug> && pnpm sim:serve   # the same, served on 127.0.0.1:2879 with the bar's HTTP API (point the Mac app there)
+pnpm test                 # encoder, timeline, catalog, core, simulator rules, pnpm bar, and Pkmn Life's guard test (renders every style)
+pnpm bar sim <slug>       # the app in the simulator: dist/sim/index.html (or cd apps/<slug> && pnpm sim)
+pnpm bar serve <slug>     # the same, served on 127.0.0.1:2879 with the bar's HTTP API (point the Mac app there)
+pnpm bar install <slug> --run --dry-run   # what an install would run, without a bar
 cd mac/PkmnLifeRemote && swift test                  # the Mac app's logic (works on Linux)
 cd mac/PkmnLifeRemote && Tools/screenshots.sh        # the Mac app in every state, as PNGs (macOS 26)
 ```

@@ -185,7 +185,8 @@ pnpm build                     # renders the animations, then dist/app.vlad.pkmn
 pnpm app:install && pnpm app:run   # bar on USB
 ```
 
-Over Wi-Fi: `pnpm app:install --addr <bar-ip> --password <http-api-password>`.
+Over Wi-Fi: `pnpm app:install --addr <bar-ip> --password <http-api-password>`. Or all of it from the repository's root:
+`pnpm bar install pkmn-life --run` (the bar's address can live in `.env`; see the root README).
 
 ## Layout
 
