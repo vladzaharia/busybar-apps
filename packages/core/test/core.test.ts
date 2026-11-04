@@ -175,6 +175,27 @@ test("sprint clock faces", () => {
   for (const e of [...bar, ...dots, ...short]) assert.ok((e.x ?? 0) >= 0 && (e.x ?? 0) < 72 && (e.y ?? 0) >= -2 && (e.y ?? 0) < 16, e.id);
 });
 
+test("every clock face element names its layer, under whatever an app plays over it", () => {
+  // The bar gives an element without a z_index 0, 10, 20, ... in its request's order: the short face's ninth element,
+  // "last day", landed at 70, over Pkmn Life's title cards (z 60). The face sits on layers 0 (the calendar) and 1.
+  const sprint = core.sprintAt(new Date(2026, 10, 4, 10, 0, 0), { number: 22, start: "2026-10-22", weeks: 2 });
+  for (const style of ["none", "bar", "dots", "short"] as const) {
+    for (const showDate of [true, false]) {
+      for (const timeFormat of ["24h", "12h"] as const) {
+        const face = core.sprintClockFace(new Date(2026, 10, 4, 10, 0, 0), sprint, {
+          timeFormat, showDate, blinkColons: true, icon: "images/calendar.png", style,
+        });
+        for (const e of face) {
+          assert.ok(e.z_index === 0 || e.z_index === 1, `${style}, ${showDate ? "date" : "no date"}, ${timeFormat}: ${e.id} has z_index ${e.z_index}`);
+        }
+        const icon = face.find((e) => e.id === "clock.icon");
+        const day = face.find((e) => e.id === "clock.day");
+        if (icon && day) assert.ok(day.z_index! > icon.z_index!, "the day is printed on the calendar");
+      }
+    }
+  }
+});
+
 test("LiveFace clears only ids it drew before and no longer draws", async () => {
   const calls: string[] = [];
   const device = {

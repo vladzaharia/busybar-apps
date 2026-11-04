@@ -9,7 +9,8 @@ Runtime library for on-device BUSY Bar JavaScript apps. Everything that talks to
 - `AnimPlayer`: plays `.anim` sections (`play` now, `then` queued for when the current one ends).
 - Components: `label` (centred on the capitals and on its ink), `marquee` (firmware scrolling), `progressBar`, `toast` (removes
   itself).
-- `clockFace`: the stock Clock app's layout (with 4 px after the calendar instead of 2). `readSettings`: typed settings with per-field fallback.
+- `clockFace`: the stock Clock app's layout (with 4 px after the calendar instead of 2), on layers 0 and 1 (`CLOCK_Z`), so
+  animations at any higher `z_index` play over it. `readSettings`: typed settings with per-field fallback.
 - `sprintAt(now, { number, start, weeks, changes })`: the running sprint and its work days left, following a
   regular cadence plus a list of changes (moved or longer sprints, a new cadence, days off; `parseSprintChanges`
   reads it). `sprintClockFace`: the clock

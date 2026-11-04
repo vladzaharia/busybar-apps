@@ -2,7 +2,9 @@
 // firmware's section rules, and the other endpoints an app may call. Mirrors `applications/services/canvas` and
 // `lib/anim_file` in the firmware:
 // - elements are kept by id; drawing an existing id updates it in place (type and display must match);
-// - elements are drawn in z_index order; `timeout` removes an element after that many seconds;
+// - elements are drawn in z_index order; one sent without a z_index gets 0, 10, 20, ... in its request's order
+//   (api_display.c), so a request's eighth such element is at 70: over an animation at 60;
+// - `timeout` removes an element after that many seconds;
 // - an animation re-drawn with the same path keeps its player and switches section: at once, or, with
 //   `await_previous_end`, when the current section reaches its last frame (one request can wait at a time; a newer
 //   one replaces it); a section that ends without `loop` or a waiting request holds its last frame.
@@ -160,13 +162,18 @@ export class Device {
       if (spec.type === "animation" && spec.path) await this.reader(spec.path);
       if (spec.type === "image" && spec.path) await this.image(spec.path);
     }
-    for (const spec of list) this.apply(spec);
+    let nextZ = 0;
+    for (const spec of list) {
+      this.apply(spec, nextZ);
+      if (spec.z_index === undefined) nextZ += 10;
+    }
     if (this.elements.size > 100) throw new Error("too many elements (100 max)");
     this.hooks.log(`POST draw: ${list.map((e) => describe(e)).join(", ")}`);
     return { status: 200, json: { result: "OK" } };
   }
 
-  private apply(spec: Json): void {
+  /** `defaultZ`: the z_index the bar gives this element if it names none. */
+  private apply(spec: Json, defaultZ: number): void {
     const id = String(spec.id);
     const display: DisplayId = spec.display === "back" ? "back" : "front";
     const old = this.elements.get(id);
@@ -181,7 +188,7 @@ export class Device {
     const life = timeout > 0 ? timeout * 1000 : (until ?? 0);
     const el: Element = old ?? { id, type: spec.type, display, spec, z: 0, expires: null, createdAt: this.now };
     el.spec = spec;
-    el.z = Number(spec.z_index ?? 0);
+    el.z = Number(spec.z_index ?? defaultZ);
     el.expires = life > 0 ? this.now + life / 1000 : old && spec.timeout === undefined ? old.expires : null;
     if (spec.type === "animation") this.applyAnimation(el, spec);
     if (!old) el.createdAt = this.now;
