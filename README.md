@@ -24,6 +24,9 @@ pnpm typecheck && pnpm test
 Claude Code cloud sessions run it on start (`.claude/hooks/session-start.sh`), so a new session can typecheck, test,
 run the simulator and run the Mac app's Swift tests straight away.
 
+After a `git pull`, the next `pnpm` command first installs whatever the pull changed (`verifyDepsBeforeRun` in
+`pnpm-workspace.yaml`).
+
 ## Run an app
 
 One command does it, from the repository's root. It finds the apps under `apps/` and what each one can do (its
