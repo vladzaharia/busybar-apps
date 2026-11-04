@@ -50,6 +50,9 @@ built on shared libraries that grow with every app.
   one ends (the firmware holds one queued request; a newer one replaces it).
 - Front animations that play over live elements (the clock) are `argb8888` and transparent where the screen should
   show through. Back animations are `gray4` (16 grey levels) at 30 fps; front ones 60 fps.
+- Give every element a `z_index`. The bar puts an element without one at 0, 10, 20, ... in the order of its draw
+  request, so a live face's later elements land over animations (Pkmn Life's "last day" at 70, over its title cards
+  at 60). The clock face sits on layers 0 and 1 (`CLOCK_Z`); play animations over it well above that.
 - Redraw live elements on human time scales (the clock: once a second, coalesced). Never per frame.
 - The bar refuses a clear that names an id it doesn't have, and then clears nothing: clear only ids you drew. For a
   set of elements whose make-up changes, draw through `LiveFace`.

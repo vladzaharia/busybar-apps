@@ -10,7 +10,7 @@
 // Sprints after a change follow on from it at the regular length. Work days are Monday to Friday, less days off.
 // "Days left" counts today while it is a work day, so the last day of a sprint says 1.
 
-import { clockFace, dateLine, type ClockOptions } from "./clock.ts";
+import { CLOCK_Z, clockFace, dateLine, type ClockOptions } from "./clock.ts";
 import { METRICS, textWidth } from "./metrics.ts";
 import type { DisplayElement, RectangleElement, TextElement } from "./types.ts";
 
@@ -201,6 +201,8 @@ const rect = (id: string, x: number, y: number, width: number, height: number, c
   fill_colors: [color],
   border_width: 0,
   display: "front",
+  // On the face's layer, with its text (clock.ts, CLOCK_Z).
+  z_index: CLOCK_Z.face,
 });
 
 /**

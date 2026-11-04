@@ -79,6 +79,23 @@ test("timeouts remove elements; z order decides what is on top; clear checks ids
   assert.equal(ok.status, 200);
 });
 
+test("an element without a z_index gets 0, 10, 20, ... in its request's order, as on the bar", async () => {
+  const { d } = device();
+  const rect = (id: string, color: string, extra: Record<string, unknown> = {}) =>
+    ({ id, type: "rectangle", width: 72, height: 16, fill: "solid", fill_colors: [color], border_width: 0, ...extra });
+  // A card at z 60, then a face of eight elements with no z_index: the eighth gets 70, over the card (Pkmn Life's
+  // "last day" over the title card, 2026-11-04).
+  await d.handle("POST", "/display/draw", JSON.stringify({ application_name: "t", elements: [rect("card", "#0000FFFF", { z_index: 60 })] }));
+  const face = Array.from({ length: 8 }, (_, i) => rect(`face${i}`, i === 7 ? "#FF0000FF" : "#00000000"));
+  await d.handle("POST", "/display/draw", JSON.stringify({ application_name: "t", elements: face }));
+  d.tick(0.1);
+  assert.deepEqual([...d.screens.front.data.slice(0, 3)], [255, 0, 0], "the eighth element (z 70) is over the card");
+  // Each request counts from 0 again: the same element drawn on its own is at 0, under the card.
+  await d.handle("POST", "/display/draw", JSON.stringify({ application_name: "t", elements: [face[7]] }));
+  d.tick(0.1);
+  assert.deepEqual([...d.screens.front.data.slice(0, 3)], [0, 0, 255]);
+});
+
 test("apps can read settings but not reach endpoints closed to them", async () => {
   const { d } = device();
   assert.deepEqual((await d.handle("GET", "/apps/settings?app_id=t", null)).json, { version: 1, values: { mode: "x" } });

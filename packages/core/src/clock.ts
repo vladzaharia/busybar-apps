@@ -26,6 +26,13 @@ export interface ClockOptions {
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+/**
+ * The face's layers: the calendar at 0, everything else at 1 (the day is printed on the calendar). Every element
+ * names one: the bar puts an element without a z_index at 0, 10, 20, ... in its request's order, so a face's later
+ * elements would land over an app's animations (Pkmn Life's "last day" at 70, over its title cards at 60).
+ */
+export const CLOCK_Z = { icon: 0, face: 1 } as const;
+
 const SCREEN_W = 72;
 const SCREEN_H = 16;
 const ICON = { width: 13, height: 14 };
@@ -71,6 +78,7 @@ export function clockFace(now: Date, o: ClockOptions): DisplayElement[] {
     x,
     y,
     display: "front",
+    z_index: CLOCK_Z.face,
   });
 
   const { time, suffix } = formatTime(now, o.timeFormat);
@@ -89,7 +97,7 @@ export function clockFace(now: Date, o: ClockOptions): DisplayElement[] {
   if (o.showDate) {
     const iconY = center(ICON.height, SCREEN_H) + (o.dy ?? 0);
     const day = o.iconLabel === undefined ? String(now.getDate()) : o.iconLabel;
-    out.push({ type: "image", id: `${p}icon`, path: o.icon, x: left, y: iconY, display: "front" });
+    out.push({ type: "image", id: `${p}icon`, path: o.icon, x: left, y: iconY, display: "front", z_index: CLOCK_Z.icon });
     if (day !== null) {
       const dayX = left + center(textWidth(day, "superscript"), ICON.width) + DAY_OFFSET.dx;
       out.push(text("day", day, "superscript", DAY_COLOR, dayX, iconY + DAY_OFFSET.dy - CAP_TOP));
