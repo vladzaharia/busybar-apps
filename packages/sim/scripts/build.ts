@@ -12,6 +12,7 @@ import { join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import { build } from "vite";
+import { checkSettingsSchema } from "../src/settings-schema.ts";
 import { serveFromCli } from "./serve.ts";
 
 const { values: opts, positionals } = parseArgs({
@@ -31,7 +32,16 @@ const id = readdirSync(tmp)[0]!;
 const pkgDir = join(tmp, id);
 const manifest = JSON.parse(readFileSync(join(pkgDir, "appmeta", "manifest.json"), "utf8")) as Record<string, string>;
 const settingsPath = join(pkgDir, "appmeta", "settings.json");
-const settings = existsSync(settingsPath) ? JSON.parse(readFileSync(settingsPath, "utf8")) : null;
+const settingsText = existsSync(settingsPath) ? readFileSync(settingsPath, "utf8") : null;
+// The bar shows and stores no settings at all for a file its firmware refuses: neither does the simulator.
+const problems = settingsText === null ? [] : checkSettingsSchema(settingsText);
+if (problems.length > 0) {
+  rmSync(tmp, { recursive: true, force: true });
+  console.error(`appmeta/settings.json: the bar refuses it ("Application settings schema is invalid"):`);
+  for (const p of problems) console.error(`  ${p}`);
+  process.exit(1);
+}
+const settings = settingsText === null ? null : JSON.parse(settingsText);
 const appScript = readFileSync(join(pkgDir, "scripts", "main.js"), "utf8");
 
 // 2. The simulator runtime, as one script.

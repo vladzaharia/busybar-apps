@@ -198,7 +198,7 @@
       "description": "Exceptions to the two-week sprints, separated by commas. 26=2026-12-17 moves sprint 26's start (the one before runs until then); add /3w to make it 3 weeks; 26/3w only changes its length; 30+/3w makes sprint 30 and every later one 3 weeks; off=2026-12-24..2027-01-01 marks days off. Everything else is worked out.",
       "type": "string",
       "default": "",
-      "max_length": 500
+      "max_length": 255
     },
     "remote_control": {
       "label": "Mac remote",

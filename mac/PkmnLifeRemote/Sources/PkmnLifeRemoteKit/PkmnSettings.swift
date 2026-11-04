@@ -63,7 +63,7 @@ public enum PkmnSettings {
         SettingField("blink_colons", "Colon blink", .toggle, .bool(true), group: "Clock"),
         SettingField("sprint_display", "Sprint", options([("none", "Not shown"), ("bar", "Sprint bar"), ("dots", "Sprint dots"), ("short", "Days left")]),
                      .string("short"), group: "Sprint", help: "How the clock shows the sprint: a bar of work days, a dot per work day, or the days left (\"S22 | 6 left\")."),
-        SettingField("sprint_changes", "Sprint changes", .text(maxLength: 500), .string(""), group: "Sprint",
+        SettingField("sprint_changes", "Sprint changes", .text(maxLength: 255), .string(""), group: "Sprint",
                      help: "Exceptions to the two-week sprints, separated by commas: 26=2026-12-17 moves sprint 26's start (add /3w to make it 3 weeks), 26/3w changes only its length, 30+/3w makes sprint 30 and every later one 3 weeks, off=2026-12-24..2027-01-01 marks days off."),
         SettingField("remote_control", "Mac remote", .toggle, .bool(true), group: "Remote",
                      help: "Lets this app play entries and change these settings while Pkmn Life runs. Turned off, changes here apply when Pkmn Life next starts."),
