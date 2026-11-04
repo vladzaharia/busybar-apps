@@ -3,6 +3,8 @@
 
 import { log } from "@clack/prompts";
 import { spawnSync } from "node:child_process";
+import { quitRunningApp } from "./bar-http.ts";
+import type { Device } from "./device.ts";
 import type { Plan, Step, Task } from "./plan.ts";
 
 export interface Outcome {
@@ -30,11 +32,22 @@ export function runScript(step: Step, cwd: string): number {
   return sh("pnpm", ["--silent", "run", step.script, ...step.args], cwd);
 }
 
-export function runPlan(plan: Plan): Outcome[] {
+/** Quits whatever app is running, so the install can replace its files; never fails the install by itself. */
+async function quitFirst(device: Device): Promise<void> {
+  const quit = await quitRunningApp(device);
+  if (quit.kind === "quit") log.step("Quit the app running on the bar, so the install can replace it");
+  else if (quit.kind === "failed") log.warn(`Couldn't quit the app running on the bar (${quit.reason}); installing anyway.`);
+}
+
+export async function runPlan(plan: Plan): Promise<Outcome[]> {
   const outcomes: Outcome[] = [];
   for (const task of plan.tasks) {
     let failed: Outcome["failed"];
     for (const step of task.steps) {
+      if (step.own === "quit") {
+        await quitFirst(plan.device);
+        continue;
+      }
       log.step(`${task.title}: ${step.script === plan.action.script ? plan.action.name : step.script}`);
       const code = runScript(step, task.app.dir);
       if (code !== 0) {

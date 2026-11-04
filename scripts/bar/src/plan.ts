@@ -151,9 +151,15 @@ export function chooseApps(apps: readonly App[], name: string, named: readonly A
 }
 
 export interface Step {
+  /** The package.json script it runs; for a step of pnpm bar's own, its name. */
   readonly script: string;
   readonly args: readonly string[];
+  /** Not a script: pnpm bar quits the app running on the bar itself (bar-http.ts), so an install can replace it. */
+  readonly own?: "quit";
 }
+
+/** Before an install: the bar can't replace an app while it runs (bar-http.ts, quitRunningApp). */
+const QUIT: Step = { script: "quit", args: [], own: "quit" };
 
 export interface Task {
   /** What the task is for: an app's slug, or "the bar" for an action on whatever app is on it. */
@@ -166,6 +172,8 @@ export interface Task {
 export interface Plan {
   readonly action: Action;
   readonly tasks: readonly Task[];
+  /** The bar the steps talk to, for pnpm bar's own steps. */
+  readonly device: Device;
 }
 
 export function makePlan(
@@ -197,6 +205,8 @@ export function makePlan(
     const steps: Step[] = [];
     // busy-cli installs what is in dist/ and builds nothing itself: an install without a build ships a stale package.
     if (installing && options.build && "build" in app.scripts) steps.push({ script: "build", args: [] });
+    // After the build, so the bar shows the running app until the new one is ready to go on.
+    if (installing) steps.push(QUIT);
     const port = own.script === "sim:serve" && options.port !== undefined ? ["--port", options.port] : [];
     steps.push({ script: own.script, args: [...bar, ...port, ...extra] });
     if (options.run) {
@@ -205,11 +215,12 @@ export function makePlan(
     }
     return { title: action.scope === "device" ? "the bar" : app.slug, app, steps };
   });
-  return { action, tasks };
+  return { action, tasks, device };
 }
 
 /** A step as it would be typed, with any password hidden: for logs. */
 export function describeStep(step: Step): string {
+  if (step.own === "quit") return "quit the app running on the bar";
   const args = step.args.map((a, i) => (step.args[i - 1] === "--password" ? "***" : a));
   return ["pnpm", "run", step.script, ...args].join(" ");
 }
