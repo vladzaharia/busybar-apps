@@ -62,7 +62,11 @@ devices on the local network.
 
 ## Build and install
 
-On a Mac with macOS 26 and Xcode 26 (or its command-line tools):
+From the repository's root, `pnpm bar mac` installs the app in `/Applications` and opens it (quitting the copy that's
+running): CI's newest build of main, downloaded with the GitHub CLI; `--from release` for the latest release,
+notarized; `--from local` to build this checkout as below.
+
+To build it yourself, on a Mac with macOS 26 and Xcode 26 (or its command-line tools):
 
 ```sh
 cd mac/PkmnLifeRemote
@@ -98,8 +102,9 @@ The app's launch options for this (`--appearance`, `--pin`, `--peek`, `--setting
 `LaunchOptions.swift`. Screen captures need Screen Recording permission and an unlocked screen; `--snapshot` works
 without either, and its `panel-render.png` (drawn by SwiftUI, with stand-in glass) is the one to look at then.
 
-CI builds it too: download the `pkmn-life-remote` artifact and unzip it. The app is signed ad hoc, not notarised, so
-the first time macOS may ask you to open it from Finder with right-click → Open.
+CI builds it too, as the `pkmn-life-remote` artifact, signed ad hoc: that's what `pnpm bar mac` installs. Downloaded
+through a browser instead, the zip is quarantined, and macOS refuses an app that isn't notarised until it's allowed
+in System Settings → Privacy & Security → Open Anyway.
 
 ## How it works
 
