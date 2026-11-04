@@ -4,7 +4,7 @@
 //   pnpm bar                          choose, step by step (at a terminal)
 //   pnpm bar <action> <app>...        sim, serve, build, install, run, stop, uninstall, ...: whatever scripts the
 //                                     apps have (actions.ts)
-//   pnpm bar list | new | check | gallery | help
+//   pnpm bar list | new | check | gallery | mac | help
 
 import { intro, log, outro } from "@clack/prompts";
 import { parseArgs } from "node:util";
@@ -12,7 +12,8 @@ import { join, relative } from "node:path";
 import { appsWith, type Action } from "./actions.ts";
 import { describeDevice, readDotEnv, resolveDevice } from "./device.ts";
 import { runPlan, sh, type Outcome } from "./exec.ts";
-import { askApps, askNewApp, askRunAfterInstall, askWhat, isInteractive } from "./interactive.ts";
+import { askApps, askMacSource, askNewApp, askRunAfterInstall, askWhat, isInteractive } from "./interactive.ts";
+import { describeInstall, installMac, parseSource, readMacApp } from "./mac.ts";
 import {
   UsageError,
   chooseApps,
@@ -162,6 +163,20 @@ async function command(cmd: Command, words: readonly string[], line: CommandLine
       const code = sh("pnpm", ["--silent", "--filter", "@vladzaharia/bar-pixel", "gallery", out], ROOT);
       if (code === 0) outro(`Open ${relative(process.cwd(), join(out, "index.html")) || "index.html"} in a browser.`);
       return code;
+    }
+    case "mac": {
+      if (words.length > 0) throw new UsageError("mac takes no app: pnpm bar mac [--from ci|release|local].");
+      const app = readMacApp(ROOT);
+      const source = asked && line.options.from === undefined ? await askMacSource(app) : parseSource(line.options.from);
+      if (!asked) intro("pnpm bar mac");
+      else log.info(`The same in one go, next time: ${cyan(`pnpm bar mac${source === "ci" ? "" : ` --from ${source}`}`)}`);
+      if (line.options["dry-run"]) {
+        log.message(describeInstall(app, source));
+        outro("Dry run: nothing was run.");
+        return 0;
+      }
+      outro(await installMac(ROOT, app, source));
+      return 0;
     }
   }
 }

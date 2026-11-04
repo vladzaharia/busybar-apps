@@ -10,7 +10,7 @@ import { findApp, type App } from "./repo.ts";
 export class UsageError extends Error {}
 
 /** Commands about the repository rather than an app. They take precedence over an app script of the same name. */
-export const COMMANDS = ["help", "list", "new", "check", "gallery"] as const;
+export const COMMANDS = ["help", "list", "new", "check", "gallery", "mac"] as const;
 export type Command = (typeof COMMANDS)[number];
 
 export interface Options {
@@ -24,6 +24,8 @@ export interface Options {
   readonly addr?: string;
   readonly password?: string;
   readonly port?: string;
+  /** mac: where the Mac app comes from (mac.ts). */
+  readonly from?: string;
 }
 
 export interface CommandLine {
@@ -53,6 +55,7 @@ export function parseCommandLine(argv: readonly string[]): CommandLine {
         addr: { type: "string" },
         password: { type: "string" },
         port: { type: "string" },
+        from: { type: "string" },
       },
     });
     return { words: positionals, options: values as Options, extra };
@@ -167,7 +170,7 @@ export interface Plan {
 
 export function makePlan(
   picks: readonly AppAction[],
-  options: Pick<Options, "build" | "run" | "port">,
+  options: Pick<Options, "build" | "run" | "port" | "from">,
   device: Device,
   extra: readonly string[] = [],
 ): Plan {
@@ -184,6 +187,7 @@ export function makePlan(
   if (options.run && !installing) throw new UsageError("--run goes with install: pnpm bar install <app> --run.");
   if (!options.build && !installing) throw new UsageError("--no-build goes with install.");
   if (options.port !== undefined && action.script !== "sim:serve") throw new UsageError("--port goes with serve.");
+  if (options.from !== undefined) throw new UsageError("--from goes with mac: pnpm bar mac --from release.");
   if (options.run && picks.length > 1) {
     throw new UsageError("--run launches one app (the bar runs one at a time): install them, then pnpm bar run <app>.");
   }

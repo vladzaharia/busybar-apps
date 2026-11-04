@@ -19,6 +19,7 @@ export const REPO_COMMANDS: readonly { name: string; usage: string; summary: str
   { name: "new", usage: "new <slug>", summary: "Make a new app from the template" },
   { name: "check", usage: "check", summary: "Typecheck and test everything (as CI does)" },
   { name: "gallery", usage: "gallery", summary: "Build the effects gallery (dist/gallery/index.html)" },
+  { name: "mac", usage: "mac", summary: "Install Pkmn Life Remote, the Mac app, and open it" },
 ];
 
 export function helpText(apps: readonly App[]): string {
@@ -55,6 +56,7 @@ export function helpText(apps: readonly App[]): string {
   row("--port <n>", "serve: the port (default 2879)");
   row("--addr <host>", `the bar's address (default ${USB_ADDR}, over USB; or BUSY_BAR_ADDR in .env)`);
   row("--password <pw>", "its HTTP API password, over Wi-Fi; better as BUSY_BAR_PASSWORD in .env, as pnpm prints the command line");
+  row("--from <where>", "mac: ci (CI's newest build of main; the default), release (the latest, notarized), local (build it)");
   row("--dry-run", "say what would run, and run nothing");
   row("--json", "list: as JSON (pnpm -s bar list --json: -s keeps pnpm's own lines out of it)");
   row("-- <args>", "passed on to the app's script");
@@ -66,6 +68,7 @@ export function helpText(apps: readonly App[]): string {
     "pnpm bar sim --all",
     `pnpm bar serve ${example}`,
     "pnpm bar install --all --addr 192.168.1.42",
+    "pnpm bar mac",
   ]) {
     lines.push(`  ${cyan(e)}`);
   }

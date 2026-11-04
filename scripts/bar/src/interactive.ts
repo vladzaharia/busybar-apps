@@ -3,6 +3,7 @@
 
 import { cancel, confirm, isCancel, multiselect, select, text } from "@clack/prompts";
 import { allActions, appActions } from "./actions.ts";
+import { SOURCES, SOURCE_SUMMARIES, type MacApp, type Source } from "./mac.ts";
 import type { AppAction, Command } from "./plan.ts";
 import type { App } from "./repo.ts";
 import { REPO_COMMANDS } from "./ui.ts";
@@ -54,6 +55,11 @@ export async function askApps(action: string, candidates: readonly AppAction[], 
 
 export async function askRunAfterInstall(app: App): Promise<boolean> {
   return answer(await confirm({ message: `Launch ${app.name} on the bar once it is installed?`, initialValue: true }));
+}
+
+export async function askMacSource(app: MacApp): Promise<Source> {
+  const options = SOURCES.map((s) => ({ value: s, label: s, hint: SOURCE_SUMMARIES[s] }));
+  return answer(await select<Source>({ message: `Which ${app.name}?`, options, initialValue: "ci" }));
 }
 
 /** The same rules scripts/new-app.ts enforces, asked up front so a typo is caught at the prompt. */

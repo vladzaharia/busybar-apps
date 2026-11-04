@@ -55,6 +55,15 @@ command line, so the password is better kept in `.env`). The app also appears
 in the bar's **Apps** menu. Each action is the app's own script, so `cd apps/pkmn-life && pnpm sim` (or `pnpm build`,
 `pnpm app:install`, ...) still works the same.
 
+Pkmn Life Remote, the Mac app in [`mac/`](mac), installs with one command too. It goes in `/Applications` and opens;
+an update quits the copy that's running first:
+
+```sh
+pnpm bar mac                        # CI's newest build of main (with the GitHub CLI, signed in: gh auth login)
+pnpm bar mac --from release         # the latest release: notarized, but can be older than main
+pnpm bar mac --from local           # built here from this checkout (Xcode 26 or later)
+```
+
 ## Releases
 
 One version covers everything: push a `vX.Y.Z` tag and the **Release** workflow puts every app (for the bar, and in
