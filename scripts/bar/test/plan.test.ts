@@ -80,17 +80,18 @@ test("chooseApps: stop needs no app", () => {
   assert.deepEqual(choice.kind === "apps" && choice.picks.map((p) => p.app.slug), ["alpha"]);
 });
 
-test("makePlan: install builds first, then installs, with the bar's arguments", () => {
+test("makePlan: install builds, quits the running app, then installs, with the bar's arguments", () => {
   const plan = makePlan(picks("install", "alpha"), defaults, wifi);
   assert.deepEqual(steps(plan), [
-    ["alpha", ["pnpm run build", "pnpm run app:install --addr 192.168.1.42 --password ***"]],
+    ["alpha", ["pnpm run build", "quit the app running on the bar", "pnpm run app:install --addr 192.168.1.42 --password ***"]],
   ]);
-  assert.equal(plan.tasks[0]!.steps[1]!.args.at(-1), "pw");
+  assert.equal(plan.tasks[0]!.steps[2]!.args.at(-1), "pw");
+  assert.equal(plan.device, wifi, "the quit goes to the same bar");
 });
 
 test("makePlan: install --no-build --run", () => {
   const plan = makePlan(picks("install", "alpha"), { ...defaults, build: false, run: true }, usb);
-  assert.deepEqual(steps(plan), [["alpha", ["pnpm run app:install", "pnpm run app:run"]]]);
+  assert.deepEqual(steps(plan), [["alpha", ["quit the app running on the bar", "pnpm run app:install", "pnpm run app:run"]]]);
 });
 
 test("makePlan: one task per app, in order; extra arguments go to the script", () => {

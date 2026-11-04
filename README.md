@@ -53,7 +53,8 @@ BUSY_BAR_PASSWORD=...       # only with password protection on
 or on the command line: `pnpm bar install pkmn-life --addr 192.168.1.42 --password <password>` (pnpm prints the
 command line, so the password is better kept in `.env`). The app also appears
 in the bar's **Apps** menu. Each action is the app's own script, so `cd apps/pkmn-life && pnpm sim` (or `pnpm build`,
-`pnpm app:install`, ...) still works the same.
+`pnpm app:install`, ...) still works the same, with one difference: `pnpm bar install` quits the app running on the
+bar first. The bar can't replace an app while it runs, and `pnpm app:install` alone then fails with a 400.
 
 Pkmn Life Remote, the Mac app in [`mac/`](mac), installs with one command too. It goes in `/Applications` and opens;
 an update quits the copy that's running first:

@@ -64,6 +64,9 @@ built on shared libraries that grow with every app.
 - The app lives while an input listener, a timer or a fetch is pending. `createApp().quit()` releases everything in
   the safe order. Never unbind input from inside the input handler synchronously.
 - Buttons react on `short`; `long`/`repeat` for holds. A long BACK is the firmware's force quit; the app never sees it.
+- The bar can't install over a running app: deleting the old copy stops at its first open file (a playing animation),
+  having deleted the rest, and the install answers 400. `pnpm bar install` quits the running app first (busy-cli's
+  `app:install` doesn't); an install that failed this way leaves a half-deleted app, which a reinstall repairs.
 - The manifest `id` is the package folder on the bar: at most 32 characters of letters, digits, `_`, `-`, `.`.
 - Text is printable ASCII only.
 - `appmeta/settings.json` must pass the firmware's check, or the bar shows and stores no settings at all (its web UI

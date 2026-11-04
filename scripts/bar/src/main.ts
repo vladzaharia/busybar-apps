@@ -10,7 +10,8 @@ import { intro, log, outro } from "@clack/prompts";
 import { parseArgs } from "node:util";
 import { join, relative } from "node:path";
 import { appsWith, type Action } from "./actions.ts";
-import { describeDevice, readDotEnv, resolveDevice } from "./device.ts";
+import { barAnswers } from "./bar-http.ts";
+import { describeDevice, readDotEnv, resolveDevice, type Device } from "./device.ts";
 import { runPlan, sh, type Outcome } from "./exec.ts";
 import { askApps, askMacSource, askNewApp, askRunAfterInstall, askWhat, isInteractive } from "./interactive.ts";
 import { describeInstall, installMac, parseSource, readMacApp } from "./mac.ts";
@@ -81,7 +82,7 @@ async function main(argv: readonly string[]): Promise<number> {
     outro("Dry run: nothing was run.");
     return 0;
   }
-  return summarise(plan.action, runPlan(plan), options.run);
+  return summarise(plan.action, await runPlan(plan), options.run, device);
 }
 
 /** The command line for what was chosen through the menu, so the menu teaches the shortcut. */
@@ -91,7 +92,7 @@ function shortcut(action: Action, picks: readonly AppAction[], apps: readonly Ap
   return ["pnpm bar", action.name, ...which, ...(run ? ["--run"] : [])].join(" ");
 }
 
-function summarise(action: Action, outcomes: readonly Outcome[], launched: boolean): number {
+async function summarise(action: Action, outcomes: readonly Outcome[], launched: boolean, device: Device): Promise<number> {
   const failed = outcomes.filter((o) => o.failed);
   if (outcomes.length > 1) {
     for (const o of outcomes) {
@@ -99,7 +100,8 @@ function summarise(action: Action, outcomes: readonly Outcome[], launched: boole
       else log.success(o.task.title);
     }
   }
-  if (failed.some((o) => o.failed!.step.script.startsWith("app:"))) {
+  // Only when the bar doesn't answer: one that answered and refused has said why (busy-cli prints it).
+  if (failed.some((o) => o.failed!.step.script.startsWith("app:")) && !(await barAnswers(device))) {
     log.warn(
       "Can't reach the bar? Over USB it is 10.0.4.20. Over Wi-Fi, turn on HTTP API access in its web UI and set " +
         "BUSY_BAR_ADDR (and BUSY_BAR_PASSWORD, with password protection) in .env, or pass --addr and --password.",
