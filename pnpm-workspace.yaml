@@ -2,3 +2,7 @@ packages:
   - apps/*
   - packages/*
   - scripts/bar
+
+# Before any `pnpm <script>`, install whatever a pull changed (a new package, a new dependency), so `pnpm bar` and the
+# rest work straight after `git pull`. When nothing changed it is a quick check; CI installs first, so it never fires.
+verifyDepsBeforeRun: install
