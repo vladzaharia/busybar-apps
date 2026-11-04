@@ -7,7 +7,9 @@ builds the app with busy-cli and writes a page that runs that build against an e
   and 403 for endpoints apps cannot reach;
 - the app's lifecycle: it ends when nothing keeps it alive, a long BACK force-quits it;
 - BACK, START and the wheel (turn and press for OK), with press/long/repeat/short, plus the keyboard;
-- a settings form from the app's `settings.json`, and a log of every request and input.
+- a settings form from the app's `settings.json`, and a log of every request and input;
+- the bar's check of that `settings.json` ([`src/settings-schema.ts`](src/settings-schema.ts), ported from the
+  firmware's `lib/js_app/js_app_settings.c`): the build refuses a file the bar would refuse, with the bar's messages.
 
 Scripts can drive it through `window.barSim`.
 

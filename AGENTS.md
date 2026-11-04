@@ -63,6 +63,10 @@ built on shared libraries that grow with every app.
 - Buttons react on `short`; `long`/`repeat` for holds. A long BACK is the firmware's force quit; the app never sees it.
 - The manifest `id` is the package folder on the bar: at most 32 characters of letters, digits, `_`, `-`, `.`.
 - Text is printable ASCII only.
+- `appmeta/settings.json` must pass the firmware's check, or the bar shows and stores no settings at all (its web UI
+  says "Application settings schema is invalid"): a string's `max_length` is 255 at most (64 when unset), an enum has
+  1 to 32 options. The simulator build makes the same check (`packages/sim/src/settings-schema.ts`) and refuses the
+  file with the bar's message.
 
 ## Checking your work
 

@@ -113,7 +113,7 @@ When the app starts on a work day, and when you hold START, the card for the par
 
 Sprints are worked out, never typed in: the team's cadence (Sprint 22 began on Thursday 22 October 2026, two-week
 sprints) is in [`src/presets.ts`](src/presets.ts), and every later sprint follows from it. Anything irregular goes in
-the **Sprint changes** setting, a comma-separated list you can fill in ahead of time:
+the **Sprint changes** setting, a comma-separated list (255 characters at most) you can fill in ahead of time:
 
 | Entry | Meaning |
 | --- | --- |
